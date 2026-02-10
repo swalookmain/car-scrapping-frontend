@@ -66,7 +66,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       isRefreshingRef.current = false;
       localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       setUser(null);
       window.location.href = '/';
@@ -102,14 +101,9 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await authApi.login(email, password);
 
-    const { accessToken, refreshToken, user: userData } = response;
+    const { accessToken, user: userData } = response;
 
     localStorage.setItem('accessToken', accessToken);
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
-    } else {
-      localStorage.removeItem('refreshToken');
-    }
     localStorage.setItem('user', JSON.stringify(userData));
 
     setUser(userData);
@@ -130,7 +124,6 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       clearScheduledRefresh();
       setUser(null);
