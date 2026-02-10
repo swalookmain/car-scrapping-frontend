@@ -8,10 +8,16 @@ export const refreshAuth = async () => {
 
   _inflightRefresh = (async () => {
     try {
-      // Prefer cookie-based refresh (httpOnly cookie). If no cookie is
-      // present, fall back to sending a refresh token from localStorage
-      // if available (some backends return it during login).
-      const storedRefresh = localStorage.getItem('refreshToken');
+      // Always read refreshToken from cookies and send in payload if available
+      let refreshTokenFromCookie = null;
+      const cookieMatch = document.cookie.match(/(^|;)\s*refreshToken=([^;]*)/);
+      if (cookieMatch) {
+        refreshTokenFromCookie = decodeURIComponent(cookieMatch[2]);
+        console.log('refreshService: found refreshToken in cookie:', refreshTokenFromCookie);
+      } else {
+        console.log('refreshService: no refreshToken found in accessible cookies');
+      }
+
       const currentAccess = localStorage.getItem('accessToken');
       const headers = { 'Content-Type': 'application/json' };
       const config = { withCredentials: true, headers };
@@ -21,20 +27,13 @@ export const refreshAuth = async () => {
         config.headers.Authorization = `Bearer ${currentAccess}`;
       }
 
-      // Prepare body fallback: if we have a stored refresh token, send it
-      // in the request body as { refreshToken } (some servers expect this).
-      const body = storedRefresh ? { refreshToken: storedRefresh } : {};
-
-      // If backend also expects refresh in Authorization, prefer sending access
-      // token in Authorization and rely on cookie for refresh token. If only
-      // storedRefresh exists, also set as Authorization fallback (older flows).
-      if (!currentAccess && storedRefresh) {
-        config.headers.Authorization = `Bearer ${storedRefresh}`;
-      }
+      // Always send refreshToken in payload if available
+      const payload = refreshTokenFromCookie ? { refreshToken: refreshTokenFromCookie } : {};
+      console.log('refreshService: calling refresh API with payload:', payload);
 
       const response = await axios.post(
         `${API_CONFIG.BASE_URL}${ENDPOINTS.AUTH.REFRESH}`,
-        body,
+        payload,
         config
       );
 
