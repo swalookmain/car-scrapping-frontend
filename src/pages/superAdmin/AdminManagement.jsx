@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Switch, IconButton } from '@mui/material';
+import toast from 'react-hot-toast';
+import { Switch, IconButton, Typography, Box, Divider } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import ConfirmDialog from '../../ui/ConfirmDialog';
 import { usersApi, organizationsApi } from '../../services/api';
 import Breadcrumb from '../../ui/Breadcrumb';
 import TableToolbar from '../../ui/TableToolbar';
 import NormalTable from '../../ui/NormalTable';
+import NormalModal from '../../ui/NormalModal';
 import AdminForm from './AdminForm';
 import SuperAdminLayout from '../../layout/SuperAdminLayout';
 
@@ -58,12 +61,15 @@ const AdminManagement = () => {
       if (!body.password) delete body.password;
       if (id) {
         await usersApi.updateUser(id, body);
+        toast.success('Admin updated successfully');
       } else {
         await usersApi.createUser({ ...body, role: 'ADMIN' });
+        toast.success('Admin created successfully');
       }
       fetchAdmins(page + 1, rowsPerPage);
     } catch (err) {
-      // handle error
+      console.error('Admin save error:', err);
+      toast.error('Failed to save admin. Please try again.');
     }
   };
 
@@ -71,13 +77,23 @@ const AdminManagement = () => {
     setAdmins((prev) => prev.map((u) => (u._id === id || u.id === id ? { ...u, isActive: !current } : u)));
     try {
       await usersApi.updateUser(id, { isActive: !current });
+      toast.success(`Admin ${!current ? 'activated' : 'deactivated'}`);
     } catch (err) {
       setAdmins((prev) => prev.map((u) => (u._id === id || u.id === id ? { ...u, isActive: current } : u)));
+      toast.error('Failed to update status.');
     }
   };
 
   const handleEdit = (item) => {
     if (formRef.current && formRef.current.open) formRef.current.open(item);
+  };
+
+  const [viewOpen, setViewOpen] = React.useState(false);
+  const [viewItem, setViewItem] = React.useState(null);
+
+  const handleView = (item) => {
+    setViewItem(item);
+    setViewOpen(true);
   };
 
   const [confirmOpen, setConfirmOpen] = React.useState(false);
@@ -91,9 +107,11 @@ const AdminManagement = () => {
   const handleDelete = async (id) => {
     try {
       await usersApi.deleteUser(id);
+      toast.success('Admin deleted successfully');
       fetchAdmins(1, rowsPerPage);
     } catch (err) {
-      // handle error
+      console.error('Delete error:', err);
+      toast.error('Failed to delete admin. Please try again.');
     } finally {
       setConfirmOpen(false);
       setConfirmTarget(null);
@@ -113,8 +131,11 @@ const AdminManagement = () => {
     { field: 'isActive', headerName: 'Active', width: '7%', render: (row) => (
       <Switch checked={Boolean(row.isActive)} onChange={() => handleToggleActiveUser(row._id || row.id, row.isActive)} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'var(--color-secondary-main)' } }} />
     ) },
-    { field: 'actions', headerName: 'Actions', width: '8%', render: (row) => (
+    { field: 'actions', headerName: 'Actions', width: '12%', render: (row) => (
       <>
+        <IconButton size="small" onClick={() => handleView(row)} aria-label="view" sx={{ color: '#1565c0' }}>
+          <VisibilityIcon fontSize="small" />
+        </IconButton>
         <IconButton size="small" onClick={() => handleEdit(row)} aria-label="edit" sx={{ color: 'var(--color-secondary-main)' }}>
           <EditIcon fontSize="small" />
         </IconButton>
@@ -154,6 +175,32 @@ const AdminManagement = () => {
           onRowsPerPageChange={(r) => { setRowsPerPage(r); setPage(0); fetchAdmins(1, r); }}
         />
         <AdminForm ref={formRef} onSubmit={handleCreate} organizations={orgs} />
+
+        <NormalModal
+          open={viewOpen}
+          onClose={() => setViewOpen(false)}
+          title="Admin Details"
+          maxWidth="sm"
+        >
+          {viewItem && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {[
+                { label: 'Name', value: viewItem.name },
+                { label: 'Email', value: viewItem.email },
+                { label: 'Role', value: viewItem.role },
+                { label: 'Organization', value: orgs.find(o => (o._id || o.id) === viewItem.organizationId)?.name || '—' },
+                { label: 'Status', value: viewItem.isActive ? 'Active' : 'Inactive' },
+              ].map(({ label, value }) => (
+                <Box key={label}>
+                  <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
+                  <Typography variant="body1" sx={{ color: 'var(--color-grey-900)', mt: 0.25 }}>{value || '—'}</Typography>
+                  <Divider sx={{ mt: 1 }} />
+                </Box>
+              ))}
+            </Box>
+          )}
+        </NormalModal>
+
         <ConfirmDialog
           open={confirmOpen}
           title="Delete user"

@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Switch, IconButton } from '@mui/material';
+import toast from 'react-hot-toast';
+import { Switch, IconButton, Typography, Box, Divider } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import ConfirmDialog from '../../ui/ConfirmDialog';
 import { organizationsApi } from '../../services/api';
 import Breadcrumb from '../../ui/Breadcrumb';
 import TableToolbar from '../../ui/TableToolbar';
 import NormalTable from '../../ui/NormalTable';
+import NormalModal from '../../ui/NormalModal';
 import OrganizationForm from './OrganizationForm';
 import SuperAdminLayout from '../../layout/SuperAdminLayout';
 
@@ -45,12 +48,15 @@ const OrganizationManagement = () => {
       if (payload && (payload._id || payload.id)) {
         const id = payload._id || payload.id;
         await organizationsApi.update(id, payload);
+        toast.success('Organization updated successfully');
       } else {
         await organizationsApi.create(payload);
+        toast.success('Organization created successfully');
       }
       fetchOrganizations(1, rowsPerPage);
     } catch (err) {
-      // handle error
+      console.error('Organization save error:', err);
+      toast.error('Failed to save organization. Please try again.');
     }
   };
 
@@ -59,15 +65,26 @@ const OrganizationManagement = () => {
     setOrganizations((prev) => prev.map((o) => (o._id === id || o.id === id ? { ...o, isActive: !current } : o)));
     try {
       await organizationsApi.update(id, { isActive: !current });
+      toast.success(`Organization ${!current ? 'activated' : 'deactivated'}`);
     } catch (err) {
       // revert on error
       setOrganizations((prev) => prev.map((o) => (o._id === id || o.id === id ? { ...o, isActive: current } : o)));
+      toast.error('Failed to update status.');
     }
   };
 
   const handleEdit = (item) => {
     if (formRef.current && formRef.current.open) formRef.current.open(item);
   };
+
+  const [viewOpen, setViewOpen] = React.useState(false);
+  const [viewItem, setViewItem] = React.useState(null);
+
+  const handleView = (item) => {
+    setViewItem(item);
+    setViewOpen(true);
+  };
+
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [confirmTarget, setConfirmTarget] = React.useState(null);
 
@@ -79,9 +96,11 @@ const OrganizationManagement = () => {
   const handleDelete = async (id) => {
     try {
       await organizationsApi.delete(id);
+      toast.success('Organization deleted successfully');
       fetchOrganizations(1, rowsPerPage);
     } catch (err) {
-      // handle error
+      console.error('Delete error:', err);
+      toast.error('Failed to delete organization. Please try again.');
     } finally {
       setConfirmOpen(false);
       setConfirmTarget(null);
@@ -103,6 +122,9 @@ const OrganizationManagement = () => {
     { field: 'createdAt', headerName: 'Created At', width: '30%', render: (row) => new Date(row.createdAt).toLocaleString() },
     { field: 'actions', headerName: 'Actions', width: '20%', render: (row) => (
       <>
+        <IconButton size="small" onClick={() => handleView(row)} aria-label="view" sx={{ color: '#1565c0' }}>
+          <VisibilityIcon fontSize="small" />
+        </IconButton>
         <IconButton size="small" onClick={() => handleEdit(row)} aria-label="edit" sx={{ color: 'var(--color-secondary-main)' }}>
           <EditIcon fontSize="small" />
         </IconButton>
@@ -143,6 +165,30 @@ const OrganizationManagement = () => {
         />
 
         <OrganizationForm ref={formRef} onSubmit={handleCreate} />
+
+        <NormalModal
+          open={viewOpen}
+          onClose={() => setViewOpen(false)}
+          title="Organization Details"
+          maxWidth="sm"
+        >
+          {viewItem && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {[
+                { label: 'Name', value: viewItem.name },
+                { label: 'Status', value: viewItem.isActive ? 'Active' : 'Inactive' },
+                { label: 'Created At', value: viewItem.createdAt ? new Date(viewItem.createdAt).toLocaleString() : '—' },
+              ].map(({ label, value }) => (
+                <Box key={label}>
+                  <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
+                  <Typography variant="body1" sx={{ color: 'var(--color-grey-900)', mt: 0.25 }}>{value || '—'}</Typography>
+                  <Divider sx={{ mt: 1 }} />
+                </Box>
+              ))}
+            </Box>
+          )}
+        </NormalModal>
+
         <ConfirmDialog
           open={confirmOpen}
           title="Delete organization"
