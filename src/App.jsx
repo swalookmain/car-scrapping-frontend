@@ -1,8 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Login from './pages/auth/Login'; 
 import ForgotPassword from './pages/auth/ForgotPassword';
 import Dashboard from './pages/adminPanel/Dashboard';
 import Staff from './pages/adminPanel/Staff';
+import Invoice from './pages/adminPanel/Invoice';
 
 import { DropdownProvider } from './context/DropdownContext';
 import { ModalLockProvider } from './context/ModalLockContext';
@@ -17,6 +19,14 @@ function App() {
     <AuthProvider>
       <DropdownProvider>
         <ModalLockProvider>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3500,
+              style: { fontFamily: 'inherit', fontSize: '14px' },
+              success: { iconTheme: { primary: 'var(--color-secondary-main)', secondary: '#fff' } },
+            }}
+          />
           <Router>
             <Routes>
               <Route path="/" element={<Login />} />
@@ -34,6 +44,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Staff />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoices"
+                element={
+                  <ProtectedRoute>
+                    <Invoice />
                   </ProtectedRoute>
                 }
               />

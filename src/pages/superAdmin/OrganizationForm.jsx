@@ -7,16 +7,20 @@ import inputSx from '../../services/inputStyles';
 const OrganizationForm = forwardRef(({ onSubmit }, ref) => {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', isActive: true });
+  const [initialForm, setInitialForm] = useState(null);
   const [errors, setErrors] = useState({});
   const [editingId, setEditingId] = useState(null);
 
   useImperativeHandle(ref, () => ({
     open: (item) => {
       if (item) {
-        setForm({ name: item.name || '', isActive: Boolean(item.isActive) });
+        const loaded = { name: item.name || '', isActive: Boolean(item.isActive) };
+        setForm(loaded);
+        setInitialForm(loaded);
         setEditingId(item._id || item.id || null);
       } else {
         setForm({ name: '', isActive: true });
+        setInitialForm(null);
         setEditingId(null);
       }
       setOpen(true);
@@ -34,11 +38,14 @@ const OrganizationForm = forwardRef(({ onSubmit }, ref) => {
     return Object.keys(err).length === 0;
   };
 
+  const isDirty = !editingId || !initialForm || JSON.stringify(form) !== JSON.stringify(initialForm);
+
   const handleSubmit = () => {
     if (!validate()) return;
     const payload = { ...form };
     onSubmit(payload, editingId);
     setForm({ name: '', isActive: true });
+    setInitialForm(null);
     setErrors({});
     setEditingId(null);
     setOpen(false);
@@ -51,7 +58,7 @@ const OrganizationForm = forwardRef(({ onSubmit }, ref) => {
       title="Add Organization"
       actions={<>
         <Button onClick={() => setOpen(false)}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained" sx={{ backgroundColor: 'var(--color-secondary-main)', '&:hover': { backgroundColor: 'var(--color-secondary-dark)' } }}>Add</Button>
+        <Button onClick={handleSubmit} disabled={!isDirty} variant="contained" sx={{ backgroundColor: 'var(--color-secondary-main)', '&:hover': { backgroundColor: 'var(--color-secondary-dark)' } }}>{editingId ? 'Save' : 'Add'}</Button>
       </>}
         showCloseButton={!editingId}
       >

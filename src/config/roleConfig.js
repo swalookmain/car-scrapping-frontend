@@ -1,5 +1,6 @@
 import DashboardIcon from '@mui/icons-material/Speed';
 import PeopleIcon from '@mui/icons-material/Groups';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 
 
 export const ROLES = {
@@ -25,6 +26,10 @@ export const ROUTE_CONFIG = [
   {
     path: '/staff',
     allowedRoles: [ROLES.ADMIN],
+  },
+  {
+    path: '/invoices',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
 ];
 
@@ -66,6 +71,17 @@ export const SIDEBAR_CONFIG = [
         label: 'Staff',
         icon: PeopleIcon,
         allowedRoles: [ROLES.ADMIN],
+      },
+    ],
+  },
+  {
+    section: 'Invoice Management',
+    items: [
+      {
+        path: '/invoices',
+        label: 'Purchase Invoices',
+        icon: ReceiptIcon,
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
   },

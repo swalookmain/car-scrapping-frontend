@@ -53,7 +53,7 @@ const NormalTable = ({
             <TableHead>
               <TableRow sx={{ backgroundColor: '#fff' }}>
                 {showCheckbox && (
-                  <TableCell sx={{ width: '50px', padding: '8px 16px' }} />
+                  <TableCell sx={{ width: '48px', padding: '8px 12px' }} />
                 )}
                 {columns.map((column, index) => (
                   <TableCell
@@ -81,7 +81,7 @@ const NormalTable = ({
                   }}
                 >
                   {showCheckbox && (
-                    <TableCell sx={{ width: '50px', padding: '8px 16px' }}>
+                    <TableCell sx={{ width: '48px', padding: '8px 12px' }}>
                       <Box sx={{ height: 20, width: 20, bgcolor: 'var(--color-grey-100)', borderRadius: '6px' }} className="animate-pulse" />
                     </TableCell>
                   )}
@@ -111,8 +111,9 @@ const NormalTable = ({
           <TableHead>
             <TableRow sx={{ backgroundColor: '#fff' }}>
               {showCheckbox && (
-                <TableCell sx={{ width: '50px', padding: '8px 16px' }}>
+                <TableCell sx={{ width: '48px', padding: '8px 12px' }}>
                   <Checkbox
+                    size="small"
                     indeterminate={selectedRows.length > 0 && selectedRows.length < data.length}
                     checked={data.length > 0 && selectedRows.length === data.length}
                     onChange={handleSelectAll}
@@ -128,20 +129,21 @@ const NormalTable = ({
                   />
                 </TableCell>
               )}
-              {columns.map((column, index) => (
-                <TableCell
-                  key={index}
-                  sx={{
-                    fontWeight: 600,
-                    color: 'var(--color-grey-700)',
-                    padding: '16px',
-                    fontSize: '0.875rem',
-                    ...(column.width && { width: column.width })
-                  }}
-                >
-                  {column.headerName}
-                </TableCell>
-              ))}
+              {columns.map((column, index) => {
+                const headerSx = {
+                  fontWeight: 600,
+                  color: 'var(--color-grey-700)',
+                  padding: '16px',
+                  fontSize: '0.875rem',
+                  ...(column.width && { width: column.width })
+                };
+                if (showCheckbox && index === 0) headerSx.paddingLeft = '8px';
+                return (
+                  <TableCell key={index} sx={headerSx}>
+                    {column.headerName}
+                  </TableCell>
+                );
+              })}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -155,8 +157,9 @@ const NormalTable = ({
                 }}
               >
                 {showCheckbox && (
-                  <TableCell sx={{ width: '50px', padding: '8px 16px' }}>
+                  <TableCell sx={{ width: '48px', padding: '8px 12px' }}>
                     <Checkbox
+                      size="small"
                       checked={selectedRows.includes(row.id)}
                       onChange={() => handleSelectRow(row.id)}
                       sx={{
@@ -168,11 +171,15 @@ const NormalTable = ({
                     />
                   </TableCell>
                 )}
-                {columns.map((column, index) => (
-                  <TableCell key={index} sx={{ padding: '16px', borderBottom: 'none' }}>
-                    {column.render ? column.render(row, onActionClick) : row[column.field]}
-                  </TableCell>
-                ))}
+                {columns.map((column, index) => {
+                  const cellSx = { padding: '16px', borderBottom: 'none' };
+                  if (showCheckbox && index === 0) cellSx.paddingLeft = '8px';
+                  return (
+                    <TableCell key={index} sx={cellSx}>
+                      {column.render ? column.render(row, onActionClick) : row[column.field]}
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             ))}
           </TableBody>

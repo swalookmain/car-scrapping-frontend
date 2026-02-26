@@ -1,13 +1,16 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Typography, Switch, Tooltip, IconButton } from '@mui/material';
+import { Typography, Switch, Tooltip, IconButton, Box, Divider } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import ConfirmDialog from '../../ui/ConfirmDialog';
 import NormalTable from '../../ui/NormalTable';
+import NormalModal from '../../ui/NormalModal';
 import TableToolbar from '../../ui/TableToolbar';
 import StaffForm from './StaffForm';
 import { usersApi } from '../../services/api';
+import toast from 'react-hot-toast';
 
 // Sample staff data - replace with actual data from API
 const sampleStaffData = [
@@ -78,6 +81,14 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
   const staffFormRef = useRef(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState(null);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewItem, setViewItem] = useState(null);
+
+  const handleView = (item) => {
+    setViewItem(item);
+    setViewOpen(true);
+  };
+
   const handleAddStaff = () => {
     if (staffFormRef.current && staffFormRef.current.open) staffFormRef.current.open();
   };
@@ -85,21 +96,15 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
   // Create staff entry when form submits; StaffForm will call this with the new staff data (without id)
   const handleCreateStaff = async (staff) => {
     try {
-      // Prefer server create; fallback to local if API fails
-      const payload = { name: staff.name, phone: staff.phone, email: staff.email, isActive: Boolean(staff.isActive) };
+      const payload = { name: staff.name, phone: staff.phone, email: staff.email, password: staff.password, isActive: Boolean(staff.isActive) };
       const res = await usersApi.createStaff(payload);
       const created = res?.data || res;
       const newStaff = { id: created._id || created.id || Date.now(), name: created.name || staff.name, phone: created.phone || staff.phone, email: created.email || staff.email, status: created.isActive ? 'Active' : 'Inactive' };
       setStaffData((prev) => [...prev, newStaff]);
+      toast.success('Staff member created successfully');
     } catch (err) {
-      const newStaff = {
-        id: staffData.length ? Math.max(...staffData.map((s) => s.id)) + 1 : 1,
-        name: staff.name,
-        phone: staff.phone,
-        email: staff.email,
-        status: staff.isActive ? 'Active' : 'Inactive'
-      };
-      setStaffData((prev) => [...prev, newStaff]);
+      console.error('Failed to create staff:', err);
+      toast.error('Failed to create staff. Please try again.');
     }
   };
 
@@ -110,8 +115,9 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
       try {
         await usersApi.updateUser(editingId, { name: staff.name, phone: staff.phone, email: staff.email, isActive: Boolean(staff.isActive) });
         setStaffData((prev) => prev.map((s) => (s.id === editingId ? { ...s, name: staff.name, phone: staff.phone, email: staff.email, status: staff.isActive ? 'Active' : 'Inactive' } : s)));
+        toast.success('Staff member updated successfully');
       } catch (err) {
-        // optimistic already applied locally above; nothing else
+        toast.error('Failed to update staff. Please try again.');
       }
     } else {
       return handleCreateStaff(staff);
@@ -194,9 +200,12 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: '10%',
+      width: '15%',
       render: (row) => (
         <>
+          <IconButton size="small" onClick={() => handleView(row)} aria-label="view" sx={{ color: '#1565c0' }}>
+            <VisibilityIcon fontSize="small" />
+          </IconButton>
           <IconButton size="small" onClick={() => handleEdit(row)} aria-label="edit" sx={{ color: 'var(--color-secondary-main)' }}>
             <EditIcon fontSize="small" />
           </IconButton>
@@ -209,8 +218,18 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
   ];
 
   // Toggle active/inactive status for a staff member
-  const handleToggleActive = (id) => {
-    setStaffData((prev) => prev.map((s) => (s.id === id ? { ...s, status: s.status === 'Active' ? 'Inactive' : 'Active' } : s)));
+  const handleToggleActive = async (id) => {
+    const target = staffData.find((s) => s.id === id);
+    const newActive = target?.status !== 'Active';
+    setStaffData((prev) => prev.map((s) => (s.id === id ? { ...s, status: newActive ? 'Active' : 'Inactive' } : s)));
+    try {
+      await usersApi.updateUser(id, { isActive: newActive });
+      toast.success(`Staff ${newActive ? 'activated' : 'deactivated'}`);
+    } catch (err) {
+      // revert
+      setStaffData((prev) => prev.map((s) => (s.id === id ? { ...s, status: !newActive ? 'Active' : 'Inactive' } : s)));
+      toast.error('Failed to update status.');
+    }
   };
 
   const handleEdit = (item) => {
@@ -225,8 +244,10 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
   const handleDelete = async (id) => {
     try {
       await usersApi.deleteUser(id);
+      toast.success('Staff member deleted successfully');
       setStaffData((prev) => prev.filter((s) => s.id !== id && s.id !== (id)));
     } catch (err) {
+      toast.error('Failed to delete staff. Please try again.');
       // fallback: remove locally
       setStaffData((prev) => prev.filter((s) => s.id !== id));
     } finally {
@@ -276,6 +297,31 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
       />
 
       <StaffForm ref={staffFormRef} onSubmit={handleCreateOrUpdateStaff} />
+
+      <NormalModal
+        open={viewOpen}
+        onClose={() => setViewOpen(false)}
+        title="Staff Details"
+        maxWidth="sm"
+      >
+        {viewItem && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {[
+              { label: 'Name', value: viewItem.name },
+              { label: 'Phone Number', value: viewItem.phone },
+              { label: 'Email ID', value: viewItem.email },
+              { label: 'Status', value: viewItem.status },
+            ].map(({ label, value }) => (
+              <Box key={label}>
+                <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
+                <Typography variant="body1" sx={{ color: 'var(--color-grey-900)', mt: 0.25 }}>{value || '—'}</Typography>
+                <Divider sx={{ mt: 1 }} />
+              </Box>
+            ))}
+          </Box>
+        )}
+      </NormalModal>
+
       <ConfirmDialog
         open={confirmOpen}
         title="Delete staff"

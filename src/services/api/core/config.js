@@ -26,6 +26,25 @@ export const ENDPOINTS = {
     UPDATE: (id) => `/organizations/${id}`,
     DELETE: (id) => `/organizations/${id}`,
   },
+  INVOICES: {
+    BASE: '/invoice',
+    GET_ALL: '/invoice',
+    GET_BY_ID: (id) => `/invoice/${id}`,
+    CREATE: '/invoice',
+    UPDATE: (id) => `/invoice/${id}`,
+    DELETE: (id) => `/invoice/${id}`,
+    VEHICLE: {
+      GET_ALL: '/invoice/vechile',
+      CREATE: '/invoice/vechile',
+      GET_BY_ID: '/invoice/vechile',
+      UPDATE: (id) => `/invoice/vechile/${id}`,
+      DELETE: (id) => `/invoice/vechile/${id}`,
+    },
+    DOCUMENTS: {
+      UPLOAD: '/invoice/purchase-documents',
+      GET: '/invoice/purchase-documents',
+    },
+  },
 };
 
 export default API_CONFIG;
