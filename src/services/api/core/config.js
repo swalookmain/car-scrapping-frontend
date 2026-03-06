@@ -1,3 +1,6 @@
+// ⚠️  PRODUCTION: VITE_API_BASE_URL environment variable MUST be set.
+//    The localhost fallback is only safe for local development.
+//    Set it in Vercel → Settings → Environment Variables.
 const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
   TIMEOUT: 30000,
@@ -43,6 +46,27 @@ export const ENDPOINTS = {
     DOCUMENTS: {
       UPLOAD: '/invoice/purchase-documents',
       GET: '/invoice/purchase-documents',
+    },
+  },
+  INVENTORY: {
+    BASE: '/inventory',
+    GET_ALL: '/inventory',
+    GET_BY_ID: (id) => `/inventory/${id}`,
+    CREATE: '/inventory',
+    UPDATE: (id) => `/inventory/${id}`,
+    DELETE: (id) => `/inventory/${id}`,
+  },
+  AUDIT_LOGS: {
+    GET_ALL: '/audit-logs',
+    GET_STAFF: '/audit-logs/staff',
+    GET_BY_ID: (id) => `/audit-logs/${id}`,
+  },
+  VEHICLE_COMPLIANCE: {
+    COD: {
+      CREATE: '/vehicle-compliance/vechile-cod',
+      GET_ALL: '/vehicle-compliance/vechile-cod',
+      GET_BY_VEHICLE: (vehicleId) => `/vehicle-compliance/vechile-cod/vehicle/${vehicleId}`,
+      UPDATE_RTO: (id) => `/vehicle-compliance/vechile-cod/${id}/rto`,
     },
   },
 };

@@ -8,7 +8,7 @@ const notificationsData = [
   {
     id: 1,
     type: 'user',
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+    avatar: null,
     name: 'John Doe',
     message: 'It is a long established fact that a reader will be distracted',
     time: '2 min ago',
@@ -185,11 +185,11 @@ const NotificationModal = memo(({ isOpen, onClose, anchorRef }) => {
           >
             {/* Avatar or Icon */}
             {notification.type === 'user' ? (
-              <img
-                src={notification.avatar}
-                alt={notification.name}
-                className="w-10 h-10 rounded-full object-cover shrink-0"
-              />
+              notification.avatar
+                ? <img src={notification.avatar} alt={notification.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                : <div className="w-10 h-10 rounded-full bg-primary-main flex items-center justify-center shrink-0 text-white font-semibold text-sm select-none">
+                    {(notification.name?.charAt(0) || '?').toUpperCase()}
+                  </div>
             ) : (
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${notification.iconBg}`}

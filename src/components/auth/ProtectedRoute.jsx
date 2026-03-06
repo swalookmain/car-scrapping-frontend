@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { isRouteAllowed, getDefaultRoute } from '../../config/roleConfig';
+import { isRouteAllowed } from '../../config/roleConfig';
 import { Box, CircularProgress } from '@mui/material';
+
+const NotFound = lazy(() => import('../../pages/NotFound'));
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading, isAuthenticated } = useAuth();
@@ -27,8 +29,14 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  if (!isRouteAllowed(location.pathname, user.role)) {
-    return <Navigate to={getDefaultRoute(user.role)} replace />;
+  // If user role doesn't have access to this route, show 404 page
+  const userRole = user?.role;
+  if (!userRole || !isRouteAllowed(location.pathname, userRole)) {
+    return (
+      <Suspense fallback={null}>
+        <NotFound />
+      </Suspense>
+    );
   }
 
   return children;

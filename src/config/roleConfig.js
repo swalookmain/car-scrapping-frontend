@@ -1,6 +1,9 @@
 import DashboardIcon from '@mui/icons-material/Speed';
 import PeopleIcon from '@mui/icons-material/Groups';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+import InventoryIcon from '@mui/icons-material/Inventory2';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
 
 export const ROLES = {
@@ -31,6 +34,26 @@ export const ROUTE_CONFIG = [
     path: '/invoices',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
+  {
+    path: '/inventory',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/audit-logs',
+    allowedRoles: [ROLES.ADMIN],
+  },
+  {
+    path: '/vehicle-compliance',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/super-admin/audit-logs',
+    allowedRoles: [ROLES.SUPER_ADMIN],
+  },
+  {
+    path: '/super-admin',
+    allowedRoles: [ROLES.SUPER_ADMIN],
+  },
 ];
 
 
@@ -38,6 +61,12 @@ export const SIDEBAR_CONFIG = [
   {
     section: 'Super Admin',
     items: [
+      {
+        path: '/super-admin/audit-logs',
+        label: 'Audit Logs',
+        icon: AssignmentIcon,
+        allowedRoles: [ROLES.SUPER_ADMIN],
+      },
       {
         path: '/super-admin/organizations',
         label: 'Organizations',
@@ -64,6 +93,17 @@ export const SIDEBAR_CONFIG = [
     ],
   },
   {
+    section: 'Audit Logs',
+    items: [
+      {
+        path: '/audit-logs',
+        label: 'Audit Logs',
+        icon: AssignmentIcon,
+        allowedRoles: [ROLES.ADMIN],
+      },
+    ],
+  },
+  {
     section: 'Staff Management',
     items: [
       {
@@ -85,13 +125,35 @@ export const SIDEBAR_CONFIG = [
       },
     ],
   },
+  {
+    section: 'Inventory Management',
+    items: [
+      {
+        path: '/inventory',
+        label: 'Parts Inventory',
+        icon: InventoryIcon,
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
+    ],
+  },
+  {
+    section: 'Vehicle Compliance',
+    items: [
+      {
+        path: '/vehicle-compliance',
+        label: 'COD Tracking',
+        icon: VerifiedUserIcon,
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
+    ],
+  },
 ];
 
 
 export const getDefaultRoute = (role) => {
   switch (role) {
     case ROLES.SUPER_ADMIN:
-      return '/super-admin/organizations';
+      return '/super-admin/audit-logs';
     case ROLES.ADMIN:
       return '/dashboard';
     case ROLES.STAFF:

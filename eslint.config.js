@@ -24,6 +24,14 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // ── Code quality / complexity rules ────────────────────
+      'complexity': ['warn', { max: 20 }],
+      'max-depth': ['warn', { max: 4 }],
+      'max-nested-callbacks': ['warn', { max: 3 }],      'max-lines-per-function': ['warn', { max: 80, skipBlankLines: true, skipComments: true }],      'no-console': ['warn', { allow: ['warn', 'error', 'debug'] }],
+      'no-debugger': 'error',
+      'prefer-const': 'warn',
+      'no-var': 'error',
+      'eqeqeq': ['warn', 'always'],
     },
   },
 ])

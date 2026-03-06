@@ -1,32 +1,27 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropTypes from 'prop-types';
-import { Typography, Chip, IconButton, Tooltip, Box, Divider, Button } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import { Typography, Box, Divider, Button } from '@mui/material';
 import ConfirmDialog from '../../ui/ConfirmDialog';
 import NormalTable from '../../ui/NormalTable';
 import NormalModal from '../../ui/NormalModal';
+import DocumentPreview from '../../ui/DocumentPreview';
 import TableToolbar from '../../ui/TableToolbar';
 import InvoiceForm from './InvoiceForm';
+import { getInvoiceColumns, invoiceStatusColor } from './invoiceColumns';
 import { invoicesApi } from '../../services/api';
 import toast from 'react-hot-toast';
-
-// ── Status Chip Colors ─────────────────────────────────────────
-const statusColor = {
-  DRAFT: { bg: '#fff3e0', color: '#e65100', label: 'Draft' },
-  CONFIRMED: { bg: '#e8f5e9', color: '#2e7d32', label: 'Confirmed' },
-};
+import { usePermissions } from '../../hooks/usePermissions';
 
 const InvoiceTable = ({ isLoading }) => {
+  const { canPerform } = usePermissions();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [invoices, setInvoices] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [loadingData, setLoadingData] = useState(false);
 
   const formRef = useRef(null);
+  const tableRef = useRef(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [viewOpen, setViewOpen] = useState(false);
@@ -75,30 +70,22 @@ const InvoiceTable = ({ isLoading }) => {
   };
 
   // ── Fetch Invoices ───────────────────────────────────────────
-  const fetchInvoices = async (p = 1, limit = 10) => {
-    setLoadingData(true);
-    try {
-      const res = await invoicesApi.getAll(p, limit, { useCache: false });
+  const { data: invoiceResult, isLoading: loadingData, refetch: refetchInvoices } = useQuery({
+    queryKey: ['invoices', page, rowsPerPage],
+    queryFn: async () => {
+      const res = await invoicesApi.getAll(page + 1, rowsPerPage, { useCache: false });
       const items = Array.isArray(res?.data) ? res.data : [];
-      setInvoices(items);
-      setTotal(res?.meta?.total ?? items.length);
-    } catch (err) {
-      setInvoices([]);
-      setTotal(0);
-    } finally {
-      setLoadingData(false);
-    }
-  };
+      return { data: items, total: res?.meta?.total ?? items.length };
+    },
+  });
 
-  useEffect(() => {
-    fetchInvoices(1, rowsPerPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const invoices = invoiceResult?.data ?? [];
+  const total = invoiceResult?.total ?? 0;
 
   // ── Handlers ─────────────────────────────────────────────────
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     if (formRef.current && formRef.current.open) formRef.current.open();
-  };
+  }, []);
 
   const handleEdit = async (row) => {
     try {
@@ -141,26 +128,39 @@ const InvoiceTable = ({ isLoading }) => {
       }
 
       toast.success(editingId ? 'Invoice updated successfully' : 'Invoice created successfully');
-      // Refresh list
-      fetchInvoices(page + 1, rowsPerPage);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
     } catch (err) {
       console.error('Invoice save error:', err);
       toast.error('Failed to save invoice. Please try again.');
-      // Still refresh to get latest state
-      fetchInvoices(page + 1, rowsPerPage);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
     }
   };
 
-  const openDeleteConfirm = (item) => {
+  const openDeleteConfirm = useCallback((item) => {
     setConfirmTarget(item);
     setConfirmOpen(true);
-  };
+  }, []);
+
+  const handleViewClose = useCallback(() => {
+    setViewOpen(false);
+    setViewItem(null);
+    setViewStep(0);
+  }, []);
+
+  const [preview, setPreview] = useState({ open: false, src: null, name: null, mime: null });
+
+  const handleViewBack = useCallback(() => setViewStep(0), []);
+
+  const handleViewNext = useCallback(() => {
+    if (viewStep === 0) setViewStep(1);
+    else { setViewOpen(false); setViewItem(null); setViewStep(0); }
+  }, [viewStep]);
 
   const handleDelete = async (id) => {
     try {
       await invoicesApi.delete(id);
       toast.success('Invoice deleted successfully');
-      fetchInvoices(page + 1, rowsPerPage);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
     } catch (err) {
       console.error('Delete error:', err);
       toast.error('Failed to delete invoice. Please try again.');
@@ -189,150 +189,10 @@ const InvoiceTable = ({ isLoading }) => {
   const showVehicle = invoices.some((inv) => Boolean(inv.vehicle?.make || inv.vehicle?.model_name || inv.vehicle?.model));
   const showReg = invoices.some((inv) => Boolean(inv.vehicle?.registration_number || inv.registrationNumber));
 
-  const columns = [
-    {
-      field: 'invoiceNumber',
-      headerName: 'Invoice No.',
-      width: '14%',
-      render: (row) => (
-        <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--color-grey-900)' }}>
-          {row.invoiceNumber || '—'}
-        </Typography>
-      ),
-    },
-    {
-      field: 'sellerName',
-      headerName: 'Seller Name',
-      width: '16%',
-      render: (row) => (
-        <Typography variant="body2" sx={{ color: 'var(--color-grey-700)' }}>
-          {row.sellerName || '—'}
-        </Typography>
-      ),
-    },
-    {
-      field: 'purchaseDate',
-      headerName: 'Purchase Date',
-      width: '12%',
-      render: (row) => (
-        <Typography variant="body2" sx={{ color: 'var(--color-grey-700)' }}>
-          {row.purchaseDate ? (new Date(row.purchaseDate).toLocaleDateString('en-GB')) : '—'}
-        </Typography>
-      ),
-    },
-    {
-      field: 'sellerContact',
-      headerName: 'Seller Contact',
-      width: '14%',
-      render: (row) => (
-        <Typography variant="body2" sx={{ color: 'var(--color-grey-700)' }}>
-          {(row.mobile || row.email) ? `${row.mobile || ''}${row.mobile && row.email ? ' • ' : ''}${row.email || ''}` : '—'}
-        </Typography>
-      ),
-    },
-    {
-      field: 'sellerType',
-      headerName: 'Seller Type',
-      width: '10%',
-      render: (row) => (
-        <Chip
-          label={row.sellerType}
-          size="small"
-          sx={{
-            fontWeight: 600,
-            fontSize: '0.75rem',
-            backgroundColor: row.sellerType === 'DIRECT' ? '#e3f2fd' : row.sellerType === 'MSTC' ? '#fce4ec' : '#f3e5f5',
-            color: row.sellerType === 'DIRECT' ? '#1565c0' : row.sellerType === 'MSTC' ? '#c62828' : '#6a1b9a',
-          }}
-        />
-      ),
-    },
-    ...(
-      showVehicle
-        ? [
-            {
-              field: 'vehicle',
-              headerName: 'Vehicle (Make / Model)',
-              width: '16%',
-              render: (row) => {
-                const make = row.vehicle?.make || row.vehicleMake || '';
-                const model = row.vehicle?.model_name || row.vehicle?.model || row.vehicleModel || '';
-                return (
-                  <Typography variant="body2" sx={{ color: 'var(--color-grey-600)' }}>
-                    {make || model ? `${make} ${model}`.trim() : '—'}
-                  </Typography>
-                );
-              },
-            },
-          ]
-        : []
-    ),
-    ...(
-      showReg
-        ? [
-            {
-              field: 'registrationNumber',
-              headerName: 'Reg. No.',
-              width: '12%',
-              render: (row) => (
-                <Typography variant="body2" sx={{ color: 'var(--color-grey-600)' }}>
-                  {row.vehicle?.registration_number || row.registrationNumber || '—'}
-                </Typography>
-              ),
-            },
-          ]
-        : []
-    ),
-    {
-      field: 'purchaseAmount',
-      headerName: 'Amount',
-      width: '10%',
-      render: (row) => (
-        <Typography variant="body2" sx={{ fontWeight: 500, color: 'var(--color-grey-800)' }}>
-          {row.purchaseAmount != null ? `₹${Number(row.purchaseAmount).toLocaleString('en-IN')}` : '—'}
-        </Typography>
-      ),
-    },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: '10%',
-      render: (row) => {
-        const st = statusColor[row.status] || statusColor.DRAFT;
-        return (
-          <Chip
-            label={st.label}
-            size="small"
-            sx={{ fontWeight: 600, fontSize: '0.75rem', backgroundColor: st.bg, color: st.color }}
-          />
-        );
-      },
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: '15%',
-      render: (row) => (
-        <>
-          <Tooltip title="View">
-            <IconButton size="small" onClick={() => handleView(row)} aria-label="view" sx={{ color: '#1565c0' }}>
-              <VisibilityIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Edit">
-            <IconButton size="small" onClick={() => handleEdit(row)} aria-label="edit" sx={{ color: 'var(--color-secondary-main)' }}>
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton size="small" onClick={() => openDeleteConfirm(row)} aria-label="delete" sx={{ color: '#e53935' }}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </>
-      ),
-    },
-  ];
+  const columns = useMemo(
+    () => getInvoiceColumns({ canPerform, handleView, handleEdit, openDeleteConfirm, showVehicle, showReg }),
+    [canPerform, handleView, handleEdit, openDeleteConfirm, showVehicle, showReg],
+  );
 
   // ── Toolbar ──────────────────────────────────────────────────
   const toolbar = (
@@ -342,7 +202,14 @@ const InvoiceTable = ({ isLoading }) => {
       onSearchChange={(val) => { setQuery(val); setPage(0); }}
       onCopy={() => {}}
       onPrint={() => window.print()}
+      showFilter={false}
       onAdd={handleAdd}
+      showExportCsv={true}
+      onExportCsv={() => tableRef.current?.exportCsv()}
+      showRefresh={true}
+      onRefresh={refetchInvoices}
+      showColumnToggle={true}
+      onToggleColumns={(e) => tableRef.current?.openColumnToggle(e)}
     />
   );
 
@@ -350,6 +217,8 @@ const InvoiceTable = ({ isLoading }) => {
   return (
     <>
       <NormalTable
+        ref={tableRef}
+        csvFilename="invoices"
         columns={columns}
         data={tableData}
         isLoading={isLoading || loadingData}
@@ -358,30 +227,27 @@ const InvoiceTable = ({ isLoading }) => {
         page={page}
         rowsPerPage={rowsPerPage}
         totalCount={total}
-        onPageChange={(p) => { setPage(p); fetchInvoices(p + 1, rowsPerPage); }}
-        onRowsPerPageChange={(r) => { setRowsPerPage(r); setPage(0); fetchInvoices(1, r); }}
+        onPageChange={(p) => setPage(p)}
+        onRowsPerPageChange={(r) => { setRowsPerPage(r); setPage(0); }}
       />
 
       <InvoiceForm ref={formRef} onSubmit={handleCreateOrUpdate} />
 
       <NormalModal
         open={viewOpen}
-        onClose={() => { setViewOpen(false); setViewItem(null); setViewStep(0); }}
+        onClose={handleViewClose}
         title={viewStep === 0 ? 'Invoice Details' : 'Vehicle Details'}
         maxWidth="md"
         actions={(
           <>
             {viewStep > 0 && (
-              <Button onClick={() => setViewStep(0)} sx={{ color: 'var(--color-grey-600)' }}>
+              <Button onClick={handleViewBack} sx={{ color: 'var(--color-grey-600)' }}>
                 Back
               </Button>
             )}
             <Button
               variant="contained"
-              onClick={() => {
-                if (viewStep === 0) setViewStep(1);
-                else { setViewOpen(false); setViewItem(null); setViewStep(0); }
-              }}
+              onClick={handleViewNext}
               sx={{ backgroundColor: 'var(--color-secondary-main)', '&:hover': { backgroundColor: 'var(--color-secondary-dark)' } }}
             >
               {viewStep === 0 ? 'Next' : 'Close'}
@@ -394,7 +260,7 @@ const InvoiceTable = ({ isLoading }) => {
           const veh = inv.vehicle || {};
           const make = veh.make || inv.vehicleMake || '';
           const model = veh.model_name || veh.model || inv.vehicleModel || '';
-          const st = statusColor[inv.status] || statusColor.DRAFT;
+          const st = invoiceStatusColor[inv.status] || invoiceStatusColor.DRAFT;
           const invoiceRows = [
             { label: 'Invoice No.', value: inv.invoiceNumber },
             { label: 'Seller Name', value: inv.sellerName },
@@ -422,15 +288,35 @@ const InvoiceTable = ({ isLoading }) => {
           const rows = viewStep === 0 ? invoiceRows : vehicleRows;
 
           return (
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              {rows.map(({ label, value }) => (
-                <Box key={label}>
-                  <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
-                  <Typography variant="body1" sx={{ color: 'var(--color-grey-900)', mt: 0.5 }}>{value || '—'}</Typography>
-                  <Divider sx={{ mt: 1 }} />
+            <>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                {rows.map(({ label, value }) => (
+                  <Box key={label}>
+                    <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
+                    <Typography variant="body1" sx={{ color: 'var(--color-grey-900)', mt: 0.5 }}>{value || '—'}</Typography>
+                    <Divider sx={{ mt: 1 }} />
+                  </Box>
+                ))}
+              </Box>
+
+              {(inv.documents || inv.purchaseDocuments || inv.documentsUrls || []).length > 0 && (
+                <Box sx={{ gridColumn: '1 / -1', mt: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Documents</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {(inv.documents || inv.purchaseDocuments || inv.documentsUrls || []).map((d, i) => {
+                      const name = typeof d === 'string' ? d.split('/').pop() : d.name || `Document ${i + 1}`;
+                      const src = typeof d === 'string' ? d : d.url || d.data || d.dataUrl || null;
+                      const mime = typeof d === 'string' ? '' : d.type || '';
+                      return (
+                        <Button key={src || name || i} size="small" variant="outlined" onClick={() => setPreview({ open: true, src, name, mime })}>
+                          {name}
+                        </Button>
+                      );
+                    })}
+                  </Box>
                 </Box>
-              ))}
-            </Box>
+              )}
+            </>
           );
         })()}
       </NormalModal>
@@ -447,6 +333,14 @@ const InvoiceTable = ({ isLoading }) => {
         onConfirm={() => handleDelete(confirmTarget?._id || confirmTarget?.id)}
         confirmText="Delete"
         cancelText="Cancel"
+      />
+
+      <DocumentPreview
+        open={preview.open}
+        onClose={() => setPreview({ open: false, src: null, name: null, mime: null })}
+        src={preview.src}
+        name={preview.name}
+        mime={preview.mime}
       />
     </>
   );

@@ -9,8 +9,8 @@ const CACHE_TTL = 60 * 1000;
 const _inflightOrgs = new Map();
 
 export const organizationsApi = {
-  getAll: async (page = 1, limit = 10, { useCache = true } = {}) => {
-    const key = JSON.stringify({ page, limit });
+  getAll: async (page = 1, limit = 10, { useCache = true, filters = {} } = {}) => {
+    const key = JSON.stringify({ page, limit, filters });
     const now = Date.now();
     if (useCache && _orgCache.data && _orgCache.key === key && now - _orgCache.ts < CACHE_TTL) {
       return _orgCache.data;
@@ -20,7 +20,8 @@ export const organizationsApi = {
 
     const promise = (async () => {
       try {
-        const response = await axiosInstance.get(ENDPOINTS.ORGANIZATIONS.GET_ALL, { params: { page, limit } });
+        const params = { page, limit, ...filters };
+        const response = await axiosInstance.get(ENDPOINTS.ORGANIZATIONS.GET_ALL, { params });
         _orgCache.ts = Date.now();
         _orgCache.key = key;
         _orgCache.data = response.data;
