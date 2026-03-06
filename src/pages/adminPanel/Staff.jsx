@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-
 // project imports
 import AdminLayout from '../../layout/AdminLayout';
 import StaffTable from '../../components/staff-management/StaffTable';
@@ -9,14 +7,10 @@ import { useAuth } from '../../context/AuthContext';
 // ==============================|| STAFF MANAGEMENT PAGE ||============================== //
 
 export default function Staff() {
-  const [isLoading, setLoading] = useState(true);
+  const isLoading = false;
   const { user } = useAuth();
   // try common fields that may contain organization id (server responses vary)
   const organizationId = user?.organizationId ?? user?.organization?._id ?? user?.organization ?? user?.orgId ?? user?.org?.id ?? null;
-
-  useEffect(() => {
-    setLoading(false);
-  }, []);
 
   return (
     <AdminLayout>

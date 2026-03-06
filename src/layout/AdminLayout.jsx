@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, CssBaseline, useMediaQuery, useTheme } from '@mui/material';
+import { Box, CssBaseline, useTheme } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
@@ -10,7 +10,6 @@ const miniDrawerWidth = 80;
 
 const AdminLayout = ({ children }) => {
   const theme = useTheme();
-  const matchDownMd = useMediaQuery(theme.breakpoints.down('lg'));
   const location = useLocation();
 
   // Use the custom hook for sidebar state

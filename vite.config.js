@@ -7,4 +7,27 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.js'],
+    css: false,
+    coverage: {
+      reporter: ['text', 'lcov'],
+      include: ['src/**/*.{js,jsx}'],
+      exclude: ['src/test/**', 'src/main.jsx'],
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-mui': ['@mui/material', '@mui/icons-material', '@mui/system'],
+          'vendor-charts': ['apexcharts', 'react-apexcharts'],
+          'vendor-router': ['react-router-dom'],
+          'vendor-core': ['react', 'react-dom'],
+        },
+      },
+    },
+  },
 })

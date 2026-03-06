@@ -1,47 +1,40 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Switch, IconButton, Typography, Box, Divider } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import ConfirmDialog from '../../ui/ConfirmDialog';
 import { organizationsApi } from '../../services/api';
 import Breadcrumb from '../../ui/Breadcrumb';
 import TableToolbar from '../../ui/TableToolbar';
 import NormalTable from '../../ui/NormalTable';
 import NormalModal from '../../ui/NormalModal';
+import { Box, TextField, Button, MenuItem } from '@mui/material';
 import OrganizationForm from './OrganizationForm';
 import SuperAdminLayout from '../../layout/SuperAdminLayout';
+import getOrganizationColumns from './organizationColumns';
+import OrgDetails from './OrgDetails';
 
 const OrganizationManagement = () => {
-  const [organizations, setOrganizations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [total, setTotal] = useState(0);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState({ name: '', status: '', createdFrom: '', createdTo: '' });
+  const [appliedFilters, setAppliedFilters] = useState({});
 
   const formRef = useRef(null);
 
-  useEffect(() => {
-    fetchOrganizations(1, rowsPerPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchOrganizations = async (p = 1, limit = 10) => {
-    setLoading(true);
-    try {
-      const res = await organizationsApi.getAll(p, limit);
+  const { data: orgResult, isLoading: loading } = useQuery({
+    queryKey: ['organizations', page, rowsPerPage, appliedFilters],
+    queryFn: async () => {
+      const res = await organizationsApi.getAll(page + 1, rowsPerPage, { useCache: false, filters: appliedFilters });
       const items = Array.isArray(res?.data) ? res.data : [];
-      setOrganizations(items);
-      setTotal(res?.meta?.total ?? items.length);
-    } catch (err) {
-      setOrganizations([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return { data: items, total: res?.meta?.total ?? items.length };
+    },
+  });
+
+  const organizations = orgResult?.data ?? [];
+  const total = orgResult?.total ?? 0;
 
   const handleCreate = async (payload) => {
     try {
@@ -53,7 +46,7 @@ const OrganizationManagement = () => {
         await organizationsApi.create(payload);
         toast.success('Organization created successfully');
       }
-      fetchOrganizations(1, rowsPerPage);
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     } catch (err) {
       console.error('Organization save error:', err);
       toast.error('Failed to save organization. Please try again.');
@@ -61,14 +54,16 @@ const OrganizationManagement = () => {
   };
 
   const handleToggleActive = async (id, current) => {
-    // optimistic update
-    setOrganizations((prev) => prev.map((o) => (o._id === id || o.id === id ? { ...o, isActive: !current } : o)));
+    const qKey = ['organizations', page, rowsPerPage, appliedFilters];
+    // Optimistic cache update
+    queryClient.setQueryData(qKey, (old) =>
+      old ? { ...old, data: old.data.map((o) => (o._id === id || o.id === id ? { ...o, isActive: !current } : o)) } : old
+    );
     try {
       await organizationsApi.update(id, { isActive: !current });
       toast.success(`Organization ${!current ? 'activated' : 'deactivated'}`);
-    } catch (err) {
-      // revert on error
-      setOrganizations((prev) => prev.map((o) => (o._id === id || o.id === id ? { ...o, isActive: current } : o)));
+    } catch {
+      queryClient.invalidateQueries({ queryKey: ['organizations', page, rowsPerPage, appliedFilters] }); // revert
       toast.error('Failed to update status.');
     }
   };
@@ -97,7 +92,7 @@ const OrganizationManagement = () => {
     try {
       await organizationsApi.delete(id);
       toast.success('Organization deleted successfully');
-      fetchOrganizations(1, rowsPerPage);
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     } catch (err) {
       console.error('Delete error:', err);
       toast.error('Failed to delete organization. Please try again.');
@@ -111,29 +106,30 @@ const OrganizationManagement = () => {
     setQuery(val);
   };
 
+  const handleOpenFilters = () => setFilterOpen(true);
+
+  const handleApplyFilters = () => {
+    const payload = {};
+    if (filters.name && filters.name.trim()) payload.name = filters.name.trim();
+    if (filters.status) payload.status = filters.status;
+    if (filters.createdFrom) payload.createdFrom = filters.createdFrom;
+    if (filters.createdTo) payload.createdTo = filters.createdTo;
+    setAppliedFilters(payload);
+    setPage(0);
+    setFilterOpen(false);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({ name: '', status: '', createdFrom: '', createdTo: '' });
+    setAppliedFilters({});
+    setPage(0);
+    setFilterOpen(false);
+  };
+
   const filtered = organizations.filter((o) => [o.name].join(' ').toLowerCase().includes(query.toLowerCase()));
   const tableData = filtered.map((item) => ({ ...item, id: item._id || item.id }));
 
-  const columns = [
-    { field: 'name', headerName: 'Name', width: '35%', render: (row) => row.name },
-    { field: 'isActive', headerName: 'Status', width: '15%', render: (row) => (
-      <Switch checked={Boolean(row.isActive)} onChange={() => handleToggleActive(row._id || row.id, row.isActive)} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'var(--color-secondary-main)' } }} />
-    ) },
-    { field: 'createdAt', headerName: 'Created At', width: '30%', render: (row) => new Date(row.createdAt).toLocaleString() },
-    { field: 'actions', headerName: 'Actions', width: '20%', render: (row) => (
-      <>
-        <IconButton size="small" onClick={() => handleView(row)} aria-label="view" sx={{ color: '#1565c0' }}>
-          <VisibilityIcon fontSize="small" />
-        </IconButton>
-        <IconButton size="small" onClick={() => handleEdit(row)} aria-label="edit" sx={{ color: 'var(--color-secondary-main)' }}>
-          <EditIcon fontSize="small" />
-        </IconButton>
-        <IconButton size="small" onClick={() => openDeleteConfirm(row)} aria-label="delete" sx={{ color: '#e53935' }}>
-          <DeleteIcon fontSize="small" />
-        </IconButton>
-      </>
-    ) }
-  ];
+  const columns = getOrganizationColumns({ handleToggleActive, handleView, handleEdit, openDeleteConfirm });
 
   const toolbar = (
     <TableToolbar
@@ -142,6 +138,7 @@ const OrganizationManagement = () => {
       onSearchChange={handleSearchChange}
       onCopy={() => {}}
       onPrint={() => window.print()}
+      showFilter={false}
       onAdd={() => formRef.current && formRef.current.open()}
     />
   );
@@ -160,33 +157,34 @@ const OrganizationManagement = () => {
           page={page}
           rowsPerPage={rowsPerPage}
           totalCount={total}
-          onPageChange={(p) => { setPage(p); fetchOrganizations(p + 1, rowsPerPage); }}
-          onRowsPerPageChange={(r) => { setRowsPerPage(r); setPage(0); fetchOrganizations(1, r); }}
+          onPageChange={(p) => setPage(p)}
+          onRowsPerPageChange={(r) => { setRowsPerPage(r); setPage(0); }}
         />
 
         <OrganizationForm ref={formRef} onSubmit={handleCreate} />
 
-        <NormalModal
-          open={viewOpen}
-          onClose={() => setViewOpen(false)}
-          title="Organization Details"
-          maxWidth="sm"
-        >
-          {viewItem && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {[
-                { label: 'Name', value: viewItem.name },
-                { label: 'Status', value: viewItem.isActive ? 'Active' : 'Inactive' },
-                { label: 'Created At', value: viewItem.createdAt ? new Date(viewItem.createdAt).toLocaleString() : '—' },
-              ].map(({ label, value }) => (
-                <Box key={label}>
-                  <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
-                  <Typography variant="body1" sx={{ color: 'var(--color-grey-900)', mt: 0.25 }}>{value || '—'}</Typography>
-                  <Divider sx={{ mt: 1 }} />
-                </Box>
-              ))}
+        <NormalModal open={filterOpen} onClose={() => setFilterOpen(false)} title="Filter organizations" maxWidth="sm" actions={(
+          <>
+            <Button onClick={handleClearFilters}>Clear</Button>
+            <Button variant="contained" onClick={handleApplyFilters}>Apply</Button>
+          </>
+        )}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField label="Name" value={filters.name} onChange={(e) => setFilters((s) => ({ ...s, name: e.target.value }))} fullWidth />
+            <TextField select label="Status" value={filters.status} onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))} fullWidth>
+              <MenuItem value="">Any</MenuItem>
+              <MenuItem value="Active">Active</MenuItem>
+              <MenuItem value="Inactive">Inactive</MenuItem>
+            </TextField>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField label="Created from" type="date" value={filters.createdFrom} onChange={(e) => setFilters((s) => ({ ...s, createdFrom: e.target.value }))} sx={{ flex: 1 }} InputLabelProps={{ shrink: true }} />
+              <TextField label="Created to" type="date" value={filters.createdTo} onChange={(e) => setFilters((s) => ({ ...s, createdTo: e.target.value }))} sx={{ flex: 1 }} InputLabelProps={{ shrink: true }} />
             </Box>
-          )}
+          </Box>
+        </NormalModal>
+
+        <NormalModal open={viewOpen} onClose={() => setViewOpen(false)} title="Organization Details" maxWidth="sm">
+          <OrgDetails item={viewItem} />
         </NormalModal>
 
         <ConfirmDialog

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import Chart from 'react-apexcharts';
+import SafeChart from './SafeChart';
 import { BsThreeDots, BsChevronUp, BsChevronDown, BsChevronRight } from 'react-icons/bs';
 import { useDropdown } from '../../context/DropdownContext';
 import useAnimatedNumber from '../../hooks/useAnimatedNumber';
@@ -86,16 +86,21 @@ const PopularCard = React.memo(({ isLoading }) => {
 
   // Force chart to update on window resize
   useEffect(() => {
+    const resizeTimer = { current: null };
     const handleResize = () => {
-      if (chartRef.current && window.ApexCharts) {
-        setTimeout(() => {
-          window.dispatchEvent(new Event('resize'));
-        }, 320);
-      }
+      if (!(chartRef.current && window.ApexCharts)) return;
+      if (resizeTimer.current) clearTimeout(resizeTimer.current);
+      resizeTimer.current = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+        resizeTimer.current = null;
+      }, 320);
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimer.current) clearTimeout(resizeTimer.current);
+    };
   }, []);
 
   const handleClick = () => {
@@ -111,16 +116,12 @@ const PopularCard = React.memo(({ isLoading }) => {
   const chartData = useMemo(() => ({
     type: 'area',
     height: 95,
-    options: {
+      options: {
       chart: { 
         sparkline: { enabled: true },
-        animations: {
-          enabled: true,
-          dynamicAnimation: {
-            enabled: true,
-            speed: 180 // Faster animation for snappier feel
-          }
-        }
+        // Disable animations for better runtime performance
+        animations: { enabled: false, dynamicAnimation: { enabled: false }, animateGradually: { enabled: false } },
+        redrawOnParentResize: false,
       },
       dataLabels: { enabled: false },
       colors: [chartColor],
@@ -179,14 +180,14 @@ const PopularCard = React.memo(({ isLoading }) => {
         </div>
         <span className="text-secondary-dark text-sm">{currentData.bajajFinery.change}% Profit</span>
         <div className="mt-2 w-full max-w-full overflow-hidden">
-          <Chart {...chartData} />
+          <SafeChart key={timeValue} {...chartData} />
         </div>
       </div>
 
       {/* Stock List */}
       <div className="flex flex-col gap-4 flex-1">
         {currentData.stocks.map((stock, index) => (
-          <div key={stock.name + index}>
+          <div key={stock.name}>
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-grey-900 font-medium block">{stock.name}</span>

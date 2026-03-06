@@ -13,7 +13,10 @@ import {
   ContentCopy as CopyIcon,
   Print as PrintIcon,
   FilterList as FilterIcon,
-  Add as AddIcon
+  Refresh as RefreshIcon,
+  Add as AddIcon,
+  FileDownload as ExportIcon,
+  ViewColumn as ColumnIcon
 } from '@mui/icons-material';
 
 const TableToolbar = ({
@@ -23,11 +26,17 @@ const TableToolbar = ({
   onCopy,
   onPrint,
   onFilter,
+  onRefresh,
   onAdd,
+  onExportCsv,
+  onToggleColumns,
   showCopy = true,
   showPrint = true,
   showFilter = true,
-  showAdd = true
+  showRefresh = false,
+  showAdd = true,
+  showExportCsv = false,
+  showColumnToggle = false,
 }) => {
   return (
     <Box
@@ -107,7 +116,7 @@ const TableToolbar = ({
           </Tooltip>
         )}
 
-        {/* {showFilter && (
+        {showFilter && (
           <Tooltip title="Filter">
             <IconButton
               onClick={onFilter}
@@ -121,7 +130,49 @@ const TableToolbar = ({
               <FilterIcon />
             </IconButton>
           </Tooltip>
-        )} */}
+        )}
+
+        {showRefresh && (
+          <Tooltip title="Refresh">
+            <IconButton
+              onClick={onRefresh}
+              sx={{
+                color: 'var(--color-grey-600)',
+                '&:hover': { backgroundColor: 'var(--color-grey-200)' }
+              }}
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        )}
+
+        {showExportCsv && (
+          <Tooltip title="Export CSV">
+            <IconButton
+              onClick={onExportCsv}
+              sx={{
+                color: 'var(--color-grey-600)',
+                '&:hover': { backgroundColor: 'var(--color-grey-200)' }
+              }}
+            >
+              <ExportIcon />
+            </IconButton>
+          </Tooltip>
+        )}
+
+        {showColumnToggle && (
+          <Tooltip title="Column Visibility">
+            <IconButton
+              onClick={onToggleColumns}
+              sx={{
+                color: 'var(--color-grey-600)',
+                '&:hover': { backgroundColor: 'var(--color-grey-200)' }
+              }}
+            >
+              <ColumnIcon />
+            </IconButton>
+          </Tooltip>
+        )}
 
         {showAdd && (
           <Tooltip title="Add New">
@@ -154,11 +205,17 @@ TableToolbar.propTypes = {
   onCopy: PropTypes.func,
   onPrint: PropTypes.func,
   onFilter: PropTypes.func,
+  onRefresh: PropTypes.func,
   onAdd: PropTypes.func,
+  onExportCsv: PropTypes.func,
+  onToggleColumns: PropTypes.func,
   showCopy: PropTypes.bool,
   showPrint: PropTypes.bool,
   showFilter: PropTypes.bool,
-  showAdd: PropTypes.bool
+  showRefresh: PropTypes.bool,
+  showAdd: PropTypes.bool,
+  showExportCsv: PropTypes.bool,
+  showColumnToggle: PropTypes.bool,
 };
 
 export default TableToolbar;

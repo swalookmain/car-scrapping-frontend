@@ -72,7 +72,7 @@ const NormalModal = ({
           </IconButton>
         )}
       </DialogTitle>
-      <DialogContent sx={{ px: 3, pb: 2 }}>
+      <DialogContent sx={{ px: 3, pb: 2, overflowY: 'auto' }}>
         <Box sx={{ pt: 1 }}>
           {children}
         </Box>

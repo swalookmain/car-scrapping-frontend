@@ -18,12 +18,11 @@ import {
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
 import { invoicesApi } from '../../services/api';
+import InvoiceSellerFields from './InvoiceSellerFields';
+import InvoiceVehicleStep from './InvoiceVehicleStep';
 
 // ── Constants ──────────────────────────────────────────────────
 const SELLER_TYPES = ['DIRECT', 'MSTC', 'GEM'];
-const LEAD_SOURCES = ['WEBSITE', 'WORD_OF_MOUTH'];
-const VEHICLE_TYPES = ['CAR', 'BIKE', 'COMMERCIAL'];
-const FUEL_TYPES = ['PETROL', 'DIESEL', 'CNG', 'ELECTRIC', 'HYBRID'];
 const STEPS = ['Invoice Details', 'Vehicle Details'];
 
 const INITIAL_INVOICE = {
@@ -285,6 +284,11 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
     setActiveStep(0);
   };
 
+  const handleReadOnlyNext = () => {
+    if (activeStep === STEPS.length - 1) handleClose();
+    else setActiveStep((s) => s + 1);
+  };
+
   // ── Submit ───────────────────────────────────────────────────
   const handleSubmit = () => {
     if (!validateVehicle()) return;
@@ -367,156 +371,6 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
     setErrors({});
     setActiveStep(0);
   };
-
-  // ── Seller-type Specific Fields ──────────────────────────────
-  const renderDirectFields = () => (
-    <>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)', mt: 1 }}>
-        Seller KYC Details
-      </Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Mobile"
-            value={invoice.mobile}
-            onChange={(e) => handleInvoiceChange('mobile', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.mobile)}
-            helperText={errors.mobile}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Email"
-            value={invoice.email}
-            onChange={(e) => handleInvoiceChange('email', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.email)}
-            helperText={errors.email}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Aadhaar Number"
-            value={invoice.aadhaarNumber}
-            onChange={(e) => handleInvoiceChange('aadhaarNumber', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.aadhaarNumber)}
-            helperText={errors.aadhaarNumber}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="PAN Number"
-            value={invoice.panNumber}
-            onChange={(e) => handleInvoiceChange('panNumber', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.panNumber)}
-            helperText={errors.panNumber}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            select
-            label="Lead Source"
-            value={invoice.leadSource}
-            onChange={(e) => handleInvoiceChange('leadSource', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-          >
-            {LEAD_SOURCES.map((ls) => (
-              <MenuItem key={ls} value={ls}>{ls.replace('_', ' ')}</MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={invoice.reverseChargeApplicable}
-                onChange={(e) => handleInvoiceChange('reverseChargeApplicable', e.target.checked)}
-                disabled={readOnly}
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'var(--color-secondary-main)' },
-                }}
-              />
-            }
-            label="Reverse Charge (RCM)"
-          />
-        </Grid>
-      </Grid>
-    </>
-  );
-
-  const renderMSTCFields = () => (
-    <>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)', mt: 1 }}>
-        MSTC Auction Details
-      </Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Auction Number"
-            value={invoice.auctionNumber}
-            onChange={(e) => handleInvoiceChange('auctionNumber', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.auctionNumber)}
-            helperText={errors.auctionNumber}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Auction Date"
-            type="date"
-            value={invoice.auctionDate}
-            onChange={(e) => handleInvoiceChange('auctionDate', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            InputLabelProps={{ shrink: true }}
-            error={Boolean(errors.auctionDate)}
-            helperText={errors.auctionDate}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Source"
-            value={invoice.source}
-            onChange={(e) => handleInvoiceChange('source', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.source)}
-            helperText={errors.source}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Lot Number"
-            value={invoice.lotNumber}
-            onChange={(e) => handleInvoiceChange('lotNumber', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.lotNumber)}
-            helperText={errors.lotNumber}
-          />
-        </Grid>
-      </Grid>
-    </>
-  );
 
   // ── Step 1: Invoice Details ──────────────────────────────────
   const renderInvoiceStep = () => (
@@ -647,190 +501,13 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
 
       <Divider sx={{ my: 1 }} />
 
-      {/* Seller-type specific sections */}
-      {invoice.sellerType === 'DIRECT' && renderDirectFields()}
-      {invoice.sellerType === 'MSTC' && renderMSTCFields()}
-      {invoice.sellerType === 'GEM' && (
-        <Typography variant="body2" sx={{ color: 'var(--color-grey-500)', fontStyle: 'italic', mt: 1 }}>
-          No additional fields required for GEM seller type.
-        </Typography>
-      )}
-    </Box>
-  );
-
-  // ── Step 2: Vehicle Details ──────────────────────────────────
-  const renderVehicleStep = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
-        Vehicle Identity
-      </Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Owner Name"
-            value={vehicle.ownerName}
-            onChange={(e) => handleVehicleChange('ownerName', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.ownerName)}
-            helperText={errors.ownerName}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            select
-            label="Vehicle Type"
-            value={vehicle.vehicle_type}
-            onChange={(e) => handleVehicleChange('vehicle_type', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-          >
-            {VEHICLE_TYPES.map((vt) => (
-              <MenuItem key={vt} value={vt}>{vt}</MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Make"
-            value={vehicle.make}
-            onChange={(e) => handleVehicleChange('make', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.make)}
-            helperText={errors.make}
-          />
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Model"
-            value={vehicle.model_name}
-            onChange={(e) => handleVehicleChange('model_name', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.model_name)}
-            helperText={errors.model_name}
-          />
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Variant"
-            value={vehicle.variant}
-            onChange={(e) => handleVehicleChange('variant', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            select
-            label="Fuel Type"
-            value={vehicle.fuel_type}
-            onChange={(e) => handleVehicleChange('fuel_type', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-          >
-            {FUEL_TYPES.map((ft) => (
-              <MenuItem key={ft} value={ft}>{ft}</MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Color"
-            value={vehicle.color}
-            onChange={(e) => handleVehicleChange('color', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-          />
-        </Grid>
-      </Grid>
-
-      <Divider sx={{ my: 1 }} />
-
-      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
-        Registration & Identification
-      </Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Registration Number"
-            value={vehicle.registration_number}
-            onChange={(e) => handleVehicleChange('registration_number', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.registration_number)}
-            helperText={errors.registration_number}
-          />
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Chassis Number"
-            value={vehicle.chassis_number}
-            onChange={(e) => handleVehicleChange('chassis_number', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.chassis_number)}
-            helperText={errors.chassis_number}
-          />
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Engine Number"
-            value={vehicle.engine_number}
-            onChange={(e) => handleVehicleChange('engine_number', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.engine_number)}
-            helperText={errors.engine_number}
-          />
-        </Grid>
-      </Grid>
-
-      <Divider sx={{ my: 1 }} />
-
-      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
-        Manufacturing & History
-      </Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Year of Manufacture"
-            type="number"
-            value={vehicle.year_of_manufacture}
-            onChange={(e) => handleVehicleChange('year_of_manufacture', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            error={Boolean(errors.year_of_manufacture)}
-            helperText={errors.year_of_manufacture}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Vehicle Purchase Date"
-            type="date"
-            value={vehicle.vehicle_purchase_date}
-            onChange={(e) => handleVehicleChange('vehicle_purchase_date', e.target.value)}
-            fullWidth
-            disabled={readOnly}
-            sx={inputSx}
-            InputLabelProps={{ shrink: true }}
-            error={Boolean(errors.vehicle_purchase_date)}
-            helperText={errors.vehicle_purchase_date}
-          />
-        </Grid>
-      </Grid>
+      <InvoiceSellerFields
+        sellerType={invoice.sellerType}
+        invoice={invoice}
+        errors={errors}
+        onChange={handleInvoiceChange}
+        readOnly={readOnly}
+      />
     </Box>
   );
 
@@ -850,10 +527,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
               </Button>
             )}
             <Button
-              onClick={() => {
-                if (activeStep === STEPS.length - 1) handleClose();
-                else setActiveStep((s) => s + 1);
-              }}
+              onClick={handleReadOnlyNext}
               variant="contained"
               sx={{
                 backgroundColor: 'var(--color-secondary-main)',
@@ -910,7 +584,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
             <CircularProgress sx={{ color: 'var(--color-secondary-main)' }} />
           </Box>
-        ) : renderVehicleStep()
+        ) : <InvoiceVehicleStep vehicle={vehicle} errors={errors} onChange={handleVehicleChange} readOnly={readOnly} />
       )}
     </NormalModal>
   );

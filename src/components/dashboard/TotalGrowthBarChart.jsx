@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import Chart from 'react-apexcharts';
+import SafeChart from './SafeChart';
 import { HiChevronDown } from 'react-icons/hi2';
 import { useDropdown } from '../../context/DropdownContext';
 import useAnimatedNumber from '../../hooks/useAnimatedNumber';
@@ -60,6 +60,8 @@ const TotalGrowthBarChart = React.memo(({ isLoading }) => {
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
 
+
+
   const isOpen = isDropdownOpen(DROPDOWN_ID);
   const currentData = useMemo(() => chartDataByPeriod[value], [value]);
   const animatedTotal = useAnimatedNumber(currentData.total, 800, '$', '', 2);
@@ -82,17 +84,22 @@ const TotalGrowthBarChart = React.memo(({ isLoading }) => {
 
   // Force chart to update on window resize
   useEffect(() => {
+    const resizeTimer = { current: null };
     const handleResize = () => {
-      if (chartRef.current && window.ApexCharts) {
-        // Trigger chart redraw after sidebar animation completes
-        setTimeout(() => {
-          window.dispatchEvent(new Event('resize'));
-        }, 320); // Slightly longer than transition duration
-      }
+      if (!(chartRef.current && window.ApexCharts)) return;
+      // Debounce dispatch to avoid many forced reflows during resize
+      if (resizeTimer.current) clearTimeout(resizeTimer.current);
+      resizeTimer.current = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+        resizeTimer.current = null;
+      }, 320);
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimer.current) clearTimeout(resizeTimer.current);
+    };
   }, []);
 
   const handleDropdownClick = () => {
@@ -107,24 +114,18 @@ const TotalGrowthBarChart = React.memo(({ isLoading }) => {
   const chartData = useMemo(() => ({
     height: 400,
     type: 'bar',
-    options: {
+      options: {
       chart: {
-        id: 'bar-chart',
         stacked: true,
         toolbar: { show: true },
         zoom: { enabled: true },
-        animations: {
-          enabled: true,
-          dynamicAnimation: {
-            enabled: true,
-            speed: 200 // Faster animation for snappier feel
-          }
-        }
+        // Turn off animations for better performance during development
+        animations: { enabled: false, dynamicAnimation: { enabled: false }, animateGradually: { enabled: false } },
+        redrawOnParentResize: false,
       },
-      responsive: [{ breakpoint: 480, options: { legend: { position: 'bottom', offsetX: -10, offsetY: 0 } } }],
       plotOptions: { bar: { horizontal: false, columnWidth: '50%' } },
       xaxis: { type: 'category', categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] },
-      legend: { show: true, fontSize: '14px', fontFamily: `'Roboto', sans-serif`, position: 'bottom', offsetX: 20, labels: { useSeriesColors: false }, markers: { width: 16, height: 16, radius: 5 }, itemMargin: { horizontal: 15, vertical: 8 } },
+      legend: { show: true, fontSize: '14px', position: 'bottom', offsetX: 20, labels: { useSeriesColors: false }, markers: { width: 16, height: 16, radius: 5 }, itemMargin: { horizontal: 15, vertical: 8 } },
       fill: { type: 'solid' },
       dataLabels: { enabled: false },
       grid: { show: true },
@@ -176,7 +177,7 @@ const TotalGrowthBarChart = React.memo(({ isLoading }) => {
       </div>
       
       {/* Chart */}
-      <Chart {...chartData} />
+      <SafeChart key={value} {...chartData} />
     </div>
   );
 });

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import Chart from 'react-apexcharts';
+import SafeChart from './SafeChart';
 import { HiOutlineShoppingBag } from 'react-icons/hi2';
 import { BsArrowDownRight } from 'react-icons/bs';
 import useAnimatedNumber from '../../hooks/useAnimatedNumber';
@@ -116,7 +116,7 @@ const TotalOrderLineChartCard = React.memo(({ isLoading }) => {
             <span className="text-primary-200 text-base font-medium">Total Order</span>
           </div>
           <div className="w-35">
-            <Chart {...chartData} />
+            <SafeChart key={timeValue} {...chartData} />
           </div>
         </div>
       </div>

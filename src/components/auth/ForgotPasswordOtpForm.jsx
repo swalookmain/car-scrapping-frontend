@@ -54,8 +54,8 @@ const ForgotPasswordOtpForm = ({ email, otp, handleOtpChange, handleOtpKeyDown, 
     <Box className="flex justify-center gap-2 mb-4">
       {otp.map((digit, index) => (
         <TextField
-          key={index}
-          id={`otp-${index}`}
+          key={`otp-${email || 'anon'}-${index}`}
+          id={`otp-${email || 'anon'}-${index}`}
           value={digit}
           onChange={(e) => handleOtpChange(index, e.target.value)}
           onKeyDown={(e) => handleOtpKeyDown(index, e)}

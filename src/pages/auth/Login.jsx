@@ -15,6 +15,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import inputSx from "../../services/inputStyles";
 import { useAuth } from "../../context/AuthContext";
+import useApiCall from '../../hooks/useApiCall';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [keepLoggedIn, setKeepLoggedIn] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const { execute, loading } = useApiCall();
   const [error, setError] = useState("");
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
@@ -31,21 +32,17 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
-
     try {
-      const { redirectPath } = await login(email, password);
+      const { redirectPath } = await execute(() => login(email, password));
       navigate(redirectPath);
     } catch (err) {
-      if (err.response?.status === 401) {
+      if (err?.response?.status === 401) {
         setError("Invalid email or password");
-      } else if (err.response?.status === 403) {
+      } else if (err?.response?.status === 403) {
         setError("Account deactivated or not assigned to organization");
       } else {
         setError("Something went wrong. Please try again.");
       }
-    } finally {
-      setLoading(false);
     }
   };
 

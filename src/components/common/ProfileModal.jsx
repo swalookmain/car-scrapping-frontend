@@ -68,8 +68,10 @@ const ProfileModal = memo(({ isOpen, onClose, anchorRef }) => {
             <div className="text-grey-500 text-sm">{displayRole}</div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full overflow-hidden">
-              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="profile" className="w-full h-full object-cover" />
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-primary-main flex items-center justify-center text-white font-semibold text-sm select-none">
+              {user?.avatar
+                ? <img src={user.avatar} alt="profile" className="w-full h-full object-cover" />
+                : (displayName.charAt(0) || '?').toUpperCase()}
             </div>
           </div>
         </div>

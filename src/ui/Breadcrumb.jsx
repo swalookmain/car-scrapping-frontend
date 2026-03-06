@@ -39,7 +39,7 @@ const Breadcrumb = ({ title, items = [] }) => {
             const isLast = index === items.length - 1;
 
             return (
-              <li key={index} className="flex items-center">
+              <li key={item.path || item.label} className="flex items-center">
                 {/* Separator Icon (> arrow) */}
                 <NavigateNextIcon 
                   className="text-gray-400 mx-1" 

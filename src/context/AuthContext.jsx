@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { authApi } from '../services/api';
 import refreshAuth from '../services/api/core/refreshService';
 import { getDefaultRoute } from '../config/roleConfig';
+import tokenStorage from '../services/tokenStorage';
 
 const AuthContext = createContext(null);
 
@@ -12,12 +13,18 @@ export const AuthProvider = ({ children }) => {
   const isRefreshingRef = useRef(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const accessToken = localStorage.getItem('accessToken');
+    try {
+      const accessToken = tokenStorage.getAccessToken();
+      const parsedUser = tokenStorage.getUser();
 
-    if (storedUser && accessToken) {
-      setUser(JSON.parse(storedUser));
-      scheduleRefresh(accessToken);
+      if (parsedUser && accessToken) {
+        setUser(parsedUser);
+        scheduleRefresh(accessToken);
+      }
+    } catch (err) {
+      // Corrupted storage data - clear it
+      console.error('Failed to restore session:', err);
+      tokenStorage.clearAll();
     }
     setLoading(false);
   }, []);
@@ -65,8 +72,7 @@ export const AuthProvider = ({ children }) => {
       return { accessToken, newRefreshToken };
     } catch (error) {
       isRefreshingRef.current = false;
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
+      tokenStorage.clearAll();
       setUser(null);
       window.location.href = '/';
       throw error;
@@ -103,8 +109,8 @@ export const AuthProvider = ({ children }) => {
 
     const { accessToken, user: userData } = response;
 
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+    tokenStorage.setAccessToken(accessToken);
+    tokenStorage.setUser(userData);
 
     setUser(userData);
 
@@ -123,8 +129,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
+      tokenStorage.clearAll();
       clearScheduledRefresh();
       setUser(null);
     }

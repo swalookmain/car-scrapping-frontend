@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-
 // project imports
 import AdminLayout from '../../layout/AdminLayout';
 import EarningCard from '../../components/dashboard/EarningCard';
@@ -12,11 +10,7 @@ import TotalGrowthBarChart from '../../components/dashboard/TotalGrowthBarChart'
 // ==============================|| DEFAULT DASHBOARD ||============================== //
 
 export default function Dashboard() {
-  const [isLoading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(false);
-  }, []);
+  const isLoading = false;
 
   return (
     <AdminLayout>

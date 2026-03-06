@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Drawer, 
@@ -22,13 +22,23 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
   const matchUpMd = useMediaQuery(theme.breakpoints.up('md'));
   const { user } = useAuth();
 
-  const sidebarConfig = getFilteredSidebarConfig(user?.role);
+  const sidebarConfig = getFilteredSidebarConfig(user?.role) || [];
 
-  const handleItemClick = () => {
-    if (onItemClick) {
-      onItemClick();
+  // Auto-scroll active sidebar item into view on route change
+  const activeItemRef = useRef(null);
+  useEffect(() => {
+    if (activeItemRef.current) {
+      activeItemRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
-  };
+  }, [location.pathname]);
+
+  // Stable handler — reads target path from data-path attribute to avoid
+  // creating a new function reference on every render iteration.
+  const handleNavigate = useCallback((e) => {
+    const path = e.currentTarget.dataset.path;
+    if (onItemClick) onItemClick();
+    navigate(path);
+  }, [navigate, onItemClick]);
 
   const drawerContent = (
     <>
@@ -63,7 +73,9 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
                   return (
                     <ListItemButton
                       key={item.path}
-                      onClick={() => { handleItemClick(); navigate(item.path); }}
+                      ref={location.pathname === item.path ? activeItemRef : null}
+                      data-path={item.path}
+                      onClick={handleNavigate}
                       sx={{
                         borderRadius: '10px',
                         mb: 0.5,

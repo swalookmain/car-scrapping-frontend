@@ -57,8 +57,8 @@ const CollapsibleTableRow = ({ row, columns, renderCollapsedContent, onActionCli
             {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
           </IconButton>
         </TableCell>
-        {columns.map((column, index) => (
-          <TableCell key={index} sx={{ padding: '16px', borderBottom: 'none' }}>
+        {columns.map((column) => (
+          <TableCell key={column.field || column.headerName} sx={{ padding: '16px', borderBottom: 'none' }}>
             {column.render ? column.render(row, onActionClick) : row[column.field]}
           </TableCell>
         ))}
@@ -148,9 +148,9 @@ const CollapsibleTable = ({
                 </TableCell>
               )}
               <TableCell sx={{ width: '50px', padding: '8px 16px' }} />
-              {columns.map((column, index) => (
+              {columns.map((column) => (
                 <TableCell
-                  key={index}
+                  key={column.field || column.headerName}
                   sx={{
                     fontWeight: 600,
                     color: 'var(--color-grey-700)',

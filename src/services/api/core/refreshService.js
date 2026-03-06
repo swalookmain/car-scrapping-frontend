@@ -1,5 +1,6 @@
 import axios from 'axios';
 import API_CONFIG, { ENDPOINTS } from './config';
+import tokenStorage from '../../tokenStorage';
 
 let _inflightRefresh = null;
 
@@ -8,17 +9,15 @@ export const refreshAuth = async () => {
 
   _inflightRefresh = (async () => {
     try {
-      // Always read refreshToken from cookies and send in payload if available
+      // Read refreshToken from cookies if available (httpOnly cookies are not accessible here,
+      // but non-httpOnly ones set by the server may be.)
       let refreshTokenFromCookie = null;
       const cookieMatch = document.cookie.match(/(^|;)\s*refreshToken=([^;]*)/);
       if (cookieMatch) {
         refreshTokenFromCookie = decodeURIComponent(cookieMatch[2]);
-        console.log('refreshService: found refreshToken in cookie:', refreshTokenFromCookie);
-      } else {
-        console.log('refreshService: no refreshToken found in accessible cookies');
       }
 
-      const currentAccess = localStorage.getItem('accessToken');
+      const currentAccess = tokenStorage.getAccessToken();
       const headers = { 'Content-Type': 'application/json' };
       const config = { withCredentials: true, headers };
 
@@ -27,9 +26,8 @@ export const refreshAuth = async () => {
         config.headers.Authorization = `Bearer ${currentAccess}`;
       }
 
-      // Always send refreshToken in payload if available
+      // Send refreshToken in payload if available
       const payload = refreshTokenFromCookie ? { refreshToken: refreshTokenFromCookie } : {};
-      console.log('refreshService: calling refresh API with payload:', payload);
 
       const response = await axios.post(
         `${API_CONFIG.BASE_URL}${ENDPOINTS.AUTH.REFRESH}`,
@@ -37,23 +35,21 @@ export const refreshAuth = async () => {
         config
       );
 
-      console.debug('refreshService: refresh response', response?.data);
-
-      const { accessToken, refreshToken: newRefreshToken, user: newUser } = response.data || {};
+      const { accessToken, refreshToken: newRefreshToken, user: newUser } = response?.data || {};
 
       if (accessToken) {
-        localStorage.setItem('accessToken', accessToken);
+        tokenStorage.setAccessToken(accessToken);
       }
       if (newRefreshToken) {
-        localStorage.setItem('refreshToken', newRefreshToken);
+        tokenStorage.setRefreshToken(newRefreshToken);
       }
       if (newUser) {
-        localStorage.setItem('user', JSON.stringify(newUser));
+        tokenStorage.setUser(newUser);
       }
 
       return { accessToken, newRefreshToken, newUser };
     } catch (err) {
-      console.error('refreshAuth failed:', err?.response?.data || err.message || err);
+      console.error('refreshAuth failed:', err?.response?.data?.message || err?.message || 'Unknown error');
       throw err;
     } finally {
       _inflightRefresh = null;
