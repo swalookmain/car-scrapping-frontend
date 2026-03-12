@@ -89,12 +89,14 @@ export default function InvoiceSellerFields({ sellerType, invoice, errors, onCha
           </Grid>
           <Grid item xs={12} sm={6}>
             <FormControlLabel
+              sx={{ alignItems: 'center' }}
               control={
                 <Switch
                   checked={invoice.reverseChargeApplicable}
                   onChange={(e) => onChange('reverseChargeApplicable', e.target.checked)}
                   disabled={readOnly}
                   sx={{
+                    transform: 'translateY(4px)',
                     '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' },
                     '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'var(--color-secondary-main)' },
                   }}

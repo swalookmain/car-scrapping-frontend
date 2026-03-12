@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useCallback, memo, forwardRef, useImperativeHandle, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { List } from 'react-window';
 import {
@@ -9,7 +9,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Checkbox,
+  Switch,
   TablePagination,
   Box,
   Popover,
@@ -25,9 +25,11 @@ import {
 /** Rows above this count activate react-window virtual scrolling (non-paginated mode) */
 const VIRTUAL_THRESHOLD = 100;
 /** Fixed height of each virtual row in pixels */
-const VIRTUAL_ROW_HEIGHT = 56;
+const VIRTUAL_ROW_HEIGHT = 48;
+/** Standard cell padding for table cells (reduces vertical gaps) */
+const STANDARD_CELL_PADDING = '8px 14px';
 /** Visible height of the virtual list container */
-const VIRTUAL_MAX_HEIGHT = 520;
+const VIRTUAL_MAX_HEIGHT = 440;
 
 // ── Stable virtual-row component (outside NormalTable to avoid recreation) ──
 const VirtualRow = memo(function VirtualRow({ index, style, rows, visibleCols, showCb, selectedRows, onActionClick, onSelectRow }) {
@@ -37,15 +39,15 @@ const VirtualRow = memo(function VirtualRow({ index, style, rows, visibleCols, s
     <Box
       role="row"
       style={{ ...style, display: 'flex', alignItems: 'center', boxSizing: 'border-box', borderBottom: '1px solid var(--color-grey-100)', backgroundColor: '#fff' }}
-      sx={{ '&:hover': { backgroundColor: 'var(--color-grey-50) !important' } }}
+      sx={{ '&:hover': { backgroundColor: 'rgba(103,58,183,0.03) !important' } }}
     >
       {showCb && (
-        <Box role="cell" sx={{ width: '48px', padding: '8px 12px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-          <Checkbox
+        <Box role="cell" sx={{ width: '40px', padding: '6px 10px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+          <Switch
             size="small"
             checked={selectedRows.includes(row.id)}
             onChange={() => onSelectRow(row.id)}
-            sx={{ color: 'var(--color-grey-400)', '&.Mui-checked': { color: 'var(--color-secondary-main)' } }}
+            sx={{ transform: 'translateY(2px)', color: 'var(--color-grey-400)', '&.Mui-checked': { color: 'var(--color-secondary-main)' } }}
           />
         </Box>
       )}
@@ -54,7 +56,7 @@ const VirtualRow = memo(function VirtualRow({ index, style, rows, visibleCols, s
           key={column.field || column.headerName}
           role="cell"
           sx={{
-            padding: '8px 16px',
+            padding: '6px 12px',
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
@@ -93,13 +95,13 @@ export const exportToCsv = (columns, data, filename = 'export') => {
 
 // ── Column Visibility Popover ──────────────────────────────────
 const ColumnVisibilityPopover = ({ anchorEl, onClose, columns, hiddenColumns, onToggle, onShowAll }) => (
-  <Popover
+    <Popover
     open={Boolean(anchorEl)}
     anchorEl={anchorEl}
     onClose={onClose}
     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-    PaperProps={{ sx: { p: 2, minWidth: 200, borderRadius: '10px', boxShadow: '0 4px 20px rgba(0,0,0,0.12)' } }}
+    PaperProps={{ sx: { p: 2, minWidth: 180, borderRadius: '14px', boxShadow: '0 16px 48px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.04)' } }}
   >
     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'var(--color-grey-700)' }}>
       Column Visibility
@@ -110,12 +112,13 @@ const ColumnVisibilityPopover = ({ anchorEl, onClose, columns, hiddenColumns, on
       .map((col) => (
         <Box key={col.field} sx={{ display: 'block' }}>
           <FormControlLabel
+            sx={{ alignItems: 'center' }}
             control={
-              <Checkbox
+              <Switch
                 size="small"
                 checked={!hiddenColumns.has(col.field)}
                 onChange={() => onToggle(col.field)}
-                sx={{ color: 'var(--color-grey-400)', '&.Mui-checked': { color: 'var(--color-secondary-main)' } }}
+                sx={{ transform: 'translateY(2px)', color: 'var(--color-grey-400)', '&.Mui-checked': { color: 'var(--color-secondary-main)' } }}
               />
             }
             label={<Typography variant="body2">{col.headerName}</Typography>}
@@ -141,7 +144,7 @@ const NormalTable = forwardRef(({
   isLoading,
   onActionClick,
   toolbar,
-  showCheckbox = true,
+  showCheckbox = false,
   csvFilename = 'table-data',
   page = 0,
   rowsPerPage = 5,
@@ -149,6 +152,7 @@ const NormalTable = forwardRef(({
   onPageChange,
   onRowsPerPageChange,
 }, ref) => {
+  const rootRef = useRef(null);
   const [selectedRows, setSelectedRows] = useState([]);
   const [hiddenColumns, setHiddenColumns] = useState(new Set());
   const [colAnchorEl, setColAnchorEl] = useState(null);
@@ -168,7 +172,14 @@ const NormalTable = forwardRef(({
     openColumnToggle: (e) => setColAnchorEl(e.currentTarget),
   }), [columns, data, csvFilename]);
 
-  const visibleColumns = columns.filter((col) => !col.field || !hiddenColumns.has(col.field));
+  // Filter out hidden columns but keep columns without a `field` (e.g. grouping or custom columns).
+  // Then ensure any action column (field === 'actions' or headerName includes 'action') is moved to the end.
+  const visibleColumnsRaw = columns.filter((col) => !col.field || !hiddenColumns.has(col.field));
+  const isActionCol = (c) => (c.field && c.field.toString().toLowerCase() === 'actions') || (c.headerName && c.headerName.toLowerCase().includes('action'));
+  const visibleColumns = [
+    ...visibleColumnsRaw.filter((c) => !isActionCol(c)),
+    ...visibleColumnsRaw.filter((c) => isActionCol(c)),
+  ];
 
   const handleSelectAll = (event) => {
     if (event.target.checked) {
@@ -185,6 +196,28 @@ const NormalTable = forwardRef(({
     );
   }, []);
 
+  const handlePageChangeLocal = useCallback((e, newPage) => {
+    try {
+      if (rootRef.current && rootRef.current.scrollIntoView) {
+        rootRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+      }
+    } catch (err) {
+      // ignore
+    }
+    onPageChange?.(newPage);
+  }, [onPageChange]);
+
+  const handleRowsPerPageChangeLocal = useCallback((e) => {
+    try {
+      if (rootRef.current && rootRef.current.scrollIntoView) {
+        rootRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+      }
+    } catch (err) {
+      // ignore
+    }
+    onRowsPerPageChange?.(parseInt(e.target.value, 10));
+  }, [onRowsPerPageChange]);
+
   // prepare virtual row props before any early return so hooks remain stable between renders
   const virtualRowProps = React.useMemo(() => ({
     rows: data,
@@ -198,25 +231,30 @@ const NormalTable = forwardRef(({
   if (isLoading) {
     const skeletonCount = Math.max(3, Math.min(rowsPerPage || 5, 6));
     return (
-      <Paper sx={{ p: 0, borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 14px rgba(0,0,0,0.08)' }}>
-        {toolbar && <Box sx={{ p: 0 }}>{toolbar}</Box>}
+      <Paper sx={{ p: 0, borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)' }}>
+          {toolbar && <Box sx={{ p: 0 }}>{toolbar}</Box>} 
         <TableContainer>
-          <Table>
+          <Table sx={{ borderCollapse: 'collapse' }}>
             <TableHead>
-              <TableRow sx={{ backgroundColor: '#fff' }}>
-                {showCheckbox && (
-                  <TableCell sx={{ width: '48px', padding: '8px 12px' }} />
-                )}
-                {visibleColumns.map((column) => (
+              <TableRow sx={{ backgroundColor: 'rgba(103,58,183,0.04)' }}>
+                  {showCheckbox && ( 
+                    <TableCell sx={{ width: '40px', padding: '8px 10px', borderBottom: '1px solid var(--color-grey-200)', backgroundColor: 'rgba(103,58,183,0.04)' }} />
+                  )} 
+                  {visibleColumns.map((column) => (
                   <TableCell
                     key={column.field || column.headerName}
-                    sx={{
-                      fontWeight: 600,
-                      color: 'var(--color-grey-700)',
-                      padding: '16px',
-                      fontSize: '0.875rem',
-                      ...(column.width && { width: column.width })
-                    }}
+                      sx={{ 
+                        fontWeight: 600, 
+                        color: 'var(--color-secondary-dark)', 
+                        padding: '10px 14px', 
+                        fontSize: '0.72rem', 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '0.06em', 
+                        borderBottom: '2px solid var(--color-grey-100)', 
+                        backgroundColor: 'rgba(237,231,246,0.25)', 
+                        whiteSpace: 'nowrap', 
+                        ...(column.width && { width: column.width }) 
+                      }} 
                   >
                     {column.headerName}
                   </TableCell>
@@ -228,18 +266,17 @@ const NormalTable = forwardRef(({
                 <TableRow
                   key={`skeleton-${i}`}
                   sx={{
-                    '&:hover': { backgroundColor: 'var(--color-grey-50)' },
-                    borderBottom: '1px solid var(--color-grey-100)'
+                    backgroundColor: i % 2 === 1 ? 'rgba(103,58,183,0.018)' : '#fff',
                   }}
                 >
                   {showCheckbox && (
-                    <TableCell sx={{ width: '48px', padding: '8px 12px' }}>
-                      <Box sx={{ height: 20, width: 20, bgcolor: 'var(--color-grey-100)', borderRadius: '6px' }} className="animate-pulse" />
+                    <TableCell sx={{ width: '40px', padding: '8px 10px', borderBottom: '1px solid var(--color-grey-100)' }}>
+                      <Box sx={{ height: 14, width: 14, bgcolor: 'var(--color-grey-100)', borderRadius: '4px' }} className="animate-pulse" />
                     </TableCell>
                   )}
                   {visibleColumns.map((column) => (
-                    <TableCell key={column.field || column.headerName} sx={{ padding: '16px', borderBottom: 'none' }}>
-                      <Box sx={{ height: 16, width: column.width ? '60%' : '80%', bgcolor: 'var(--color-grey-100)', borderRadius: '6px' }} className="animate-pulse" />
+                    <TableCell key={column.field || column.headerName} sx={{ padding: STANDARD_CELL_PADDING, borderBottom: '1px solid var(--color-grey-100)' }}>
+                      <Box sx={{ height: 13, width: column.width ? '60%' : '75%', bgcolor: 'var(--color-grey-100)', borderRadius: '5px' }} className="animate-pulse" />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -255,26 +292,49 @@ const NormalTable = forwardRef(({
   const shouldVirtualize = !onPageChange && data.length > VIRTUAL_THRESHOLD;
 
 
-  // ── Standard row renderer (paginated mode) ───────────────────────
+  // ── Standard row renderer (paginated mode) ────────────────────
   const renderStandardRows = () =>
-    data.map((row) => (
+    data.map((row, rowIdx) => (
       <TableRow
         key={row.id}
         hover
-        sx={{ '&:hover': { backgroundColor: 'var(--color-grey-50)' }, borderBottom: '1px solid var(--color-grey-100)' }}
+        sx={{
+          backgroundColor: rowIdx % 2 === 1 ? 'rgba(237,231,246,0.08)' : '#fff',
+          '&:hover': { backgroundColor: 'rgba(103,58,183,0.04) !important' },
+          '&:last-child td': { borderBottom: 'none' },
+          transition: 'background-color 0.15s ease',
+        }}
       >
         {showCheckbox && (
-          <TableCell sx={{ width: '48px', padding: '8px 12px' }}>
-            <Checkbox
+          <TableCell sx={{ width: '40px', padding: '6px 10px' }}>
+            <Switch
               size="small"
               checked={selectedRows.includes(row.id)}
               onChange={() => handleSelectRow(row.id)}
-              sx={{ color: 'var(--color-grey-400)', '&.Mui-checked': { color: 'var(--color-secondary-main)' } }}
+              sx={{ transform: 'translateY(2px)', color: 'var(--color-grey-400)', '&.Mui-checked': { color: 'var(--color-secondary-main)' } }}
             />
           </TableCell>
         )}
-        {visibleColumns.map((column, colIdx) => {
-          const cellSx = { padding: '16px', borderBottom: 'none' };
+          {visibleColumns.map((column, colIdx) => {
+          const isAction = (column.field && column.field.toString().toLowerCase() === 'actions') || (column.headerName && column.headerName.toLowerCase().includes('action'));
+          const cellSx = {
+            padding: STANDARD_CELL_PADDING,
+            borderBottom: '1px solid var(--color-grey-100)',
+            fontSize: '0.8125rem',
+            color: 'var(--color-grey-800)',
+          };
+          if (isAction) {
+            Object.assign(cellSx, {
+              whiteSpace: 'nowrap',
+              textAlign: 'right',
+              verticalAlign: 'middle',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: '8px',
+              paddingRight: '12px',
+            });
+          }
           if (showCheckbox && colIdx === 0) cellSx.paddingLeft = '8px';
           return (
             <TableCell key={column.field || column.headerName} sx={cellSx}>
@@ -287,24 +347,40 @@ const NormalTable = forwardRef(({
 
   const tableHeader = (
     <TableHead>
-      <TableRow sx={{ backgroundColor: '#fff' }}>
+      <TableRow sx={{ backgroundColor: 'rgba(237,231,246,0.25)' }}>
         {showCheckbox && (
-          <TableCell sx={{ width: '48px', padding: '8px 12px' }}>
-            <Checkbox
+          <TableCell sx={{ width: '40px', padding: '10px 10px', borderBottom: '2px solid var(--color-grey-100)', backgroundColor: 'rgba(237,231,246,0.25)' }}>
+            <Switch
               size="small"
-              indeterminate={selectedRows.length > 0 && selectedRows.length < data.length}
               checked={data.length > 0 && selectedRows.length === data.length}
               onChange={handleSelectAll}
               sx={{
+                transform: 'translateY(2px)',
                 color: 'var(--color-grey-400)',
                 '&.Mui-checked': { color: 'var(--color-secondary-main)' },
-                '&.MuiCheckbox-indeterminate': { color: 'var(--color-secondary-main)' },
               }}
             />
           </TableCell>
         )}
         {visibleColumns.map((column, colIdx) => {
-          const headerSx = { fontWeight: 600, color: 'var(--color-grey-700)', padding: '16px', fontSize: '0.875rem', ...(column.width && { width: column.width }) };
+          const headerSx = {
+            fontWeight: 600,
+            color: 'var(--color-secondary-dark)',
+            padding: '10px 14px',
+            fontSize: '0.72rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            borderBottom: '2px solid var(--color-grey-100)',
+            backgroundColor: 'rgba(237,231,246,0.25)',
+            whiteSpace: 'nowrap',
+            ...(column.width && { width: column.width }),
+          };
+          // Right-align action header so it sits closer to action buttons
+          const isActionHeader = (column.field && column.field.toString().toLowerCase() === 'actions') || (column.headerName && column.headerName.toLowerCase().includes('action'));
+          if (isActionHeader) {
+            headerSx.textAlign = 'right';
+            headerSx.paddingRight = '12px';
+          }
           if (showCheckbox && colIdx === 0) headerSx.paddingLeft = '8px';
           return (
             <TableCell key={column.field || column.headerName} sx={headerSx}>
@@ -316,8 +392,10 @@ const NormalTable = forwardRef(({
     </TableHead>
   );
 
+  
+
   return (
-    <Paper sx={{ p: 0, borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 14px rgba(0,0,0,0.08)' }}>
+    <Paper ref={rootRef} sx={{ p: 0, borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)' }}>
       {/* Toolbar */}
       {toolbar && <Box sx={{ p: 0 }}>{toolbar}</Box>}
 
@@ -325,7 +403,7 @@ const NormalTable = forwardRef(({
         /* ── Virtual scrolling for large non-paginated datasets (react-window v2 List) ── */
         <Box>
           <TableContainer>
-            <Table stickyHeader>
+            <Table stickyHeader sx={{ borderCollapse: 'collapse' }}>
               {tableHeader}
             </Table>
           </TableContainer>
@@ -340,7 +418,7 @@ const NormalTable = forwardRef(({
       ) : (
         /* ── Standard paginated table ── */
         <TableContainer>
-          <Table stickyHeader={false}>
+          <Table stickyHeader={false} sx={{ borderCollapse: 'collapse' }}>
             {tableHeader}
             <TableBody>
               {renderStandardRows()}
@@ -355,19 +433,28 @@ const NormalTable = forwardRef(({
           component="div"
           count={effectiveTotal}
           page={page}
-          onPageChange={(e, newPage) => onPageChange(newPage)}
+          onPageChange={handlePageChangeLocal}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
+          onRowsPerPageChange={handleRowsPerPageChangeLocal}
           rowsPerPageOptions={[5, 10, 25]}
           sx={{
             borderTop: '1px solid var(--color-grey-100)',
+            backgroundColor: 'rgba(237,231,246,0.08)',
             '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
-              color: 'var(--color-grey-600)',
-              fontSize: '0.875rem'
+              color: 'var(--color-grey-500)',
+              fontSize: '0.8rem',
             },
             '.MuiTablePagination-select': {
-              color: 'var(--color-grey-700)'
-            }
+              color: 'var(--color-grey-700)',
+              fontSize: '0.8rem',
+              borderRadius: '8px',
+            },
+            '.MuiTablePagination-actions button': {
+              color: 'var(--color-secondary-main)',
+              borderRadius: '8px',
+              '&:disabled': { color: 'var(--color-grey-300)' },
+              '&:hover': { backgroundColor: 'rgba(103,58,183,0.08)' },
+            },
           }}
         />
       )}

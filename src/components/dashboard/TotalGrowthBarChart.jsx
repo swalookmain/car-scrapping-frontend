@@ -112,7 +112,7 @@ const TotalGrowthBarChart = React.memo(({ isLoading }) => {
   };
 
   const chartData = useMemo(() => ({
-    height: 400,
+    height: 320,
     type: 'bar',
       options: {
       chart: {
@@ -125,7 +125,7 @@ const TotalGrowthBarChart = React.memo(({ isLoading }) => {
       },
       plotOptions: { bar: { horizontal: false, columnWidth: '50%' } },
       xaxis: { type: 'category', categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] },
-      legend: { show: true, fontSize: '14px', position: 'bottom', offsetX: 20, labels: { useSeriesColors: false }, markers: { width: 16, height: 16, radius: 5 }, itemMargin: { horizontal: 15, vertical: 8 } },
+      legend: { show: true, fontSize: '12px', position: 'bottom', offsetX: 12, labels: { useSeriesColors: false }, markers: { width: 14, height: 14, radius: 4 }, itemMargin: { horizontal: 12, vertical: 6 } },
       fill: { type: 'solid' },
       dataLabels: { enabled: false },
       grid: { show: true },
@@ -139,17 +139,17 @@ const TotalGrowthBarChart = React.memo(({ isLoading }) => {
   }
 
   return (
-    <div ref={chartRef} className="bg-paper rounded-xl shadow-sm p-5" style={{ overflow: 'hidden' }}>
+    <div ref={chartRef} className="bg-paper rounded-2xl p-5" style={{ overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <p className="text-grey-500 text-sm">Total Growth</p>
-          <h3 className="text-2xl font-semibold text-grey-900">{animatedTotal}</h3>
+          <p className="text-grey-500 text-xs font-medium uppercase tracking-wide">Total Growth</p>
+          <h3 className="text-2xl font-semibold text-grey-900 mt-1">{animatedTotal}</h3>
         </div>
         <div className="relative">
           <button 
             ref={buttonRef}
-            className="flex items-center gap-2 px-4 py-2 border border-grey-200 rounded-lg text-sm hover:bg-grey-50 transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 border border-grey-200 rounded-xl text-xs font-medium hover:bg-grey-50 transition-colors cursor-pointer"
             onClick={handleDropdownClick}
           >
             {status.find(s => s.value === value)?.label}
@@ -158,12 +158,13 @@ const TotalGrowthBarChart = React.memo(({ isLoading }) => {
           {isOpen && (
             <div 
               ref={dropdownRef}
-              className="absolute right-0 top-full mt-1 bg-paper border border-grey-200 rounded-lg shadow-lg z-50 min-w-35"
+              className="absolute right-0 top-full mt-1 bg-paper border border-grey-100 rounded-xl z-50 min-w-35 py-1 overflow-hidden animate-fade-in"
+              style={{ boxShadow: '0 16px 48px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.05)' }}
             >
               {status.map((option) => (
                 <button
                   key={option.value}
-                  className={`w-full px-4 py-2 text-left text-sm hover:bg-grey-50 first:rounded-t-lg last:rounded-b-lg cursor-pointer ${
+                    className={`w-full px-3 py-1.5 text-left text-xs hover:bg-grey-50 first:rounded-t-lg last:rounded-b-lg cursor-pointer ${
                     value === option.value ? 'bg-grey-100 text-primary-main' : ''
                   }`}
                   onClick={() => handleMenuItemClick(option.value)}

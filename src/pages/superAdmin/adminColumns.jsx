@@ -18,7 +18,7 @@ export const ActiveSwitchCell = ({ row, onToggle }) => {
     <Switch
       checked={Boolean(row.isActive)}
       onChange={handleToggle}
-      sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'var(--color-secondary-main)' } }}
+      sx={{ transform: 'translateY(4px)', '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'var(--color-secondary-main)' } }}
     />
   );
 };
@@ -28,17 +28,17 @@ export const ActionsCell = ({ row, onView, onEdit, onDelete }) => {
   const handleEdit = useCallback(() => onEdit(row), [onEdit, row]);
   const handleDelete = useCallback(() => onDelete(row), [onDelete, row]);
   return (
-    <>
-      <IconButton size="small" onClick={handleView} aria-label="view" sx={{ color: '#1565c0' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+      <IconButton size="small" onClick={handleView} aria-label="view" sx={{ color: '#1565c0', p: 0.5, minWidth: 'auto' }}>
         <VisibilityIcon fontSize="small" />
       </IconButton>
-      <IconButton size="small" onClick={handleEdit} aria-label="edit" sx={{ color: 'var(--color-secondary-main)' }}>
+      <IconButton size="small" onClick={handleEdit} aria-label="edit" sx={{ color: 'var(--color-secondary-main)', p: 0.5, minWidth: 'auto' }}>
         <EditIcon fontSize="small" />
       </IconButton>
-      <IconButton size="small" onClick={handleDelete} aria-label="delete" sx={{ color: '#e53935' }}>
+      <IconButton size="small" onClick={handleDelete} aria-label="delete" sx={{ color: '#e53935', p: 0.5, minWidth: 'auto' }}>
         <DeleteIcon fontSize="small" />
       </IconButton>
-    </>
+    </Box>
   );
 };
 

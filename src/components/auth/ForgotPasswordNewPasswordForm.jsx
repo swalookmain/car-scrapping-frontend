@@ -18,8 +18,8 @@ const ForgotPasswordNewPasswordForm = ({
     <Box className="flex justify-center mb-4">
       <Box
         sx={{
-          width: "80px",
-          height: "80px",
+          width: "64px",
+          height: "64px",
           borderRadius: "50%",
           backgroundColor: "var(--color-success-light)",
           display: "flex",
@@ -27,7 +27,7 @@ const ForgotPasswordNewPasswordForm = ({
           justifyContent: "center",
         }}
       >
-        <CheckCircle sx={{ fontSize: 40, color: "var(--color-success-dark)" }} />
+        <CheckCircle sx={{ fontSize: 32, color: "var(--color-success-dark)" }} />
       </Box>
     </Box>
     <Typography
@@ -58,16 +58,16 @@ const ForgotPasswordNewPasswordForm = ({
       onChange={(e) => setNewPassword(e.target.value)}
       type={showNewPassword ? "text" : "password"}
       variant="outlined"
-      sx={{ ...inputSx, mb: 3 }}
+      sx={{ ...inputSx, mb: 2 }}
       required
       InputProps={{
         endAdornment: (
           <InputAdornment position="end">
-            <IconButton
+              <IconButton
               aria-label="toggle password visibility"
               onClick={() => setShowNewPassword((show) => !show)}
               edge="end"
-              size="large"
+              size="medium"
               sx={{ color: "var(--color-grey-500)" }}
             >
               {showNewPassword ? <Visibility /> : <VisibilityOff />}
@@ -83,7 +83,7 @@ const ForgotPasswordNewPasswordForm = ({
       onChange={(e) => setConfirmPassword(e.target.value)}
       type={showConfirmPassword ? "text" : "password"}
       variant="outlined"
-      sx={{ ...inputSx, mb: 3 }}
+      sx={{ ...inputSx, mb: 2 }}
       required
       error={confirmPassword && newPassword !== confirmPassword}
       helperText={
@@ -94,11 +94,11 @@ const ForgotPasswordNewPasswordForm = ({
       InputProps={{
         endAdornment: (
           <InputAdornment position="end">
-            <IconButton
+              <IconButton
               aria-label="toggle password visibility"
               onClick={() => setShowConfirmPassword((show) => !show)}
               edge="end"
-              size="large"
+              size="medium"
               sx={{ color: "var(--color-grey-500)" }}
             >
               {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
@@ -116,9 +116,9 @@ const ForgotPasswordNewPasswordForm = ({
       sx={{
         backgroundColor: "var(--color-secondary-main)",
         color: "#fff",
-        py: 1.5,
-        borderRadius: "12px",
-        fontSize: "1rem",
+        py: 1,
+        borderRadius: "8px",
+        fontSize: "0.875rem",
         textTransform: "none",
         boxShadow: "none",
         "&:hover": {

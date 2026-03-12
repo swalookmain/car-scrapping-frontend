@@ -58,8 +58,8 @@ const ProfileModal = memo(({ isOpen, onClose, anchorRef }) => {
   return (
     <div
       ref={modalRef}
-      className="fixed sm:absolute right-0 sm:top-full top-0 left-0 sm:left-auto mt-12 sm:mt-2 w-full sm:w-80 max-w-xs sm:max-w-none mx-auto sm:mx-0 bg-paper rounded-t-lg sm:rounded-lg shadow-2xl border border-grey-200 z-50 overflow-hidden"
-      style={{ boxShadow: '0 24px 60px rgba(16,24,40,0.18), 0 8px 24px rgba(16,24,40,0.08)' }}
+      className="fixed sm:absolute right-0 sm:top-full top-0 left-0 sm:left-auto mt-12 sm:mt-2 w-full sm:w-80 max-w-xs sm:max-w-none mx-auto sm:mx-0 bg-paper rounded-t-2xl sm:rounded-2xl border border-grey-100 z-50 overflow-hidden animate-fade-in"
+      style={{ boxShadow: '0 24px 80px rgba(16,24,40,0.14), 0 8px 32px rgba(16,24,40,0.06)', backdropFilter: 'blur(20px)' }}
     >
       <div className="px-4 py-4 border-b border-grey-100">
         <div className="flex items-center justify-between">

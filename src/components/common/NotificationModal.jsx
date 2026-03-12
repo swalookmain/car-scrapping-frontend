@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, memo } from 'react';
 import PropTypes from 'prop-types';
 import { IoChevronDown, IoStorefrontOutline } from 'react-icons/io5';
 import { HiOutlineMail } from 'react-icons/hi';
+import { Popper, Paper, Box, Typography, Button, ClickAwayListener, Avatar } from '@mui/material';
 
 // Sample notification data
-const notificationsData = [
+const initialNotifications = [
   {
     id: 1,
     type: 'user',
@@ -31,212 +32,134 @@ const notificationsData = [
     type: 'mail',
     icon: HiOutlineMail,
     iconBg: 'bg-primary-main',
-    name: 'Check Your Mail.',
-    message: 'All done! Now check your inbox as you will receive email',
-    time: '2 min ago',
+    name: 'New Message',
+    message: 'You have a new message in your inbox.',
+    time: '10 min ago',
     isUnread: false,
     isNew: false,
   },
 ];
 
-const filterOptions = ['All Notification', 'Unread', 'Read'];
-
-const NotificationModal = memo(({ isOpen, onClose, anchorRef }) => {
+const NotificationModal = memo(function NotificationModal({ isOpen, onClose, anchorRef }) {
   const [filter, setFilter] = useState('All Notification');
+  const filterOptions = ['All Notification', 'Unread', 'New'];
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [notifications, setNotifications] = useState(initialNotifications);
   const modalRef = useRef(null);
   const filterRef = useRef(null);
 
-  // Close modal when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        isOpen &&
-        modalRef.current &&
-        !modalRef.current.contains(event.target) &&
-        anchorRef?.current &&
-        !anchorRef.current.contains(event.target)
-      ) {
-        // Move focus to body before closing to avoid aria-hidden focus trap
-        if (document.activeElement && modalRef.current.contains(document.activeElement)) {
-          document.activeElement.blur();
-        }
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose, anchorRef]);
-
-  // Prevent background scroll when modal is open (lock both body and html)
-  useEffect(() => {
-    if (isOpen) {
-      document.body.classList.add('overflow-hidden');
-      document.documentElement.classList.add('overflow-hidden');
-    } else {
-      document.body.classList.remove('overflow-hidden');
-      document.documentElement.classList.remove('overflow-hidden');
-    }
-    return () => {
-      document.body.classList.remove('overflow-hidden');
-      document.documentElement.classList.remove('overflow-hidden');
-    };
+    if (!isOpen) setShowFilterDropdown(false);
   }, [isOpen]);
 
-  // Close filter dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        showFilterDropdown &&
-        filterRef.current &&
-        !filterRef.current.contains(event.target)
-      ) {
-        setShowFilterDropdown(false);
-      }
-    };
+  const unreadCount = notifications.filter((n) => n.isUnread).length;
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showFilterDropdown]);
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isUnread: false })));
+  };
 
-  // Count unread notifications
-  const unreadCount = notificationsData.filter((n) => n.isUnread).length;
-
-  // Filter notifications
-  const filteredNotifications = notificationsData.filter((notification) => {
-    if (filter === 'Unread') return notification.isUnread;
-    if (filter === 'Read') return !notification.isUnread;
+  const filteredNotifications = notifications.filter((n) => {
+    if (filter === 'All Notification') return true;
+    if (filter === 'Unread') return n.isUnread;
+    if (filter === 'New') return n.isNew;
     return true;
   });
 
-  const handleMarkAllRead = () => {
-    // Handle mark all as read logic
-    console.log('Mark all as read');
-  };
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      ref={modalRef}
-      className="fixed sm:absolute right-0 sm:top-full top-0 left-0 sm:left-auto mt-12 sm:mt-2 w-full sm:w-82.5 max-w-xs sm:max-w-none mx-auto sm:mx-0 bg-paper rounded-t-lg sm:rounded-lg shadow-2xl border border-grey-200 z-50 overflow-hidden"
-      style={{ boxShadow: '0 24px 60px rgba(16,24,40,0.18), 0 8px 24px rgba(16,24,40,0.08)' }}
+    <Popper
+      open={isOpen}
+      anchorEl={anchorRef && anchorRef.current}
+      placement="bottom-end"
+      modifiers={[{ name: 'offset', options: { offset: [0, 8] } }, { name: 'preventOverflow', options: { boundary: 'viewport' } }]}
+      sx={{ zIndex: (theme) => theme.zIndex.appBar + 1 }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-grey-100">
-        <div className="flex items-center gap-2">
-          <span className="text-grey-900 font-semibold text-base">All Notification</span>
-          {unreadCount > 0 && (
-            <span className="bg-secondary-main text-white text-xs font-medium px-2 py-0.5 rounded-full min-w-5 text-center">
-              {unreadCount.toString().padStart(2, '0')}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={handleMarkAllRead}
-          className="text-primary-main text-sm font-medium hover:underline cursor-pointer"
+      <ClickAwayListener
+        onClickAway={(e) => {
+          if (anchorRef?.current && anchorRef.current.contains(e.target)) return;
+          onClose();
+        }}
+      >
+        <Paper
+          ref={modalRef}
+          elevation={3}
+          sx={{
+            width: 360,
+            maxHeight: 420,
+            overflow: 'hidden',
+            borderRadius: '16px',
+            border: '1px solid rgba(0,0,0,0.04)',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.12), 0 8px 32px rgba(0,0,0,0.06)',
+          }}
         >
-          Mark as all read
-        </button>
-      </div>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.25, borderBottom: '1px solid var(--color-grey-100)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'var(--color-grey-900)' }}>All Notification</Typography>
+              {unreadCount > 0 && (
+                <Typography component="span" sx={{ bgcolor: 'var(--color-secondary-main)', color: '#fff', fontSize: '0.65rem', px: 1, py: 0.4, borderRadius: 1 }}>
+                  {unreadCount.toString().padStart(2, '0')}
+                </Typography>
+              )}
+            </Box>
+            <Button size="small" onClick={handleMarkAllRead} sx={{ textTransform: 'none' }}>Mark all read</Button>
+          </Box>
 
-      {/* Filter Dropdown */}
-      <div className="px-4 py-3 border-b border-grey-100">
-        <div ref={filterRef} className="relative">
-          <button
-            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-            className="w-full flex items-center justify-between px-4 py-2.5 border border-grey-200 rounded-lg bg-paper hover:border-grey-300 cursor-pointer transition-colors"
-          >
-            <span className="text-grey-700 text-sm">{filter}</span>
-            <IoChevronDown
-              className={`text-grey-500 transition-transform ${
-                showFilterDropdown ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-          {showFilterDropdown && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-paper border border-grey-200 rounded-lg shadow-lg z-10">
-              {filterOptions.map((option) => (
-                <button
-                  key={option}
-                  onClick={() => {
-                    setFilter(option);
-                    setShowFilterDropdown(false);
-                  }}
-                  className={`w-full px-4 py-2 text-left text-sm hover:bg-grey-50 cursor-pointer first:rounded-t-lg last:rounded-b-lg ${
-                    filter === option ? 'bg-grey-50 text-secondary-main font-medium' : 'text-grey-700'
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+          <Box sx={{ px: 2, py: 1.25, borderBottom: '1px solid var(--color-grey-100)' }}>
+            <Box ref={filterRef} sx={{ position: 'relative' }}>
+              <Button fullWidth variant="outlined" onClick={() => setShowFilterDropdown(!showFilterDropdown)} endIcon={<IoChevronDown className={showFilterDropdown ? 'rotate-180' : ''} />} sx={{ justifyContent: 'space-between', textTransform: 'none' }}>
+                <Typography sx={{ color: 'var(--color-grey-700)', fontSize: '0.875rem' }}>{filter}</Typography>
+              </Button>
 
-      {/* Notifications List */}
-      <div className="max-h-80 overflow-y-auto">
-        {filteredNotifications.map((notification) => (
-          <div
-            key={notification.id}
-            className="flex gap-3 px-4 py-3 hover:bg-grey-50 cursor-pointer transition-colors border-b border-grey-100 last:border-b-0"
-          >
-            {/* Avatar or Icon */}
-            {notification.type === 'user' ? (
-              notification.avatar
-                ? <img src={notification.avatar} alt={notification.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
-                : <div className="w-10 h-10 rounded-full bg-primary-main flex items-center justify-center shrink-0 text-white font-semibold text-sm select-none">
-                    {(notification.name?.charAt(0) || '?').toUpperCase()}
-                  </div>
-            ) : (
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${notification.iconBg}`}
-              >
-                <notification.icon className="text-white text-lg" />
-              </div>
-            )}
+              {showFilterDropdown && (
+                <Paper sx={{ position: 'absolute', top: '100%', left: 0, right: 0, mt: 1, zIndex: 10 }}>
+                  {filterOptions.map((option) => (
+                    <Box key={option} sx={{ px: 2, py: 1, cursor: 'pointer', '&:hover': { bgcolor: 'var(--color-grey-50)' } }} onClick={() => { setFilter(option); setShowFilterDropdown(false); }}>
+                      <Typography sx={{ fontSize: '0.9rem', color: filter === option ? 'var(--color-secondary-main)' : 'var(--color-grey-700)', fontWeight: filter === option ? 600 : 400 }}>{option}</Typography>
+                    </Box>
+                  ))}
+                </Paper>
+              )}
+            </Box>
+          </Box>
 
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-grey-900 font-medium text-sm truncate">
-                  {notification.name}
-                </span>
-                <span className="text-grey-500 text-xs whitespace-nowrap">
-                  {notification.time}
-                </span>
-              </div>
-              <p className="text-grey-500 text-sm mt-0.5 line-clamp-2">
-                {notification.message}
-              </p>
+          <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
+            {filteredNotifications.map((notification) => {
+              const IconComp = notification.icon;
+              return (
+                <Box key={notification.id} sx={{ display: 'flex', gap: 2, px: 2, py: 1.25, borderBottom: '1px solid var(--color-grey-100)', alignItems: 'flex-start' }}>
+                  {notification.type === 'user' ? (
+                    notification.avatar ? (
+                      <Avatar src={notification.avatar} sx={{ width: 40, height: 40 }} />
+                    ) : (
+                      <Avatar sx={{ bgcolor: 'var(--color-secondary-main)', width: 40, height: 40 }}>{(notification.name?.charAt(0) || '?').toUpperCase()}</Avatar>
+                    )
+                  ) : (
+                    <Avatar sx={{ bgcolor: notification.iconBg === 'bg-success-main' ? 'var(--color-success-main)' : 'var(--color-primary-main)', width: 40, height: 40 }}>
+                      {IconComp ? <IconComp style={{ color: '#fff' }} /> : null}
+                    </Avatar>
+                  )}
 
-              {/* Tags */}
-              <div className="flex gap-2 mt-2">
-                {notification.isUnread && (
-                  <span className="text-primary-main text-xs font-medium px-2 py-0.5 rounded-full border border-primary-main">
-                    Unread
-                  </span>
-                )}
-                {notification.isNew && (
-                  <span className="text-orange-dark text-xs font-medium px-2 py-0.5 rounded-full border border-orange-dark">
-                    New
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                      <Typography noWrap sx={{ fontWeight: 700, color: 'var(--color-grey-900)', fontSize: '0.95rem' }}>{notification.name}</Typography>
+                      <Typography sx={{ color: 'var(--color-grey-500)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{notification.time}</Typography>
+                    </Box>
+                    <Typography sx={{ color: 'var(--color-grey-600)', fontSize: '0.9rem', mt: 0.5 }} noWrap>{notification.message}</Typography>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                      {notification.isUnread && <Box sx={{ color: 'var(--color-secondary-main)', border: '1px solid var(--color-secondary-main)', px: 1, py: 0.25, borderRadius: 1, fontSize: '0.75rem' }}>Unread</Box>}
+                      {notification.isNew && <Box sx={{ color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning-dark)', px: 1, py: 0.25, borderRadius: 1, fontSize: '0.75rem' }}>New</Box>}
+                    </Box>
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
 
-      {/* Footer */}
-      <div className="px-4 py-3 border-t border-grey-100 text-center">
-        <button className="text-primary-main text-sm font-medium hover:underline cursor-pointer">
-          View All
-        </button>
-      </div>
-    </div>
+          <Box sx={{ px: 2, py: 1.25, borderTop: '1px solid var(--color-grey-100)', textAlign: 'center' }}>
+            <Button size="small" sx={{ textTransform: 'none' }}>View All</Button>
+          </Box>
+        </Paper>
+      </ClickAwayListener>
+    </Popper>
   );
 });
 

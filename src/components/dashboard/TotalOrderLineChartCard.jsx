@@ -66,7 +66,7 @@ const TotalOrderLineChartCard = React.memo(({ isLoading }) => {
   }
 
   return (
-    <div ref={chartRef} className="relative overflow-hidden rounded-xl p-5 h-45 bg-linear-to-br from-primary-dark to-primary-main">
+    <div ref={chartRef} className="relative overflow-hidden rounded-2xl p-5 h-45 bg-linear-to-br from-primary-dark to-primary-main">
       {/* Decorative circles */}
       <div className="absolute w-52.5 h-52.5 bg-primary-800 rounded-full -top-21.25 -right-23.75 opacity-80"></div>
       <div className="absolute w-52.5 h-52.5 bg-primary-800 rounded-full -top-31.25 -right-3.75 opacity-50"></div>

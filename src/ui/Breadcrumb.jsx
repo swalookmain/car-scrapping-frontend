@@ -14,9 +14,9 @@ const Breadcrumb = ({ title, items = [] }) => {
   };
 
   return (
-    <div className="flex justify-between items-center px-6 py-4 bg-white rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.08)] mb-6">
+    <div className="flex justify-between items-center px-4 py-2.5 bg-white/80 rounded-xl mb-4 border border-grey-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]" style={{ backdropFilter: 'blur(8px)' }}>
       {/* Page Title (Left) */}
-      <h2 className="text-xl font-medium text-gray-900">
+      <h2 className="text-sm font-semibold text-grey-900 tracking-tight">
         {title}
       </h2>
 
@@ -30,7 +30,7 @@ const Breadcrumb = ({ title, items = [] }) => {
               onClick={() => handleClick('/dashboard')}
               className="flex items-center cursor-pointer text-[var(--color-secondary-main)] hover:opacity-80 transition-opacity"
             >
-              <HomeIcon style={{ fontSize: '20px' }} />
+              <HomeIcon style={{ fontSize: '16px' }} />
             </div>
           </li>
 
@@ -43,7 +43,7 @@ const Breadcrumb = ({ title, items = [] }) => {
                 {/* Separator Icon (> arrow) */}
                 <NavigateNextIcon 
                   className="text-gray-400 mx-1" 
-                  style={{ fontSize: '16px' }} 
+                  style={{ fontSize: '14px' }} 
                 />
 
                 {/* Breadcrumb Text */}

@@ -45,7 +45,7 @@ const EarningCard = React.memo(({ isLoading }) => {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl p-5 h-45 bg-linear-to-br from-secondary-dark to-secondary-main">
+    <div className="relative overflow-hidden rounded-2xl p-5 h-45 bg-linear-to-br from-secondary-dark to-secondary-main" >
       {/* Decorative circles */}
       <div className="absolute w-52.5 h-52.5 bg-secondary-800 rounded-full -top-21.25 -right-23.75 opacity-80"></div>
       <div className="absolute w-52.5 h-52.5 bg-secondary-800 rounded-full -top-31.25 -right-3.75 opacity-50"></div>
@@ -68,7 +68,8 @@ const EarningCard = React.memo(({ isLoading }) => {
             {isOpen && (
               <div 
                 ref={dropdownRef}
-                className="absolute right-0 top-full mt-1 bg-paper border border-grey-200 rounded-lg shadow-lg z-50 min-w-35"
+                className="absolute right-0 top-full mt-1 bg-paper border border-grey-100 rounded-xl z-50 min-w-35 overflow-hidden animate-fade-in"
+                style={{ boxShadow: '0 16px 48px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.05)' }}
               >
                 <button
                   className="w-full px-4 py-2 text-left text-sm hover:bg-grey-50 rounded-t-lg cursor-pointer"

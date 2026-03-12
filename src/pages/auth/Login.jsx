@@ -49,33 +49,63 @@ const Login = () => {
   return (
     <Box
       className="min-h-screen flex items-center justify-center"
-      sx={{ backgroundColor: "var(--color-grey-100)" }}
+      sx={{
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #e8e0f0 50%, #ddd6f3 100%)',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: '10%',
+          left: '5%',
+          width: '300px',
+          height: '300px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(103,58,183,0.08) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          bottom: '10%',
+          right: '10%',
+          width: '400px',
+          height: '400px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(33,150,243,0.06) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        },
+      }}
     >
       <Paper
         elevation={0}
         sx={{
-          borderRadius: "12px",
-          border: "1px solid var(--color-grey-200)",
-          maxWidth: "475px",
-          width: "100%",
+          borderRadius: '20px',
+          border: '1px solid rgba(255,255,255,0.6)',
+          maxWidth: '475px',
+          width: '100%',
           p: { xs: 3, sm: 4, md: 5 },
-          backgroundColor: "var(--color-paper)",
+          backgroundColor: 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.04)',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         {/* Logo Section */}
-        <Box className="mb-8 flex flex-col items-center justify-center">
-          <Box className="flex items-center gap-2 mb-6">
+          <Box className="mb-6 flex flex-col items-center justify-center">
+          <Box className="flex items-center gap-2 mb-4">
             <Box
               component="img"
               src="/logo.png"
               alt="Logo"
               sx={{
-                width: '40px',
-                height: '40px',
+                width: '32px',
+                height: '32px',
                 objectFit: 'contain',
               }}
             />
-            <Typography variant="h3" sx={{ fontWeight: 700, fontSize: '1.6rem', color: '#121926' }}>
+            <Typography variant="h3" sx={{ fontWeight: 700, fontSize: '1.4rem', color: '#121926' }}>
                RVSF
             </Typography>
           </Box>
@@ -85,8 +115,8 @@ const Login = () => {
             sx={{
               color: "var(--color-secondary-main)",
               fontWeight: "bold",
-              fontSize: "1.5rem",
-              marginBottom: "8px",
+              fontSize: "1.25rem",
+              marginBottom: "6px",
             }}
           >
             Hi, Welcome Back
@@ -122,7 +152,7 @@ const Login = () => {
             onChange={(e) => setEmail(e.target.value)}
             margin="normal"
             variant="outlined"
-            sx={{ ...inputSx, mb: 3, mt: 0 }}
+            sx={{ ...inputSx, mb: 2, mt: 0 }}
           />
 
           <TextField
@@ -132,15 +162,15 @@ const Login = () => {
             onChange={(e) => setPassword(e.target.value)}
             type={showPassword ? "text" : "password"}
             variant="outlined"
-            sx={{ ...inputSx, mb: 2 }}
+            sx={{ ...inputSx, mb: 1 }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton
+                    <IconButton
                     aria-label="toggle password visibility"
                     onClick={handleClickShowPassword}
                     edge="end"
-                    size="large"
+                    size="medium"
                     sx={{ color: "var(--color-grey-500)" }}
                   >
                     {showPassword ? <Visibility /> : <VisibilityOff />}
@@ -156,7 +186,7 @@ const Login = () => {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              mb: 3,
+              mb: 2,
             }}
           >
             {/* Keep me logged in checkbox removed */}
@@ -189,14 +219,17 @@ const Login = () => {
             sx={{
               backgroundColor: "var(--color-secondary-main)",
               color: "#fff",
-              py: 1.5,
+              py: 1.25,
               borderRadius: "12px",
-              fontSize: "1rem",
+              fontSize: "0.875rem",
+              fontWeight: 600,
               textTransform: "none",
-              boxShadow: "none",
+              boxShadow: "0 4px 14px rgba(103,58,183,0.3)",
+              transition: "all 0.2s ease",
               "&:hover": {
                 backgroundColor: "var(--color-secondary-dark)",
-                boxShadow: "none",
+                boxShadow: "0 6px 20px rgba(103,58,183,0.4)",
+                transform: "translateY(-1px)",
               },
             }}
           >

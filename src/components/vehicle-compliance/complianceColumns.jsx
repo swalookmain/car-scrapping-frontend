@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Typography, Chip, IconButton, Tooltip } from '@mui/material';
+import { Typography, Chip, IconButton, Tooltip, Box } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
@@ -58,20 +58,20 @@ export const ActionsCell = ({ row, canPerform, handleView, handleEdit }) => {
   const handleViewClick = useCallback(() => handleView(row), [handleView, row]);
   const handleEditClick = useCallback(() => handleEdit(row), [handleEdit, row]);
   return (
-    <>
+    <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
       <Tooltip title="View Details">
-        <IconButton size="small" onClick={handleViewClick} sx={{ color: '#1565c0' }}>
+        <IconButton size="small" onClick={handleViewClick} sx={{ color: '#1565c0', p: 0.5, minWidth: 'auto' }}>
           <VisibilityIcon fontSize="small" />
         </IconButton>
       </Tooltip>
       {canPerform('compliance:edit') && (
         <Tooltip title="Update RTO / Docs">
-          <IconButton size="small" onClick={handleEditClick} sx={{ color: 'var(--color-secondary-main)' }}>
+          <IconButton size="small" onClick={handleEditClick} sx={{ color: 'var(--color-secondary-main)', p: 0.5, minWidth: 'auto' }}>
             <EditIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       )}
-    </>
+    </Box>
   );
 };
 

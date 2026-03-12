@@ -40,10 +40,10 @@ const InventoryPartRow = ({
   const [preview, setPreview] = useState({ open: false, src: null, name: null, mime: null });
 
   return (
-  <Box
+    <Box
     sx={{
       border: '1px solid var(--color-grey-200)',
-      borderRadius: '12px',
+      borderRadius: '8px',
       p: 2,
       position: 'relative',
       backgroundColor: 'var(--color-grey-50)',
@@ -243,11 +243,11 @@ const InventoryPartRow = ({
                     sx={{
                       position: 'relative',
                       border: '1px solid var(--color-grey-200)',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       overflow: 'hidden',
                       backgroundColor: '#fff',
-                      width: isImage ? 90 : 'auto',
-                      minWidth: isImage ? 90 : 130,
+                      width: isImage ? 80 : 'auto',
+                      minWidth: isImage ? 80 : 120,
                       boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
                     }}
                   >
@@ -257,15 +257,15 @@ const InventoryPartRow = ({
                           component="img"
                           src={src}
                           alt={name}
-                          sx={{ width: 90, height: 80, objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                          sx={{ width: 80, height: 64, objectFit: 'cover', display: 'block', cursor: 'pointer' }}
                           onClick={() => setPreview({ open: true, src, name, mime })}
                         />
                         <Box sx={{ px: 0.75, py: 0.5, backgroundColor: 'var(--color-grey-50)' }}>
                           <Typography
                             variant="caption"
                             sx={{
-                              fontSize: '0.65rem', color: 'var(--color-grey-500)', display: 'block',
-                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 82,
+                              fontSize: '0.7rem', color: 'var(--color-grey-500)', display: 'block',
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 76,
                             }}
                           >
                             {name}
@@ -278,14 +278,14 @@ const InventoryPartRow = ({
                         onClick={() => src && setPreview({ open: true, src, name, mime })}
                       >
                         {isPdf
-                          ? <PictureAsPdfIcon sx={{ color: '#e53935', fontSize: 22, flexShrink: 0 }} />
+                          ? <PictureAsPdfIcon sx={{ color: '#e53935', fontSize: 18, flexShrink: 0 }} />
                           : isVideo
-                            ? <MovieIcon sx={{ color: '#7b1fa2', fontSize: 22, flexShrink: 0 }} />
-                            : <InsertDriveFileIcon sx={{ color: 'var(--color-grey-400)', fontSize: 22, flexShrink: 0 }} />}
+                              ? <MovieIcon sx={{ color: '#7b1fa2', fontSize: 18, flexShrink: 0 }} />
+                              : <InsertDriveFileIcon sx={{ color: 'var(--color-grey-400)', fontSize: 18, flexShrink: 0 }} />}
                         <Typography variant="caption" sx={{ color: 'var(--color-grey-700)', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
                           {name}
                         </Typography>
-                        {src && <OpenInNewIcon sx={{ fontSize: 13, color: 'var(--color-grey-400)', ml: 'auto', flexShrink: 0 }} />}
+                          {src && <OpenInNewIcon sx={{ fontSize: 12, color: 'var(--color-grey-400)', ml: 'auto', flexShrink: 0 }} />}
                       </Box>
                     )}
 
@@ -298,8 +298,8 @@ const InventoryPartRow = ({
                           position: 'absolute', top: 3, right: 3,
                           backgroundColor: 'rgba(0,0,0,0.45)',
                           color: '#fff',
-                          width: 20, height: 20,
-                          '& svg': { fontSize: 13 },
+                          width: 18, height: 18,
+                          '& svg': { fontSize: 12 },
                           '&:hover': { backgroundColor: 'rgba(0,0,0,0.72)' },
                         }}
                       >

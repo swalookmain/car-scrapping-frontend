@@ -143,7 +143,7 @@ const StaffForm = forwardRef(({ onSubmit }, ref) => {
             }}
           />
         )}
-        <FormControlLabel control={<Switch checked={formData.isActive} onChange={(e) => handleChange('isActive', e.target.checked)} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'var(--color-secondary-main)' } }} />} label="Is Active" />
+          <FormControlLabel sx={{ alignItems: 'center' }} control={<Switch checked={formData.isActive} onChange={(e) => handleChange('isActive', e.target.checked)} sx={{ transform: 'translateY(4px)', '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-switchTrack': { backgroundColor: 'var(--color-secondary-main)' } }} />} label="Is Active" />
       </Box>
     </NormalModal>
 

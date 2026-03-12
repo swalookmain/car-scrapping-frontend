@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Typography, Switch, Tooltip, IconButton } from '@mui/material';
+import { Typography, Switch, Tooltip, IconButton, Box } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -26,6 +26,7 @@ export const StatusCell = ({ row, onToggle }) => {
           onChange={handleToggle}
           size="small"
           sx={{
+            transform: 'translateY(2px)',
             '& .MuiSwitch-switchBase.Mui-checked': {
               color: 'var(--color-secondary-main)',
               '&:hover': { backgroundColor: 'rgba(103,58,183,0.08)' }
@@ -45,21 +46,21 @@ export const ActionsCell = ({ row, canPerform, onView, onEdit, onDelete }) => {
   const handleEdit = useCallback(() => onEdit(row), [onEdit, row]);
   const handleDelete = useCallback(() => onDelete(row), [onDelete, row]);
   return (
-    <>
+    <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
       <IconButton size="small" onClick={handleView} aria-label="view" sx={{ color: '#1565c0' }}>
         <VisibilityIcon fontSize="small" />
       </IconButton>
       {canPerform('staff:edit') && (
-        <IconButton size="small" onClick={handleEdit} aria-label="edit" sx={{ color: 'var(--color-secondary-main)' }}>
+        <IconButton size="small" onClick={handleEdit} aria-label="edit" sx={{ color: 'var(--color-secondary-main)', p: 0.5, minWidth: 'auto' }}>
           <EditIcon fontSize="small" />
         </IconButton>
       )}
       {canPerform('staff:delete') && (
-        <IconButton size="small" onClick={handleDelete} aria-label="delete" sx={{ color: '#e53935' }}>
+        <IconButton size="small" onClick={handleDelete} aria-label="delete" sx={{ color: '#e53935', p: 0.5, minWidth: 'auto' }}>
           <DeleteIcon fontSize="small" />
         </IconButton>
       )}
-    </>
+    </Box>
   );
 };
 

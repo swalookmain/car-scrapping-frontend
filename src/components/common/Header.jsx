@@ -1,6 +1,5 @@
 import React, { memo, useCallback, useState, useRef, useEffect } from 'react';
 import { AppBar, Toolbar, IconButton, Box, InputBase, Avatar, LinearProgress, useMediaQuery, useTheme } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/Tune'; 
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
@@ -74,17 +73,19 @@ const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading
       position="fixed"
       elevation={0}
       sx={{
-        bgcolor: 'var(--color-paper)',
+        bgcolor: 'rgba(255,255,255,0.72)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         color: 'text.primary',
         transition: 'width 225ms cubic-bezier(0, 0, 0.2, 1) 0ms',
-        width: { md: `calc(100% - ${isSidebarOpen ? 260 : 80}px)` },
-        ml: { md: `${isSidebarOpen ? 260 : 80}px` },
-        borderBottom: 'none',
+        width: { md: `calc(100% - ${isSidebarOpen ? drawerWidth : 72}px)` },
+        ml: { md: `${isSidebarOpen ? drawerWidth : 72}px` },
+        borderBottom: '1px solid rgba(0,0,0,0.04)',
       }}
     >
       {/* --- LOADER (Only visible when isLoading is true) --- */}
       <Box sx={{ width: '100%', height: '3px' }}>
-         {isLoading && <LinearProgress color="secondary" sx={{ height: '3px' }} />}
+         {isLoading && <LinearProgress color="secondary" sx={{ height: '3px', borderRadius: '4px', '& .MuiLinearProgress-bar': { borderRadius: '4px' } }} />}
       </Box>
 
       <Toolbar sx={{ paddingY: 1.5, justifyContent: 'space-between' }}>
@@ -97,8 +98,8 @@ const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading
                     alignItems: 'center',
                     bgcolor: 'var(--color-grey-50)',
                     border: '1px solid var(--color-grey-200)',
-                    borderRadius: '12px',
-                    padding: '4px 16px',
+                    borderRadius: '8px',
+                    padding: '4px 12px',
                     flex: 1
                   }}
                 >
@@ -114,55 +115,45 @@ const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading
                 </Box>
                 
                 <Box
-                    onClick={() => setMobileSearchOpen(false)}
-                    sx={{
-                        bgcolor: 'var(--color-orange-light)',
-                        borderRadius: '8px',
-                        width: 38,
-                        height: 38,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer'
-                    }}
+                  onClick={() => setMobileSearchOpen(false)}
+                  sx={{
+                    bgcolor: 'var(--color-orange-light)',
+                    borderRadius: '8px',
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
                 >
-                    <CloseIcon sx={{ color: 'var(--color-orange-dark)' }} />
+                  <CloseIcon sx={{ color: 'var(--color-orange-dark)', fontSize: '1rem' }} />
                 </Box>
              </Box>
         ) : (
             // --- NORMAL HEADER VIEW ---
             <>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    {/* Toggle Button */}
-                    <Box
-                    sx={{
-                        width: 34,
-                        height: 34,
-                        bgcolor: 'var(--color-secondary-light)',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 2,
-                        cursor: 'pointer',
-                        '&:hover': { bgcolor: 'var(--color-secondary-200)' }
-                    }}
-                    onClick={handleDrawerToggle}
-                    >
-                    <MenuIcon sx={{ color: 'var(--color-secondary-dark)', fontSize: '1.3rem' }} />
-                    </Box>
+                    {/* Left spacing / logo area (collapse removed) */}
+                    <Box sx={{ width: 8 }} />
 
                     {/* Desktop Search Bar */}
                     <Box
                     sx={{
-                        display: { xs: 'none', sm: 'flex' },
-                        alignItems: 'center',
-                        bgcolor: 'transparent',
-                        border: '1px solid var(--color-grey-200)',
-                        borderRadius: '12px',
-                        padding: '4px 16px',
+                      display: { xs: 'none', sm: 'flex' },
+                      alignItems: 'center',
+                      bgcolor: 'rgba(248,250,252,0.8)',
+                      border: '1px solid var(--color-grey-200)',
+                      borderRadius: '12px',
+                      padding: '6px 16px',
                         width: '100%',
-                        maxWidth: '400px'
+                        maxWidth: '420px',
+                        transition: 'all 0.2s ease',
+                        '&:focus-within': {
+                          borderColor: 'var(--color-secondary-200)',
+                          boxShadow: '0 0 0 3px rgba(103,58,183,0.06)',
+                          bgcolor: '#fff',
+                        },
                     }}
                     >
                         <SearchIcon sx={{ color: 'var(--color-grey-500)' }} />
@@ -178,19 +169,19 @@ const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading
                     {/* Mobile Search Icon Trigger */}
                     <Box
                        sx={{
-                           display: { xs: 'flex', sm: 'none' },
-                           bgcolor: 'var(--color-secondary-light)',
-                           borderRadius: '8px',
-                           width: 34,
-                           height: 34,
-                           alignItems: 'center',
-                           justifyContent: 'center',
-                           cursor: 'pointer',
-                           mr: 2
+                         display: { xs: 'flex', sm: 'none' },
+                         bgcolor: 'var(--color-secondary-light)',
+                         borderRadius: '8px',
+                         width: 30,
+                         height: 30,
+                         alignItems: 'center',
+                         justifyContent: 'center',
+                         cursor: 'pointer',
+                         mr: 2
                        }}
                        onClick={() => setMobileSearchOpen(true)}
                     >
-                        <SearchIcon sx={{ color: 'var(--color-secondary-dark)', fontSize: '1.2rem' }} />
+                        <SearchIcon sx={{ color: 'var(--color-secondary-dark)', fontSize: '1rem' }} />
                     </Box>
                 </Box>
 
@@ -202,37 +193,47 @@ const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading
                       width: 34,
                       height: 34,
                       bgcolor: 'var(--color-secondary-light)',
-                      borderRadius: '8px',
+                      borderRadius: '10px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'scale(1.05)',
+                        boxShadow: '0 4px 12px rgba(103,58,183,0.15)',
+                      },
                     }}
                     onClick={toggleFullscreen}
                     aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                   >
                     {isFullscreen ? (
-                      <FullscreenExitIcon sx={{ color: 'var(--color-secondary-dark)', fontSize: '1.2rem' }} />
+                      <FullscreenExitIcon sx={{ color: 'var(--color-secondary-dark)', fontSize: '1rem' }} />
                     ) : (
-                      <FullscreenIcon sx={{ color: 'var(--color-secondary-dark)', fontSize: '1.2rem' }} />
+                      <FullscreenIcon sx={{ color: 'var(--color-secondary-dark)', fontSize: '1rem' }} />
                     )}
                   </Box>
                     <Box sx={{ position: 'relative' }}>
                         <Box
-                            ref={notificationButtonRef}
-                            onClick={() => setNotificationOpen(!notificationOpen)}
-                            sx={{
-                            width: 34,
-                            height: 34,
-                            bgcolor: 'var(--color-warning-light)',
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            }}
+                          ref={notificationButtonRef}
+                          onClick={() => setNotificationOpen(!notificationOpen)}
+                          sx={{
+                          width: 34,
+                          height: 34,
+                          bgcolor: 'var(--color-warning-light)',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            transform: 'scale(1.05)',
+                            boxShadow: '0 4px 12px rgba(255,193,7,0.2)',
+                          },
+                          }}
                         >
-                            <NotificationsNoneIcon sx={{ color: 'var(--color-warning-dark)', fontSize: '1.3rem' }} />
+                          <NotificationsNoneIcon sx={{ color: 'var(--color-warning-dark)', fontSize: '1rem' }} />
                         </Box>
                         <NotificationModal 
                             isOpen={notificationOpen} 
@@ -245,21 +246,26 @@ const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading
                     ref={profileButtonRef}
                     onClick={() => setProfileOpen(!profileOpen)}
                     sx={{
-                        bgcolor: 'var(--color-primary-light)',
-                        height: '48px',
-                        borderRadius: '27px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '0 10px',
-                        cursor: 'pointer',
-                        gap: 1
+                      bgcolor: 'var(--color-primary-light)',
+                      height: '42px',
+                      borderRadius: '22px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '0 10px',
+                      cursor: 'pointer',
+                      gap: 1.5,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: '0 4px 12px rgba(33,150,243,0.15)',
+                        transform: 'scale(1.02)',
+                      },
                     }}
                     >
-                        <Avatar 
-                            src="" 
-                            sx={{ width: 34, height: 34, bgcolor: 'var(--color-warning-main)' }} 
-                        />
-                        <SettingsIcon sx={{ color: 'var(--color-primary-main)' }} />
+                      <Avatar 
+                        src="" 
+                        sx={{ width: 28, height: 28, bgcolor: 'var(--color-warning-main)' }} 
+                      />
+                      <SettingsIcon sx={{ color: 'var(--color-primary-main)', fontSize: '1rem' }} />
                     </Box>
                     <ProfileModal
                       isOpen={profileOpen}

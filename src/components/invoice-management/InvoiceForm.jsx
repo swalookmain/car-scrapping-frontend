@@ -457,12 +457,14 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
         </Grid>
         <Grid item xs={12} sm={4}>
           <FormControlLabel
+            sx={{ alignItems: 'center' }}
             control={
               <Switch
                 checked={invoice.gstApplicable}
                 onChange={(e) => handleInvoiceChange('gstApplicable', e.target.checked)}
                 disabled={readOnly}
                 sx={{
+                  transform: 'translateY(4px)',
                   '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' },
                   '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'var(--color-secondary-main)' },
                 }}

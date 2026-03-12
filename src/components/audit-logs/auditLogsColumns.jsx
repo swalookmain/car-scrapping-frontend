@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Typography, IconButton, Tooltip } from '@mui/material';
+import { Typography, IconButton, Tooltip, Box } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { formatDate, ActionChip, StatusChip, ActorRoleChip, IpDeviceCell } from './auditLogsHelpers';
 
@@ -37,18 +37,20 @@ export const DateTimeCell = ({ row }) => (
 export const AuditActionsCell = ({ row, onView }) => {
   const handleView = useCallback(() => onView(row), [onView, row]);
   return (
-    <Tooltip title="View Details">
-      <IconButton size="small" onClick={handleView} sx={{ color: 'var(--color-secondary-main)' }}>
-        <VisibilityIcon fontSize="small" />
-      </IconButton>
-    </Tooltip>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <ActionCell row={row} />
+      <Tooltip title="View Details">
+        <IconButton size="small" onClick={handleView} sx={{ color: 'var(--color-secondary-main)' }}>
+          <VisibilityIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Box>
   );
 };
 
 // ── Column factory ─────────────────────────────────────────────
 export function getAuditLogsColumns({ handleViewDetail }) {
   return [
-    { field: 'action',    headerName: 'Action',     width: '16%', render: (row) => <ActionCell row={row} /> },
     { field: 'actorRole', headerName: 'Actor Role', width: '11%', render: (row) => <ActorRoleCell row={row} /> },
     { field: 'actorId',   headerName: 'Created By', width: '13%', render: (row) => <ActorIdCell row={row} /> },
     { field: 'resource',  headerName: 'Resource',   width: '20%', render: (row) => <ResourceCell row={row} /> },

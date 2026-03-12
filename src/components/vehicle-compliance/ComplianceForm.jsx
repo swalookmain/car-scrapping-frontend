@@ -132,12 +132,14 @@ const ComplianceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref)
         <Grid container spacing={2}>
           <Grid item xs={12} sm={4}>
             <FormControlLabel
+              sx={{ alignItems: 'center' }}
               control={
                 <Switch
                   checked={form.codGenerated}
                   onChange={(e) => handleChange('codGenerated', e.target.checked)}
                   disabled={readOnly}
                   sx={{
+                    transform: 'translateY(4px)',
                     '& .MuiSwitch-switchBase.Mui-checked': {
                       color: 'var(--color-secondary-main)',
                     },
@@ -202,12 +204,14 @@ const ComplianceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref)
         <Grid container spacing={2}>
           <Grid item xs={12} sm={4}>
             <FormControlLabel
+              sx={{ alignItems: 'center' }}
               control={
                 <Switch
                   checked={form.cvsGenerated}
                   onChange={(e) => handleChange('cvsGenerated', e.target.checked)}
                   disabled={readOnly}
                   sx={{
+                    transform: 'translateY(4px)',
                     '& .MuiSwitch-switchBase.Mui-checked': {
                       color: 'var(--color-secondary-main)',
                     },
