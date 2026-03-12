@@ -12,7 +12,7 @@ import {
   Collapse,
   Box,
   Typography,
-  Checkbox,
+  Switch,
   TablePagination
 } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
@@ -25,16 +25,19 @@ const CollapsibleTableRow = ({ row, columns, renderCollapsedContent, onActionCli
       <TableRow 
         hover 
         sx={{ 
-          '&:hover': { backgroundColor: 'var(--color-grey-50)' },
-          borderBottom: '1px solid var(--color-grey-100)'
+          backgroundColor: 'transparent',
+          '&:hover': { backgroundColor: 'rgba(103,58,183,0.04) !important' },
+          '&:last-child td': { borderBottom: 'none' },
+          transition: 'background-color 0.1s ease',
         }}
       >
         {showCheckbox && (
-          <TableCell sx={{ width: '50px', padding: '8px 16px' }}>
-            <Checkbox
+          <TableCell sx={{ width: '50px', padding: '6px 12px' }}>
+            <Switch
               checked={selected}
               onChange={() => onSelect(row.id)}
               sx={{
+                transform: 'translateY(2px)',
                 color: 'var(--color-grey-400)',
                 '&.Mui-checked': {
                   color: 'var(--color-secondary-main)'
@@ -43,7 +46,7 @@ const CollapsibleTableRow = ({ row, columns, renderCollapsedContent, onActionCli
             />
           </TableCell>
         )}
-        <TableCell sx={{ width: '50px', padding: '8px 16px' }}>
+        <TableCell sx={{ width: '50px', padding: '6px 12px' }}>
           <IconButton
             size="small"
             onClick={() => setOpen(!open)}
@@ -57,19 +60,31 @@ const CollapsibleTableRow = ({ row, columns, renderCollapsedContent, onActionCli
             {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
           </IconButton>
         </TableCell>
-        {columns.map((column) => (
-          <TableCell key={column.field || column.headerName} sx={{ padding: '16px', borderBottom: 'none' }}>
-            {column.render ? column.render(row, onActionClick) : row[column.field]}
-          </TableCell>
-        ))}
+          {columns.map((column) => {
+            const isAction = (column.field && column.field.toString().toLowerCase() === 'actions') || (column.headerName && column.headerName.toLowerCase().includes('action'));
+            return (
+            <TableCell
+              key={column.field || column.headerName}
+              sx={{
+                padding: '11px 14px',
+                borderBottom: '1px solid var(--color-grey-100)',
+                fontSize: '0.8125rem',
+                color: 'var(--color-grey-800)',
+                ...(isAction ? { whiteSpace: 'nowrap', textAlign: 'right', verticalAlign: 'middle' } : {}),
+              }}
+            >
+              {column.render ? column.render(row, onActionClick) : row[column.field]}
+            </TableCell>
+          );
+        })}
       </TableRow>
       <TableRow>
-        <TableCell 
+          <TableCell 
           style={{ paddingBottom: 0, paddingTop: 0 }} 
           colSpan={columns.length + (showCheckbox ? 2 : 1)}
         >
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 2, p: 3, backgroundColor: 'var(--color-grey-50)', borderRadius: '8px' }}>
+            <Box sx={{ margin: 1, p: 2, backgroundColor: 'rgba(237,231,246,0.12)', border: '1px solid rgba(103,58,183,0.08)', borderRadius: '12px' }}>
               {renderCollapsedContent(row)}
             </Box>
           </Collapse>
@@ -86,7 +101,7 @@ const CollapsibleTable = ({
   isLoading,
   onActionClick,
   toolbar,
-  showCheckbox = true,
+  showCheckbox = false,
   // Pagination props
   page = 0,
   rowsPerPage = 5,
@@ -112,7 +127,7 @@ const CollapsibleTable = ({
 
   if (isLoading) {
     return (
-      <Paper sx={{ p: 0, borderRadius: '12px', overflow: 'hidden' }}>
+      <Paper sx={{ p: 0, borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.04)' }}>
         <div className="h-96 bg-grey-100 rounded-xl animate-pulse"></div>
       </Paper>
     );
@@ -121,41 +136,41 @@ const CollapsibleTable = ({
   const effectiveTotal = totalCount !== undefined ? totalCount : data.length;
 
   return (
-    <Paper sx={{ p: 0, borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 14px rgba(0,0,0,0.08)' }}>
+    <Paper sx={{ p: 0, borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)', backgroundColor: 'var(--color-paper)' }}>
       {/* Toolbar */}
       {toolbar && <Box sx={{ p: 0 }}>{toolbar}</Box>}
 
       <TableContainer>
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#fff' }}>
+            <TableRow sx={{ backgroundColor: 'rgba(237,231,246,0.25)' }}>
               {showCheckbox && (
-                <TableCell sx={{ width: '50px', padding: '8px 16px' }}>
-                  <Checkbox
-                    indeterminate={selectedRows.length > 0 && selectedRows.length < data.length}
+                <TableCell sx={{ width: '50px', padding: '10px 12px', borderBottom: '2px solid var(--color-grey-100)', backgroundColor: 'rgba(237,231,246,0.25)' }}>
+                  <Switch
                     checked={data.length > 0 && selectedRows.length === data.length}
                     onChange={handleSelectAll}
                     sx={{
+                      transform: 'translateY(2px)',
                       color: 'var(--color-grey-400)',
-                      '&.Mui-checked': {
-                        color: 'var(--color-secondary-main)'
-                      },
-                      '&.MuiCheckbox-indeterminate': {
-                        color: 'var(--color-secondary-main)'
-                      }
+                      '&.Mui-checked': { color: 'var(--color-secondary-main)' }
                     }}
                   />
                 </TableCell>
               )}
-              <TableCell sx={{ width: '50px', padding: '8px 16px' }} />
+              <TableCell sx={{ width: '50px', padding: '10px 12px', borderBottom: '2px solid var(--color-grey-100)', backgroundColor: 'rgba(237,231,246,0.25)' }} />
               {columns.map((column) => (
                 <TableCell
                   key={column.field || column.headerName}
                   sx={{
                     fontWeight: 600,
-                    color: 'var(--color-grey-700)',
-                    padding: '16px',
-                    fontSize: '0.875rem',
+                    color: 'var(--color-secondary-dark)',
+                    padding: '10px 14px',
+                    fontSize: '0.72rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    borderBottom: '2px solid var(--color-grey-100)',
+                    backgroundColor: 'rgba(237,231,246,0.25)',
+                    whiteSpace: 'nowrap',
                     ...(column.width && { width: column.width })
                   }}
                 >

@@ -137,7 +137,7 @@ const PopularCard = React.memo(({ isLoading }) => {
   }
 
   return (
-    <div ref={chartRef} className="bg-paper rounded-xl shadow-sm p-5 h-full flex flex-col w-full max-w-full" style={{ overflow: 'hidden' }}>
+    <div ref={chartRef} className="bg-paper rounded-2xl p-5 h-full flex flex-col w-full max-w-full" style={{ overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-lg font-semibold text-grey-900">Popular Stocks</h4>
@@ -152,7 +152,8 @@ const PopularCard = React.memo(({ isLoading }) => {
           {isOpen && (
             <div 
               ref={dropdownRef}
-              className="absolute right-0 top-full mt-1 bg-paper border border-grey-200 rounded-lg shadow-lg z-50 min-w-35"
+              className="absolute right-0 top-full mt-1 bg-paper border border-grey-100 rounded-xl z-50 min-w-35 overflow-hidden animate-fade-in"
+              style={{ boxShadow: '0 16px 48px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.05)' }}
             >
               {status.map((option) => (
                 <button
@@ -171,7 +172,7 @@ const PopularCard = React.memo(({ isLoading }) => {
       </div>
 
       {/* Bajaj Finery Highlight Card with Chart */}
-      <div className="bg-secondary-light rounded-xl p-4 mb-4 border border-secondary-200">
+      <div className="bg-secondary-light rounded-2xl p-4 mb-4 border border-secondary-200" style={{ boxShadow: '0 2px 12px rgba(103,58,183,0.06)' }}>
         <div className="flex justify-between items-start mb-1">
           <span className="text-secondary-main font-medium">Bajaj Finery</span>
           <span className="text-grey-900 font-semibold">

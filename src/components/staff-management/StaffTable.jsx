@@ -185,7 +185,7 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
         data={filteredData}
         isLoading={isLoading || loadingData}
         toolbar={toolbar}
-        showCheckbox={true}
+        showCheckbox={false}
         csvFilename="staff"
         page={page}
         rowsPerPage={rowsPerPage}

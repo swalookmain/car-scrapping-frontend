@@ -36,7 +36,22 @@ const DocumentPreview = ({ open, onClose, src, name, mime }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      sx={{
+        '& .MuiBackdrop-root': {
+          backgroundColor: 'rgba(18,25,38,0.5)',
+          backdropFilter: 'blur(4px)',
+        },
+        '& .MuiDialog-paper': {
+          borderRadius: '16px',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.15), 0 8px 32px rgba(0,0,0,0.08)',
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: 'flex',
@@ -82,7 +97,8 @@ const DocumentPreview = ({ open, onClose, src, name, mime }) => {
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          p: 2,
+          px: 2,
+          pb: 2,
         }}
       >
         {isImage && src && (

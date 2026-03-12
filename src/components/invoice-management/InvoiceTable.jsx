@@ -223,7 +223,7 @@ const InvoiceTable = ({ isLoading }) => {
         data={tableData}
         isLoading={isLoading || loadingData}
         toolbar={toolbar}
-        showCheckbox={true}
+        showCheckbox={false}
         page={page}
         rowsPerPage={rowsPerPage}
         totalCount={total}

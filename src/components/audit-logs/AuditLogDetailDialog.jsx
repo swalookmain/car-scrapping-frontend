@@ -164,7 +164,7 @@ const AuditLogDetailDialog = ({ open, onClose, log, loading }) => {
       </DialogTitle>
       <Divider />
 
-      <DialogContent sx={{ pt: 2 }}>
+      <DialogContent>
         {loading ? (
           <Box sx={{ py: 5, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
             <CircularProgress size={24} sx={{ color: 'var(--color-secondary-main)' }} />

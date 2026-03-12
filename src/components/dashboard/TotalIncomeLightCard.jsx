@@ -10,7 +10,7 @@ const TotalIncomeLightCard = ({ isLoading, total, label }) => {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl py-4 px-4 bg-paper shadow-sm">
+    <div className="relative overflow-hidden rounded-2xl py-4 px-4 bg-paper" style={{ border: '1px solid rgba(0,0,0,0.04)' }}>
       {/* Decorative circles */}
       <div className="absolute w-45 h-45 bg-warning-light rounded-full -top-17.5 -right-20"></div>
       <div className="absolute w-45 h-45 bg-warning-light rounded-full -top-25 -right-2.5 opacity-50"></div>

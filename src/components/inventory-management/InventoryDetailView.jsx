@@ -181,11 +181,11 @@ const InventoryDetailView = ({ item }) => {
                   sx={{
                     position: 'relative',
                     border: '1px solid var(--color-grey-200)',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     overflow: 'hidden',
                     backgroundColor: '#fff',
-                    width: isImage ? 100 : 'auto',
-                    minWidth: isImage ? 100 : 140,
+                    width: isImage ? 80 : 'auto',
+                    minWidth: isImage ? 80 : 120,
                     boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
                   }}
                 >
@@ -195,20 +195,20 @@ const InventoryDetailView = ({ item }) => {
                         component="img"
                         src={src}
                         alt={name}
-                        sx={{ width: 100, height: 90, objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                        sx={{ width: 80, height: 72, objectFit: 'cover', display: 'block', cursor: 'pointer' }}
                         onClick={() => setPreview({ open: true, src, name, mime })}
                       />
                       <Box sx={{ px: 0.75, py: 0.5, backgroundColor: 'var(--color-grey-50)' }}>
                         <Typography
                           variant="caption"
                           sx={{
-                            fontSize: '0.65rem',
+                            fontSize: '0.7rem',
                             color: 'var(--color-grey-500)',
                             display: 'block',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: 92,
+                            maxWidth: 80,
                           }}
                         >
                           {name}
@@ -228,11 +228,11 @@ const InventoryDetailView = ({ item }) => {
                       onClick={() => src && setPreview({ open: true, src, name, mime })}
                     >
                       {isPdf ? (
-                        <PictureAsPdfIcon sx={{ color: '#e53935', fontSize: 22, flexShrink: 0 }} />
+                        <PictureAsPdfIcon sx={{ color: '#e53935', fontSize: 18, flexShrink: 0 }} />
                       ) : isVideo ? (
-                        <MovieIcon sx={{ color: '#7b1fa2', fontSize: 22, flexShrink: 0 }} />
+                        <MovieIcon sx={{ color: '#7b1fa2', fontSize: 18, flexShrink: 0 }} />
                       ) : (
-                        <InsertDriveFileIcon sx={{ color: 'var(--color-grey-400)', fontSize: 22, flexShrink: 0 }} />
+                        <InsertDriveFileIcon sx={{ color: 'var(--color-grey-400)', fontSize: 18, flexShrink: 0 }} />
                       )}
                       <Typography
                         variant="caption"
@@ -248,7 +248,7 @@ const InventoryDetailView = ({ item }) => {
                         {name}
                       </Typography>
                       {src && (
-                        <OpenInNewIcon sx={{ fontSize: 13, color: 'var(--color-grey-400)', ml: 'auto', flexShrink: 0 }} />
+                        <OpenInNewIcon sx={{ fontSize: 12, color: 'var(--color-grey-400)', ml: 'auto', flexShrink: 0 }} />
                       )}
                     </Box>
                   )}

@@ -65,14 +65,14 @@ const ForgotPassword = () => {
   };
 
   const renderStepIndicator = () => (
-    <Box className="flex justify-center gap-2 mb-6">
+    <Box className="flex justify-center gap-1 mb-4">
       {[1, 2, 3].map((s) => (
         <Box
           key={s}
           sx={{
-            width: step >= s ? "24px" : "8px",
-            height: "8px",
-            borderRadius: "4px",
+            width: step >= s ? "18px" : "6px",
+            height: "6px",
+            borderRadius: "3px",
             backgroundColor:
               step >= s
                 ? "var(--color-secondary-main)"
@@ -93,11 +93,11 @@ const ForgotPassword = () => {
       <Paper
         elevation={0}
         sx={{
-          borderRadius: "12px",
+          borderRadius: "8px",
           border: "1px solid var(--color-grey-200)",
           maxWidth: "475px",
           width: "100%",
-          p: { xs: 3, sm: 4, md: 5 },
+          p: { xs: 2, sm: 3, md: 4 },
           backgroundColor: "var(--color-paper)",
         }}
       >
@@ -125,7 +125,7 @@ const ForgotPassword = () => {
               },
             }}
           >
-            <ArrowBack sx={{ fontSize: 18 }} />
+            <ArrowBack sx={{ fontSize: 16 }} />
             {step > 1 ? "Back" : "Back to Login"}
           </Link>
         </Box>

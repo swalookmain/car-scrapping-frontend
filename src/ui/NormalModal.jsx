@@ -39,10 +39,15 @@ const NormalModal = ({
       maxWidth={maxWidth}
       fullWidth={fullWidth}
       sx={{
+        '& .MuiBackdrop-root': {
+          backgroundColor: 'rgba(18,25,38,0.4)',
+          backdropFilter: 'blur(4px)',
+        },
         '& .MuiDialog-paper': {
-          borderRadius: '12px',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
-        }
+          borderRadius: '16px',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.12), 0 8px 32px rgba(0,0,0,0.08)',
+          border: '1px solid rgba(0,0,0,0.04)',
+        },
       }}
     >
       <DialogTitle
@@ -51,34 +56,35 @@ const NormalModal = ({
           justifyContent: 'space-between',
           alignItems: 'center',
           pb: 1,
-          pt: 3,
-          px: 3
+          pt: 2,
+          px: 2.5,
+          borderBottom: '1px solid var(--color-grey-100)',
         }}
       >
-        <Typography variant="h6" component="div" sx={{ fontWeight: 600, color: 'var(--color-grey-900)' }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--color-grey-900)' }}>
           {title}
         </Typography>
         {showCloseButton && (
           <IconButton
             onClick={onClose}
+            size="small"
             sx={{
-              color: 'var(--color-grey-500)',
+              color: 'var(--color-grey-400)',
               '&:hover': {
-                backgroundColor: 'var(--color-grey-100)'
+                backgroundColor: 'var(--color-secondary-light)',
+                color: 'var(--color-secondary-dark)',
               }
             }}
           >
-            <CloseIcon />
+            <CloseIcon sx={{ fontSize: '1.1rem' }} />
           </IconButton>
         )}
       </DialogTitle>
-      <DialogContent sx={{ px: 3, pb: 2, overflowY: 'auto' }}>
-        <Box sx={{ pt: 1 }}>
-          {children}
-        </Box>
+      <DialogContent sx={{ px: 2.5, pb: 1.5, overflowY: 'auto' }}>
+        {children}
       </DialogContent>
       {actions && (
-        <DialogActions sx={{ px: 3, pb: 3 }}>
+        <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 1, borderTop: '1px solid var(--color-grey-100)' }}>
           {actions}
         </DialogActions>
       )}

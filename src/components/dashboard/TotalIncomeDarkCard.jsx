@@ -10,7 +10,7 @@ const TotalIncomeDarkCard = ({ isLoading }) => {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl py-4 px-4 bg-linear-to-br from-primary-dark to-primary-main">
+    <div className="relative overflow-hidden rounded-2xl py-4 px-4 bg-linear-to-br from-primary-dark to-primary-main">
       {/* Decorative circles */}
       <div className="absolute w-45 h-45 bg-primary-800 rounded-full -top-17.5 -right-20 opacity-80"></div>
       <div className="absolute w-45 h-45 bg-primary-800 rounded-full -top-25 -right-2.5 opacity-50"></div>

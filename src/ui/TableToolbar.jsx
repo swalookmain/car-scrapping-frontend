@@ -44,10 +44,13 @@ const TableToolbar = ({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        p: 3,
-        backgroundColor: 'var(--color-grey-50)',
-        borderRadius: '12px',
-        mb: 2
+        px: 2.5,
+        py: 2,
+        background: 'linear-gradient(135deg, rgba(248,250,252,0.9) 0%, rgba(237,231,246,0.3) 100%)',
+        backdropFilter: 'blur(8px)',
+        borderRadius: '14px',
+        mb: 2,
+        border: '1px solid rgba(0,0,0,0.03)',
       }}
     >
       {/* Search Input */}
@@ -59,9 +62,9 @@ const TableToolbar = ({
         sx={{
           width: 280,
           backgroundColor: '#fff',
-          borderRadius: '8px',
+          borderRadius: '10px',
           '& .MuiOutlinedInput-root': {
-            borderRadius: '8px',
+            borderRadius: '10px',
             '& fieldset': {
               borderColor: 'var(--color-grey-200)'
             },
@@ -69,7 +72,8 @@ const TableToolbar = ({
               borderColor: 'var(--color-grey-400)'
             },
             '&.Mui-focused fieldset': {
-              borderColor: 'var(--color-secondary-main)'
+              borderColor: 'var(--color-secondary-main)',
+              boxShadow: '0 0 0 3px rgba(103,58,183,0.06)',
             }
           }
         }}
@@ -90,8 +94,12 @@ const TableToolbar = ({
               onClick={onCopy}
               sx={{
                 color: 'var(--color-grey-600)',
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
                 '&:hover': {
-                  backgroundColor: 'var(--color-grey-200)'
+                  backgroundColor: 'var(--color-secondary-light)',
+                  color: 'var(--color-secondary-main)',
+                  transform: 'scale(1.05)',
                 }
               }}
             >
@@ -106,8 +114,12 @@ const TableToolbar = ({
               onClick={onPrint}
               sx={{
                 color: 'var(--color-grey-600)',
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
                 '&:hover': {
-                  backgroundColor: 'var(--color-grey-200)'
+                  backgroundColor: 'var(--color-secondary-light)',
+                  color: 'var(--color-secondary-main)',
+                  transform: 'scale(1.05)',
                 }
               }}
             >
@@ -122,8 +134,12 @@ const TableToolbar = ({
               onClick={onFilter}
               sx={{
                 color: 'var(--color-grey-600)',
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
                 '&:hover': {
-                  backgroundColor: 'var(--color-grey-200)'
+                  backgroundColor: 'var(--color-secondary-light)',
+                  color: 'var(--color-secondary-main)',
+                  transform: 'scale(1.05)',
                 }
               }}
             >
@@ -138,7 +154,13 @@ const TableToolbar = ({
               onClick={onRefresh}
               sx={{
                 color: 'var(--color-grey-600)',
-                '&:hover': { backgroundColor: 'var(--color-grey-200)' }
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: 'var(--color-secondary-light)',
+                  color: 'var(--color-secondary-main)',
+                  transform: 'scale(1.05)',
+                }
               }}
             >
               <RefreshIcon />
@@ -152,7 +174,13 @@ const TableToolbar = ({
               onClick={onExportCsv}
               sx={{
                 color: 'var(--color-grey-600)',
-                '&:hover': { backgroundColor: 'var(--color-grey-200)' }
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: 'var(--color-secondary-light)',
+                  color: 'var(--color-secondary-main)',
+                  transform: 'scale(1.05)',
+                }
               }}
             >
               <ExportIcon />
@@ -166,7 +194,13 @@ const TableToolbar = ({
               onClick={onToggleColumns}
               sx={{
                 color: 'var(--color-grey-600)',
-                '&:hover': { backgroundColor: 'var(--color-grey-200)' }
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: 'var(--color-secondary-light)',
+                  color: 'var(--color-secondary-main)',
+                  transform: 'scale(1.05)',
+                }
               }}
             >
               <ColumnIcon />
@@ -183,9 +217,13 @@ const TableToolbar = ({
                 ml: 1,
                 backgroundColor: 'var(--color-secondary-main)',
                 color: '#fff',
-                boxShadow: '0 4px 14px rgba(33, 150, 243, 0.4)',
+                boxShadow: '0 4px 14px rgba(103, 58, 183, 0.35)',
+                borderRadius: '12px',
+                transition: 'all 0.2s ease',
                 '&:hover': {
-                  backgroundColor: 'var(--color-secondary-dark)'
+                  backgroundColor: 'var(--color-secondary-dark)',
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 6px 20px rgba(103, 58, 183, 0.45)',
                 }
               }}
             >

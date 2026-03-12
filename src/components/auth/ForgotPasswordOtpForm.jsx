@@ -7,8 +7,8 @@ const ForgotPasswordOtpForm = ({ email, otp, handleOtpChange, handleOtpKeyDown, 
     <Box className="flex justify-center mb-4">
       <Box
         sx={{
-          width: "80px",
-          height: "80px",
+          width: "64px",
+          height: "64px",
           borderRadius: "50%",
           backgroundColor: "var(--color-secondary-light)",
           display: "flex",
@@ -16,7 +16,7 @@ const ForgotPasswordOtpForm = ({ email, otp, handleOtpChange, handleOtpKeyDown, 
           justifyContent: "center",
         }}
       >
-        <LockReset sx={{ fontSize: 40, color: "var(--color-secondary-main)" }} />
+        <LockReset sx={{ fontSize: 32, color: "var(--color-secondary-main)" }} />
       </Box>
     </Box>
     <Typography
@@ -63,15 +63,15 @@ const ForgotPasswordOtpForm = ({ email, otp, handleOtpChange, handleOtpKeyDown, 
             maxLength: 1,
             style: {
               textAlign: "center",
-              fontSize: "1.5rem",
+              fontSize: "1.25rem",
               fontWeight: "bold",
-              padding: "12px",
+              padding: "8px",
             },
           }}
           sx={{
-            width: "48px",
+            width: "40px",
             "& .MuiOutlinedInput-root": {
-              borderRadius: "12px",
+              borderRadius: "8px",
               backgroundColor: "var(--color-grey-50)",
               "& fieldset": {
                 borderColor: digit
@@ -119,9 +119,9 @@ const ForgotPasswordOtpForm = ({ email, otp, handleOtpChange, handleOtpKeyDown, 
       sx={{
         backgroundColor: "var(--color-secondary-main)",
         color: "#fff",
-        py: 1.5,
-        borderRadius: "12px",
-        fontSize: "1rem",
+        py: 1,
+        borderRadius: "8px",
+        fontSize: "0.875rem",
         textTransform: "none",
         boxShadow: "none",
         "&:hover": {

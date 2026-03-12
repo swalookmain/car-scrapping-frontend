@@ -7,8 +7,8 @@ const ForgotPasswordEmailForm = ({ email, setEmail, onSubmit, inputSx }) => (
     <Box className="flex justify-center mb-4">
       <Box
         sx={{
-          width: "80px",
-          height: "80px",
+          width: "64px",
+          height: "64px",
           borderRadius: "50%",
           backgroundColor: "var(--color-secondary-light)",
           display: "flex",
@@ -16,7 +16,7 @@ const ForgotPasswordEmailForm = ({ email, setEmail, onSubmit, inputSx }) => (
           justifyContent: "center",
         }}
       >
-        <Email sx={{ fontSize: 40, color: "var(--color-secondary-main)" }} />
+        <Email sx={{ fontSize: 32, color: "var(--color-secondary-main)" }} />
       </Box>
     </Box>
     <Typography
@@ -47,7 +47,7 @@ const ForgotPasswordEmailForm = ({ email, setEmail, onSubmit, inputSx }) => (
       onChange={(e) => setEmail(e.target.value)}
       type="email"
       variant="outlined"
-      sx={{ ...inputSx, mb: 3 }}
+      sx={{ ...inputSx, mb: 2 }}
       required
     />
     <Button
@@ -58,9 +58,9 @@ const ForgotPasswordEmailForm = ({ email, setEmail, onSubmit, inputSx }) => (
       sx={{
         backgroundColor: "var(--color-secondary-main)",
         color: "#fff",
-        py: 1.5,
-        borderRadius: "12px",
-        fontSize: "1rem",
+        py: 1,
+        borderRadius: "8px",
+        fontSize: "0.875rem",
         textTransform: "none",
         boxShadow: "none",
         "&:hover": {

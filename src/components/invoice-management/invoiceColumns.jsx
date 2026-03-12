@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Chip, IconButton, Tooltip } from '@mui/material';
+import { Typography, Chip, IconButton, Tooltip, Box } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -82,27 +82,27 @@ export const CreatedByCell = ({ row }) => (
 );
 
 export const InvoiceActionsCell = ({ row, canPerform, handleView, handleEdit, openDeleteConfirm }) => (
-  <>
+  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
     <Tooltip title="View">
-      <IconButton size="small" onClick={() => handleView(row)} aria-label="view" sx={{ color: '#1565c0' }}>
+      <IconButton size="small" onClick={() => handleView(row)} aria-label="view" sx={{ color: '#1565c0', p: 0.5, minWidth: 'auto' }}>
         <VisibilityIcon fontSize="small" />
       </IconButton>
     </Tooltip>
     {canPerform('invoice:edit') && (
       <Tooltip title="Edit">
-        <IconButton size="small" onClick={() => handleEdit(row)} aria-label="edit" sx={{ color: 'var(--color-secondary-main)' }}>
+        <IconButton size="small" onClick={() => handleEdit(row)} aria-label="edit" sx={{ color: 'var(--color-secondary-main)', p: 0.5, minWidth: 'auto' }}>
           <EditIcon fontSize="small" />
         </IconButton>
       </Tooltip>
     )}
     {canPerform('invoice:delete') && (
       <Tooltip title="Delete">
-        <IconButton size="small" onClick={() => openDeleteConfirm(row)} aria-label="delete" sx={{ color: '#e53935' }}>
+        <IconButton size="small" onClick={() => openDeleteConfirm(row)} aria-label="delete" sx={{ color: '#e53935', p: 0.5, minWidth: 'auto' }}>
           <DeleteIcon fontSize="small" />
         </IconButton>
       </Tooltip>
     )}
-  </>
+  </Box>
 );
 
 /**

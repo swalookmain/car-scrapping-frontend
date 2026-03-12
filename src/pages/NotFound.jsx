@@ -23,22 +23,36 @@ const NotFound = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #e8e0f0 50%, #ddd6f3 100%)',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: '20%',
+          left: '15%',
+          width: '300px',
+          height: '300px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(103,58,183,0.06) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        },
       }}
     >
       <Container maxWidth="sm">
         <Box
           sx={{
             textAlign: 'center',
-            p: { xs: 3, sm: 5 },
-            borderRadius: 4,
-            backgroundColor: '#fff',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.08)',
+            p: { xs: 4, sm: 6 },
+            borderRadius: '24px',
+            backgroundColor: 'rgba(255,255,255,0.85)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.04)',
+            border: '1px solid rgba(255,255,255,0.6)',
           }}
         >
           <ErrorOutlineIcon
             sx={{
-              fontSize: 80,
+              fontSize: 64,
               color: 'var(--color-secondary-main)',
               mb: 2,
             }}
@@ -47,7 +61,7 @@ const NotFound = () => {
           <Typography
             variant="h1"
             sx={{
-              fontSize: { xs: '4rem', sm: '6rem' },
+              fontSize: { xs: '3rem', sm: '4.5rem' },
               fontWeight: 800,
               color: 'var(--color-secondary-dark)',
               lineHeight: 1,
@@ -82,18 +96,22 @@ const NotFound = () => {
 
           <Button
             variant="contained"
-            size="large"
+            size="medium"
             onClick={handleGoHome}
             sx={{
               backgroundColor: 'var(--color-secondary-main)',
-              borderRadius: 2,
+              borderRadius: '12px',
               px: 4,
-              py: 1.2,
+              py: 1.25,
               fontWeight: 600,
               textTransform: 'none',
-              fontSize: '1rem',
+              fontSize: '0.875rem',
+              boxShadow: '0 4px 14px rgba(103,58,183,0.3)',
+              transition: 'all 0.2s ease',
               '&:hover': {
                 backgroundColor: 'var(--color-secondary-dark)',
+                boxShadow: '0 6px 20px rgba(103,58,183,0.4)',
+                transform: 'translateY(-1px)',
               },
             }}
           >

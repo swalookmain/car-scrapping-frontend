@@ -2,11 +2,14 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Box, CircularProgress } from '@mui/material';
+import { ThemeProvider } from '@mui/material/styles';
+import theme from './config/theme';
 import { DropdownProvider } from './context/DropdownContext';
 import { ModalLockProvider } from './context/ModalLockContext';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import ScrollToTop from './components/common/ScrollToTop';
 
 // ── Lazy-loaded pages (code splitting) ────────────────────────
 const Login = lazy(() => import('./pages/auth/Login'));
@@ -31,14 +34,25 @@ const PageLoader = () => (
       justifyContent: 'center',
       alignItems: 'center',
       height: '100vh',
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #eef1f8 50%, #f0ecf5 100%)',
     }}
   >
-    <CircularProgress color="secondary" />
+    <CircularProgress
+      color="secondary"
+      size={40}
+      thickness={4}
+      sx={{
+        '& .MuiCircularProgress-circle': {
+          strokeLinecap: 'round',
+        },
+      }}
+    />
   </Box>
 );
 
 function App() {
   return (
+    <ThemeProvider theme={theme}>
     <ErrorBoundary fullScreen>
       <AuthProvider>
         <DropdownProvider>
@@ -47,11 +61,19 @@ function App() {
               position="top-right"
               toastOptions={{
                 duration: 3500,
-                style: { fontFamily: 'inherit', fontSize: '14px' },
+                style: {
+                  fontFamily: 'inherit',
+                  fontSize: '13px',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+                  border: '1px solid rgba(0,0,0,0.04)',
+                },
                 success: { iconTheme: { primary: 'var(--color-secondary-main)', secondary: '#fff' } },
               }}
             />
             <Router>
+              <ScrollToTop />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   <Route path="/" element={<Login />} />
@@ -141,6 +163,7 @@ function App() {
         </DropdownProvider>
       </AuthProvider>
     </ErrorBoundary>
+    </ThemeProvider>
   );
 }
 
