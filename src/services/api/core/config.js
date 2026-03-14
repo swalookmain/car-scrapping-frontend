@@ -100,6 +100,12 @@ export const ENDPOINTS = {
     GET_ALL: '/damage-adjustments',
     CREATE: '/damage-adjustments',
   },
+  ACCOUNTING: {
+    CHART_OF_ACCOUNTS: '/accounting/chart-of-accounts',
+    LEDGER_ENTRIES: '/accounting/ledger-entries',
+    PNL: '/accounting/pnl',
+    INVOICE_PAYMENTS: '/accounting/invoice-payments',
+  },
 };
 
 export default API_CONFIG;

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Box, Typography, Chip, Divider, Table, TableHead, TableBody, TableRow, TableCell } from '@mui/material';
+import InvoicePayments from '../accounting/InvoicePayments';
 
 // ── Color maps ─────────────────────────────────────────────────
 const statusColor = {
@@ -234,6 +235,19 @@ const SalesInvoiceDetailView = ({ item }) => {
               </Box>
             )}
           </Box>
+        </>
+      )}
+
+      {/* ── Payments ─────────────────────────────────────────── */}
+      {item.status === 'CONFIRMED' && item.id && (
+        <>
+          <Divider />
+          <SectionLabel>Payments</SectionLabel>
+          <InvoicePayments
+            invoiceType="SALES"
+            invoiceId={item.id || item._id}
+            totalAmount={item.totalAmount}
+          />
         </>
       )}
     </Box>

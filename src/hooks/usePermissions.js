@@ -74,6 +74,12 @@ const PERMISSIONS = {
   'damage:view': [ROLES.ADMIN, ROLES.STAFF],
   'damage:create': [ROLES.ADMIN, ROLES.STAFF],
   'damage:reclassify': [ROLES.ADMIN],
+
+  // Accounting
+  'accounting:view': [ROLES.ADMIN],
+  'accounting:ledger': [ROLES.ADMIN],
+  'accounting:pnl': [ROLES.ADMIN],
+  'accounting:payment': [ROLES.ADMIN],
 };
 
 /**

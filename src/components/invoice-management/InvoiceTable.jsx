@@ -8,6 +8,7 @@ import NormalModal from '../../ui/NormalModal';
 import DocumentPreview from '../../ui/DocumentPreview';
 import TableToolbar from '../../ui/TableToolbar';
 import InvoiceForm from './InvoiceForm';
+import InvoicePayments from '../accounting/InvoicePayments';
 import { getInvoiceColumns, invoiceStatusColor } from './invoiceColumns';
 import { invoicesApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -314,6 +315,19 @@ const InvoiceTable = ({ isLoading }) => {
                       );
                     })}
                   </Box>
+                </Box>
+              )}
+
+              {/* ── Payments Section ── */}
+              {viewStep === 0 && (inv.status === 'CONFIRMED' || inv.status === 'COMPLETED') && inv.id && (
+                <Box sx={{ gridColumn: '1 / -1', mt: 2 }}>
+                  <Divider sx={{ mb: 2 }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--color-grey-700)' }}>Payments</Typography>
+                  <InvoicePayments
+                    invoiceType="PURCHASE"
+                    invoiceId={inv.id || inv._id}
+                    totalAmount={inv.purchaseAmount}
+                  />
                 </Box>
               )}
             </>
