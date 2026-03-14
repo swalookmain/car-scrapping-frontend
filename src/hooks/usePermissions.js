@@ -61,6 +61,19 @@ const PERMISSIONS = {
 
   // Dashboard
   'dashboard:view': [ROLES.ADMIN, ROLES.STAFF],
+
+  // Tax compliance
+  'taxCompliance:view': [ROLES.ADMIN, ROLES.STAFF],
+  'taxCompliance:create': [ROLES.ADMIN],
+  'taxCompliance:edit': [ROLES.ADMIN],
+  'taxCompliance:config': [ROLES.ADMIN],
+  'taxCompliance:summary': [ROLES.ADMIN],
+  'taxCompliance:audit': [ROLES.ADMIN],
+
+  // Damage adjustments
+  'damage:view': [ROLES.ADMIN, ROLES.STAFF],
+  'damage:create': [ROLES.ADMIN, ROLES.STAFF],
+  'damage:reclassify': [ROLES.ADMIN],
 };
 
 /**

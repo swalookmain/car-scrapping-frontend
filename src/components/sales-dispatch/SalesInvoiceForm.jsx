@@ -25,7 +25,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
 import { useQuery } from '@tanstack/react-query';
-import { buyersApi, inventoryApi, invoicesApi } from '../../services/api';
+import { buyersApi, inventoryApi, invoicesApi, taxComplianceApi } from '../../services/api';
+import { calculateGst, INDIAN_STATE_CODES } from '../../services/taxEngine';
+import DocUploadField from '../vehicle-compliance/DocUploadField';
 
 // ── Constants ──────────────────────────────────────────────────
 const INITIAL_INVOICE = {
@@ -35,8 +37,8 @@ const INITIAL_INVOICE = {
   gstApplicable: false,
   gstRate: '',
   reverseChargeApplicable: false,
+  placeOfSupplyState: '',
   ewayBillNumber: '',
-  ewayBillDocumentUrl: '',
 };
 
 const INITIAL_ITEM = {
@@ -60,6 +62,8 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
   const [errors, setErrors] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
+  // Document state: null | string (existing URL) | { name, type, dataUrl }
+  const [ewayDoc, setEwayDoc] = useState(null);
 
   const editMode = Boolean(editingId);
 
@@ -143,6 +147,23 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ── Fetch tax config for org state + default rate ─────────────
+  const { data: taxConfigData } = useQuery({
+    queryKey: ['tax-config-for-sales'],
+    queryFn: () => taxComplianceApi.getConfig({ useCache: true }),
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const taxConfig = useMemo(() => {
+    const cfg = taxConfigData?.data || taxConfigData;
+    return {
+      defaultGstRate: cfg?.defaultGstRate ?? cfg?.default_gst_rate ?? 18,
+      stateCode: cfg?.stateCode ?? cfg?.state_code ?? '',
+      gstEnabled: cfg?.gstEnabled ?? cfg?.gst_enabled ?? true,
+    };
+  }, [taxConfigData]);
+
   useImperativeHandle(ref, () => ({
     open: (item) => {
       if (item) {
@@ -153,9 +174,10 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
           gstApplicable: Boolean(item.gstApplicable),
           gstRate: item.gstRate ?? '',
           reverseChargeApplicable: Boolean(item.reverseChargeApplicable),
+          placeOfSupplyState: item.placeOfSupplyState || item.place_of_supply_state || '',
           ewayBillNumber: item.ewayBillNumber || '',
-          ewayBillDocumentUrl: item.ewayBillDocumentUrl || '',
         });
+        setEwayDoc(item.ewayBillDocumentUrl || null);
         // Populate items
         if (item.items && item.items.length > 0) {
           setItems(
@@ -179,6 +201,7 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
         setInvoice({ ...INITIAL_INVOICE });
         setItems([{ ...INITIAL_ITEM }]);
         setEditingId(null);
+        setEwayDoc(null);
       }
       setErrors({});
       setOpen(true);
@@ -186,6 +209,7 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     close: () => {
       setOpen(false);
       setEditingId(null);
+      setEwayDoc(null);
     },
   }));
 
@@ -247,7 +271,7 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // ── GST Calculations ────────────────────────────────────────
+  // ── GST Calculations (using tax engine) ──────────────────────
   const subtotal = useMemo(() => {
     return items.reduce((sum, it) => {
       const qty = Number(it.quantity) || 0;
@@ -256,15 +280,19 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     }, 0);
   }, [items]);
 
-  const gstAmount = useMemo(() => {
-    if (!invoice.gstApplicable || !invoice.gstRate) return 0;
-    return subtotal * (Number(invoice.gstRate) / 100);
-  }, [subtotal, invoice.gstApplicable, invoice.gstRate]);
+  const gstBreakup = useMemo(() => {
+    return calculateGst({
+      taxableAmount: subtotal,
+      gstRate: Number(invoice.gstRate) || 0,
+      gstApplicable: invoice.gstApplicable,
+      orgStateCode: taxConfig.stateCode,
+      placeOfSupplyState: invoice.placeOfSupplyState,
+      reverseCharge: invoice.reverseChargeApplicable,
+    });
+  }, [subtotal, invoice.gstApplicable, invoice.gstRate, invoice.placeOfSupplyState, invoice.reverseChargeApplicable, taxConfig.stateCode]);
 
-  const totalAmount = useMemo(() => {
-    if (invoice.reverseChargeApplicable) return subtotal;
-    return subtotal + gstAmount;
-  }, [subtotal, gstAmount, invoice.reverseChargeApplicable]);
+  const gstAmount = gstBreakup.totalTaxAmount;
+  const totalAmount = gstBreakup.totalPayable;
 
   // ── Validation ───────────────────────────────────────────────
   const validate = () => {
@@ -273,6 +301,7 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     if (!invoice.buyerId) err.buyerId = 'Buyer is required';
     if (!invoice.invoiceDate) err.invoiceDate = 'Invoice date is required';
     if (invoice.gstApplicable && !invoice.gstRate) err.gstRate = 'GST rate is required when GST is applicable';
+    if (invoice.gstApplicable && !invoice.placeOfSupplyState) err.placeOfSupplyState = 'Place of supply is required for GST';
 
     if (items.length === 0) {
       err.items = 'At least one item is required';
@@ -302,8 +331,18 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
         gstApplicable: invoice.gstApplicable,
         gstRate: invoice.gstApplicable ? Number(invoice.gstRate) : 0,
         reverseChargeApplicable: invoice.reverseChargeApplicable,
+        placeOfSupplyState: invoice.placeOfSupplyState || undefined,
+        // Structured GST breakup
+        taxableAmount: gstBreakup.taxableAmount,
+        cgstAmount: gstBreakup.cgstAmount,
+        sgstAmount: gstBreakup.sgstAmount,
+        igstAmount: gstBreakup.igstAmount,
+        totalTaxAmount: gstBreakup.totalTaxAmount,
+        isInterstate: gstBreakup.isInterstate,
         ewayBillNumber: invoice.ewayBillNumber.trim() || undefined,
-        ewayBillDocumentUrl: invoice.ewayBillDocumentUrl.trim() || undefined,
+        ewayBillDocumentUrl: ewayDoc
+          ? (typeof ewayDoc === 'object' ? ewayDoc.dataUrl : ewayDoc)
+          : undefined,
         items: items.map((it) => ({
           partId: it.partId,
           itemCode: it.itemCode,
@@ -611,6 +650,26 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
                 />
               </Grid>
               <Grid item xs={12} sm={3}>
+                <TextField
+                  select
+                  label="Place of Supply *"
+                  value={invoice.placeOfSupplyState}
+                  onChange={(e) => handleInvoiceChange('placeOfSupplyState', e.target.value)}
+                  fullWidth
+                  disabled={readOnly}
+                  sx={inputSx}
+                  error={Boolean(errors.placeOfSupplyState)}
+                  helperText={errors.placeOfSupplyState || (gstBreakup.isInterstate ? 'Inter-State (IGST)' : taxConfig.stateCode ? 'Intra-State (CGST+SGST)' : '')}
+                >
+                  <MenuItem value="">Select State</MenuItem>
+                  {INDIAN_STATE_CODES.map((s) => (
+                    <MenuItem key={s.code} value={s.code}>
+                      {s.code} — {s.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={3}>
                 <FormControlLabel
                   control={
                     <Switch
@@ -639,42 +698,67 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              label="E-Way Bill Document URL"
-              value={invoice.ewayBillDocumentUrl}
-              onChange={(e) => handleInvoiceChange('ewayBillDocumentUrl', e.target.value)}
-              fullWidth
-              disabled={readOnly}
-              sx={inputSx}
-              placeholder="https://..."
+            <DocUploadField
+              label="E-Way Bill Document"
+              docState={ewayDoc}
+              onChange={readOnly ? undefined : setEwayDoc}
+              readOnly={readOnly}
             />
           </Grid>
         </Grid>
 
         <Divider />
 
-        {/* ── Totals Summary ─────────────────────────────────── */}
+        {/* ── Totals Summary with GST Breakup ────────────────── */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Box sx={{ minWidth: 250, p: 2, borderRadius: 2, backgroundColor: 'var(--color-grey-50)' }}>
+          <Box sx={{ minWidth: 300, p: 2, borderRadius: 2, backgroundColor: 'var(--color-grey-50)' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" sx={{ color: 'var(--color-grey-600)' }}>Subtotal</Typography>
+              <Typography variant="body2" sx={{ color: 'var(--color-grey-600)' }}>Taxable Amount</Typography>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>₹{subtotal.toLocaleString('en-IN')}</Typography>
             </Box>
             {invoice.gstApplicable && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2" sx={{ color: 'var(--color-grey-600)' }}>
-                  GST ({invoice.gstRate || 0}%){invoice.reverseChargeApplicable ? ' (RCM)' : ''}
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 500, color: invoice.reverseChargeApplicable ? '#e65100' : undefined }}>
-                  {invoice.reverseChargeApplicable ? 'N/A' : `₹${gstAmount.toLocaleString('en-IN')}`}
-                </Typography>
-              </Box>
+              <>
+                {gstBreakup.isInterstate ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" sx={{ color: '#6a1b9a' }}>
+                      IGST ({invoice.gstRate || 0}%){invoice.reverseChargeApplicable ? ' (RCM)' : ''}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500, color: invoice.reverseChargeApplicable ? '#e65100' : '#6a1b9a' }}>
+                      {invoice.reverseChargeApplicable ? `₹${gstBreakup.igstAmount.toLocaleString('en-IN')} (not added)` : `₹${gstBreakup.igstAmount.toLocaleString('en-IN')}`}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="body2" sx={{ color: '#2e7d32' }}>
+                        CGST ({(Number(invoice.gstRate) || 0) / 2}%)
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, color: invoice.reverseChargeApplicable ? '#e65100' : '#2e7d32' }}>
+                        {invoice.reverseChargeApplicable ? `₹${gstBreakup.cgstAmount.toLocaleString('en-IN')} (RCM)` : `₹${gstBreakup.cgstAmount.toLocaleString('en-IN')}`}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#00695c' }}>
+                        SGST ({(Number(invoice.gstRate) || 0) / 2}%)
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, color: invoice.reverseChargeApplicable ? '#e65100' : '#00695c' }}>
+                        {invoice.reverseChargeApplicable ? `₹${gstBreakup.sgstAmount.toLocaleString('en-IN')} (RCM)` : `₹${gstBreakup.sgstAmount.toLocaleString('en-IN')}`}
+                      </Typography>
+                    </Box>
+                  </>
+                )}
+              </>
             )}
             <Divider sx={{ my: 1 }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>Total</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>Total Payable</Typography>
               <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '1rem' }}>₹{totalAmount.toLocaleString('en-IN')}</Typography>
             </Box>
+            {invoice.reverseChargeApplicable && invoice.gstApplicable && (
+              <Typography variant="caption" sx={{ color: '#e65100', mt: 0.5, display: 'block' }}>
+                * Tax of ₹{gstBreakup.totalTaxAmount.toLocaleString('en-IN')} computed under RCM (not added to payable)
+              </Typography>
+            )}
           </Box>
         </Box>
       </Box>

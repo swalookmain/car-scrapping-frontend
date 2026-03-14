@@ -8,4 +8,6 @@ export { default as auditLogsApi } from './auditLogs/auditLogsApi';
 export { default as vehicleComplianceApi } from './vehicleCompliance/vehicleComplianceApi';
 export { default as buyersApi } from './salesDispatch/buyersApi';
 export { default as salesInvoicesApi } from './salesDispatch/salesInvoicesApi';
+export { default as taxComplianceApi } from './taxCompliance/taxComplianceApi';
+export { default as damageAdjustmentsApi } from './damageAdjustments/damageAdjustmentsApi';
 export { default as API_CONFIG, ENDPOINTS } from './core/config';

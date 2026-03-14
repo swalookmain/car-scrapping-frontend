@@ -6,6 +6,8 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 
 
 export const ROLES = {
@@ -41,6 +43,10 @@ export const ROUTE_CONFIG = [
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
+    path: '/inventory/damage-adjustments',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
     path: '/audit-logs',
     allowedRoles: [ROLES.ADMIN],
   },
@@ -55,6 +61,22 @@ export const ROUTE_CONFIG = [
   {
     path: '/sales/invoices',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/tax/config',
+    allowedRoles: [ROLES.ADMIN],
+  },
+  {
+    path: '/tax/eway-bills',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/tax/summary',
+    allowedRoles: [ROLES.ADMIN],
+  },
+  {
+    path: '/tax/audit',
+    allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/super-admin/audit-logs',
@@ -144,6 +166,12 @@ export const SIDEBAR_CONFIG = [
         icon: InventoryIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
+      {
+        path: '/inventory/damage-adjustments',
+        label: 'Damage Adjustments',
+        icon: ReportProblemIcon,
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
     ],
   },
   {
@@ -171,6 +199,35 @@ export const SIDEBAR_CONFIG = [
         label: 'Sales Invoices',
         icon: LocalShippingIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
+    ],
+  },
+  {
+    section: 'Tax Compliance',
+    items: [
+      {
+        path: '/tax/config',
+        label: 'Tax Configuration',
+        icon: AccountBalanceIcon,
+        allowedRoles: [ROLES.ADMIN],
+      },
+      {
+        path: '/tax/eway-bills',
+        label: 'E-Way Bills',
+        icon: LocalShippingIcon,
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
+      {
+        path: '/tax/summary',
+        label: 'GST Summary',
+        icon: ReceiptIcon,
+        allowedRoles: [ROLES.ADMIN],
+      },
+      {
+        path: '/tax/audit',
+        label: 'GST Audit Trail',
+        icon: AssignmentIcon,
+        allowedRoles: [ROLES.ADMIN],
       },
     ],
   },

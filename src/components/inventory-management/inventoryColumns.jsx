@@ -3,6 +3,7 @@ import { Typography, Chip, IconButton, Tooltip, Box } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 
 // ── Status / Condition / Category Colors ──────────────────────
 export const inventoryStatusColor = {
@@ -78,6 +79,11 @@ export const AvailableCell = ({ row }) => {
   );
 };
 
+export const InventoryConditionChip = ({ row }) => {
+  const cond = inventoryConditionColor[row.condition] || inventoryConditionColor.GOOD;
+  return <Chip label={cond.label} size="small" sx={{ fontWeight: 600, fontSize: '0.75rem', backgroundColor: cond.bg, color: cond.color }} />;
+};
+
 export const InventoryStatusChip = ({ row }) => {
   const st = inventoryStatusColor[row.status] || inventoryStatusColor.AVAILABLE;
   return <Chip label={st.label} size="small" sx={{ fontWeight: 600, fontSize: '0.75rem', backgroundColor: st.bg, color: st.color }} />;
@@ -89,11 +95,16 @@ export const InventoryCreatedByCell = ({ row }) => (
   </Typography>
 );
 
-export const InventoryActionsCell = ({ row, canPerform, handleView, handleEdit, openDeleteConfirm }) => (
+export const InventoryActionsCell = ({ row, canPerform, handleView, handleEdit, openDeleteConfirm, handleMarkDamaged }) => (
   <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
     <Tooltip title="View">
       <IconButton size="small" onClick={() => handleView(row)} sx={{ color: '#1565c0', p: 0.5, minWidth: 'auto' }}><VisibilityIcon fontSize="small" /></IconButton>
     </Tooltip>
+    {canPerform('inventory:edit') && row.condition !== 'DAMAGED' && calcAvailable(row) > 0 && (
+      <Tooltip title="Mark as Damaged">
+        <IconButton size="small" onClick={() => handleMarkDamaged(row)} sx={{ color: '#e65100', p: 0.5, minWidth: 'auto' }}><ReportProblemIcon fontSize="small" /></IconButton>
+      </Tooltip>
+    )}
     {canPerform('inventory:edit') && (
       <Tooltip title="Edit">
         <IconButton size="small" onClick={() => handleEdit(row)} sx={{ color: 'var(--color-secondary-main)', p: 0.5, minWidth: 'auto' }}><EditIcon fontSize="small" /></IconButton>
@@ -108,19 +119,19 @@ export const InventoryActionsCell = ({ row, canPerform, handleView, handleEdit, 
 );
 
 // ── Column factory ─────────────────────────────────────────────
-export function getInventoryColumns({ canPerform, handleView, handleEdit, openDeleteConfirm }) {
+export function getInventoryColumns({ canPerform, handleView, handleEdit, openDeleteConfirm, handleMarkDamaged }) {
   return [
-    { field: 'itemCode',         headerName: 'Item Code',    width: '10%', render: (row) => <ItemCodeCell row={row} /> },
-    { field: 'partName',         headerName: 'Part Name',    width: '14%', render: (row) => <PartNameCell row={row} /> },
-    { field: 'vehicleCode',      headerName: 'Vehicle Code', width: '10%', render: (row) => <VehicleCodeCell row={row} /> },
-    { field: 'invoiceId',        headerName: 'Invoice',      width: '10%', render: (row) => <InvoiceRefCell row={row} /> },
-    { field: 'partType',         headerName: 'Category',     width: '10%', render: (row) => <CategoryChip row={row} /> },
-    { field: 'openingStock',     headerName: 'Opening',      width: '7%',  render: (row) => <OpeningCell row={row} /> },
-    { field: 'quantityReceived', headerName: 'Received',     width: '7%',  render: (row) => <ReceivedCell row={row} /> },
-    { field: 'quantityIssued',   headerName: 'Issued',       width: '7%',  render: (row) => <IssuedCell row={row} /> },
-    { field: 'available',        headerName: 'Available',    width: '7%',  render: (row) => <AvailableCell row={row} /> },
-    { field: 'status',           headerName: 'Status',       width: '10%', render: (row) => <InventoryStatusChip row={row} /> },
-    { field: 'createdBy',        headerName: 'Created By',   width: '10%', render: (row) => <InventoryCreatedByCell row={row} /> },
-    { field: 'actions',          headerName: 'Actions',      width: '10%', render: (row) => <InventoryActionsCell row={row} canPerform={canPerform} handleView={handleView} handleEdit={handleEdit} openDeleteConfirm={openDeleteConfirm} /> },
+    { field: 'itemCode',         headerName: 'Item Code',    width: '9%',  render: (row) => <ItemCodeCell row={row} /> },
+    { field: 'partName',         headerName: 'Part Name',    width: '13%', render: (row) => <PartNameCell row={row} /> },
+    { field: 'vehicleCode',      headerName: 'Vehicle Code', width: '9%',  render: (row) => <VehicleCodeCell row={row} /> },
+    { field: 'invoiceId',        headerName: 'Invoice',      width: '9%',  render: (row) => <InvoiceRefCell row={row} /> },
+    { field: 'partType',         headerName: 'Category',     width: '9%',  render: (row) => <CategoryChip row={row} /> },
+    { field: 'condition',        headerName: 'Condition',    width: '8%',  render: (row) => <InventoryConditionChip row={row} /> },
+    { field: 'openingStock',     headerName: 'Opening',      width: '6%',  render: (row) => <OpeningCell row={row} /> },
+    { field: 'quantityReceived', headerName: 'Received',     width: '6%',  render: (row) => <ReceivedCell row={row} /> },
+    { field: 'quantityIssued',   headerName: 'Issued',       width: '6%',  render: (row) => <IssuedCell row={row} /> },
+    { field: 'available',        headerName: 'Available',    width: '6%',  render: (row) => <AvailableCell row={row} /> },
+    { field: 'status',           headerName: 'Status',       width: '9%',  render: (row) => <InventoryStatusChip row={row} /> },
+    { field: 'actions',          headerName: 'Actions',      width: '10%', render: (row) => <InventoryActionsCell row={row} canPerform={canPerform} handleView={handleView} handleEdit={handleEdit} openDeleteConfirm={openDeleteConfirm} handleMarkDamaged={handleMarkDamaged} /> },
   ];
 }

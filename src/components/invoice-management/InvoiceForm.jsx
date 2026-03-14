@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
   Box,
@@ -17,7 +17,9 @@ import {
 } from '@mui/material';
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
-import { invoicesApi } from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { invoicesApi, taxComplianceApi } from '../../services/api';
+import { calculateGst, INDIAN_STATE_CODES } from '../../services/taxEngine';
 import InvoiceSellerFields from './InvoiceSellerFields';
 import InvoiceVehicleStep from './InvoiceVehicleStep';
 
@@ -36,6 +38,7 @@ const INITIAL_INVOICE = {
   gstRate: '',
   gstAmount: '',
   reverseChargeApplicable: false,
+  sellerState: '',
   status: 'DRAFT',
   // DIRECT-specific
   mobile: '',
@@ -81,6 +84,35 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
   // refs for focus-on-error
   const fieldRefs = useRef({});
 
+  // ── Fetch tax config for GST breakup ─────────────────────────
+  const { data: taxConfigData } = useQuery({
+    queryKey: ['tax-config-for-purchase'],
+    queryFn: () => taxComplianceApi.getConfig({ useCache: true }),
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const taxConfig = useMemo(() => {
+    const cfg = taxConfigData?.data || taxConfigData;
+    return {
+      defaultGstRate: cfg?.defaultGstRate ?? cfg?.default_gst_rate ?? 18,
+      stateCode: cfg?.stateCode ?? cfg?.state_code ?? '',
+      gstEnabled: cfg?.gstEnabled ?? cfg?.gst_enabled ?? true,
+    };
+  }, [taxConfigData]);
+
+  // ── GST Breakup Calculation ──────────────────────────────────
+  const purchaseGstBreakup = useMemo(() => {
+    return calculateGst({
+      taxableAmount: Number(invoice.purchaseAmount) || 0,
+      gstRate: Number(invoice.gstRate) || 0,
+      gstApplicable: invoice.gstApplicable,
+      orgStateCode: taxConfig.stateCode,
+      placeOfSupplyState: invoice.sellerState || taxConfig.stateCode,
+      reverseCharge: invoice.reverseChargeApplicable,
+    });
+  }, [invoice.purchaseAmount, invoice.gstRate, invoice.gstApplicable, invoice.sellerState, invoice.reverseChargeApplicable, taxConfig.stateCode]);
+
   useImperativeHandle(ref, () => ({
     open: (item) => {
       if (item) {
@@ -96,6 +128,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
           gstRate: item.gstRate ?? '',
           gstAmount: item.gstAmount ?? '',
           reverseChargeApplicable: Boolean(item.reverseChargeApplicable),
+          sellerState: item.sellerState || item.seller_state || '',
           status: item.status || 'DRAFT',
           mobile: item.mobile || '',
           email: item.email || '',
@@ -305,6 +338,14 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
       gstRate: invoice.gstRate ? Number(invoice.gstRate) : 0,
       gstAmount: invoice.gstAmount ? Number(invoice.gstAmount) : 0,
       reverseChargeApplicable: invoice.sellerType === 'DIRECT' ? invoice.reverseChargeApplicable : false,
+      sellerState: invoice.sellerState || undefined,
+      // Structured GST breakup
+      taxableAmount: purchaseGstBreakup.taxableAmount,
+      cgstAmount: purchaseGstBreakup.cgstAmount,
+      sgstAmount: purchaseGstBreakup.sgstAmount,
+      igstAmount: purchaseGstBreakup.igstAmount,
+      totalTaxAmount: purchaseGstBreakup.totalTaxAmount,
+      isInterstate: purchaseGstBreakup.isInterstate,
       status: invoice.status,
     };
 
@@ -488,14 +529,62 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField
-                label="GST Amount"
-                type="number"
-                value={invoice.gstAmount}
-                onChange={(e) => handleInvoiceChange('gstAmount', e.target.value)}
+                select
+                label="Seller State"
+                value={invoice.sellerState}
+                onChange={(e) => handleInvoiceChange('sellerState', e.target.value)}
                 fullWidth
                 disabled={readOnly}
                 sx={inputSx}
-              />
+                helperText={purchaseGstBreakup.isInterstate ? 'Inter-State (IGST)' : taxConfig.stateCode ? 'Intra-State (CGST+SGST)' : ''}
+              >
+                <MenuItem value="">Same as Org State</MenuItem>
+                {INDIAN_STATE_CODES.map((s) => (
+                  <MenuItem key={s.code} value={s.code}>
+                    {s.code} — {s.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </>
+        )}
+        {invoice.gstApplicable && (
+          <>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', p: 1.5, borderRadius: 2, backgroundColor: 'var(--color-grey-50)' }}>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600 }}>CGST</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#2e7d32' }}>
+                    ₹{purchaseGstBreakup.cgstAmount.toLocaleString('en-IN')}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600 }}>SGST</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#00695c' }}>
+                    ₹{purchaseGstBreakup.sgstAmount.toLocaleString('en-IN')}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600 }}>IGST</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#6a1b9a' }}>
+                    ₹{purchaseGstBreakup.igstAmount.toLocaleString('en-IN')}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600 }}>Total Tax</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    ₹{purchaseGstBreakup.totalTaxAmount.toLocaleString('en-IN')}
+                  </Typography>
+                </Box>
+                {invoice.reverseChargeApplicable && (
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#e65100', fontWeight: 600 }}>RCM Applied</Typography>
+                    <Typography variant="body2" sx={{ color: '#e65100', fontWeight: 600 }}>
+                      Tax not added to payable
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
             </Grid>
           </>
         )}

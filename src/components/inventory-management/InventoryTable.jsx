@@ -17,11 +17,12 @@ import NormalTable from '../../ui/NormalTable';
 import NormalModal from '../../ui/NormalModal';
 import TableToolbar from '../../ui/TableToolbar';
 import InventoryForm from './InventoryForm';
-import { inventoryApi, invoicesApi } from '../../services/api';
+import { inventoryApi, invoicesApi, damageAdjustmentsApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { usePermissions } from '../../hooks/usePermissions';
 import InventoryFilters from './InventoryFilters';
 import InventoryDetailView from './InventoryDetailView';
+import MarkDamagedModal from './MarkDamagedModal';
 import { getInventoryColumns } from './inventoryColumns';
 
 // ── Filter Options ─────────────────────────────────────────────
@@ -51,6 +52,9 @@ const InventoryTable = ({ isLoading }) => {
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [viewOpen, setViewOpen] = useState(false);
   const [viewItem, setViewItem] = useState(null);
+  const [damagedModalOpen, setDamagedModalOpen] = useState(false);
+  const [damagedTarget, setDamagedTarget] = useState(null);
+  const [damagedLoading, setDamagedLoading] = useState(false);
 
   // ── Fetch Inventory via React Query ────────────────────────────
   const { data: inventoryResult, isLoading: loadingData, refetch: refetchInventory } = useQuery({
@@ -171,6 +175,29 @@ const InventoryTable = ({ isLoading }) => {
     setViewItem(null);
   }, []);
 
+  // ── Mark as Damaged ─────────────────────────────────────────
+  const handleMarkDamaged = useCallback((row) => {
+    setDamagedTarget(row);
+    setDamagedModalOpen(true);
+  }, []);
+
+  const handleDamageSubmit = async (payload) => {
+    setDamagedLoading(true);
+    try {
+      await damageAdjustmentsApi.create(payload);
+      toast.success('Part marked as damaged successfully');
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['damage-adjustments'] });
+      setDamagedModalOpen(false);
+      setDamagedTarget(null);
+    } catch (err) {
+      console.error('Damage adjustment error:', err);
+      toast.error(err?.response?.data?.message || 'Failed to mark part as damaged.');
+    } finally {
+      setDamagedLoading(false);
+    }
+  };
+
   // ── Search Filter ────────────────────────────────────────────
   const filtered = useMemo(() => {
     if (!query.trim()) return inventory;
@@ -188,8 +215,8 @@ const InventoryTable = ({ isLoading }) => {
 
   // ── Columns ────────────────────────────────────────────
   const columns = useMemo(
-    () => getInventoryColumns({ canPerform, handleView, handleEdit, openDeleteConfirm }),
-    [canPerform, handleView, handleEdit, openDeleteConfirm],
+    () => getInventoryColumns({ canPerform, handleView, handleEdit, openDeleteConfirm, handleMarkDamaged }),
+    [canPerform, handleView, handleEdit, openDeleteConfirm, handleMarkDamaged],
   );
 
   // ── Toolbar ──────────────────────────────────────────────────
@@ -299,6 +326,18 @@ const InventoryTable = ({ isLoading }) => {
         onConfirm={() => handleDelete(confirmTarget?._id || confirmTarget?.id)}
         confirmText="Delete"
         cancelText="Cancel"
+      />
+
+      {/* Mark as Damaged Modal */}
+      <MarkDamagedModal
+        open={damagedModalOpen}
+        onClose={() => {
+          setDamagedModalOpen(false);
+          setDamagedTarget(null);
+        }}
+        item={damagedTarget}
+        onSubmit={handleDamageSubmit}
+        loading={damagedLoading}
       />
     </>
   );

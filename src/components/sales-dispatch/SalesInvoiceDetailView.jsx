@@ -44,10 +44,15 @@ const SalesInvoiceDetailView = ({ item }) => {
   const gstRows = [
     { label: 'GST Applicable', value: item.gstApplicable ? 'Yes' : 'No' },
     { label: 'GST Rate', value: item.gstRate != null ? `${item.gstRate}%` : '—' },
-    { label: 'GST Amount', value: item.gstAmount != null ? `₹${Number(item.gstAmount).toLocaleString('en-IN')}` : '—' },
-    { label: 'Reverse Charge (RCM)', value: item.reverseChargeApplicable ? 'Yes' : 'No' },
-    { label: 'Subtotal', value: item.subtotalAmount != null ? `₹${Number(item.subtotalAmount).toLocaleString('en-IN')}` : '—' },
-    { label: 'Total Amount', value: item.totalAmount != null ? `₹${Number(item.totalAmount).toLocaleString('en-IN')}` : '—', bold: true },
+    { label: 'Place of Supply', value: item.placeOfSupplyState || item.place_of_supply_state || '—' },
+    { label: 'Intra/Inter State', value: item.isInterstate || item.is_interstate ? 'Inter-State' : 'Intra-State', chip: true, chipBg: (item.isInterstate || item.is_interstate) ? '#f3e5f5' : '#e3f2fd', chipColor: (item.isInterstate || item.is_interstate) ? '#6a1b9a' : '#1565c0' },
+    { label: 'Taxable Amount', value: item.taxableAmount != null ? `₹${Number(item.taxableAmount).toLocaleString('en-IN')}` : (item.subtotalAmount != null ? `₹${Number(item.subtotalAmount).toLocaleString('en-IN')}` : '—') },
+    { label: 'CGST', value: item.cgstAmount != null ? `₹${Number(item.cgstAmount).toLocaleString('en-IN')}` : '—' },
+    { label: 'SGST', value: item.sgstAmount != null ? `₹${Number(item.sgstAmount).toLocaleString('en-IN')}` : '—' },
+    { label: 'IGST', value: item.igstAmount != null ? `₹${Number(item.igstAmount).toLocaleString('en-IN')}` : '—' },
+    { label: 'Total Tax', value: item.totalTaxAmount != null ? `₹${Number(item.totalTaxAmount).toLocaleString('en-IN')}` : (item.gstAmount != null ? `₹${Number(item.gstAmount).toLocaleString('en-IN')}` : '—') },
+    { label: 'Reverse Charge (RCM)', value: item.reverseChargeApplicable ? 'Yes' : 'No', chip: true, chipBg: item.reverseChargeApplicable ? '#fff3e0' : '#e8f5e9', chipColor: item.reverseChargeApplicable ? '#e65100' : '#2e7d32' },
+    { label: 'Total Payable', value: item.totalAmount != null ? `₹${Number(item.totalAmount).toLocaleString('en-IN')}` : '—', bold: true },
   ];
 
   const ewayRows = [
@@ -151,17 +156,25 @@ const SalesInvoiceDetailView = ({ item }) => {
         {gstRows.map((r) => (
           <Box key={r.label}>
             <FieldLabel>{r.label}</FieldLabel>
-            <Typography
-              variant="body2"
-              sx={{
-                mt: 0.5,
-                fontWeight: r.bold ? 700 : 500,
-                color: r.bold ? 'var(--color-grey-900)' : 'var(--color-grey-800)',
-                fontSize: r.bold ? '1rem' : undefined,
-              }}
-            >
-              {r.value}
-            </Typography>
+            {r.chip ? (
+              <Chip
+                label={r.value}
+                size="small"
+                sx={{ mt: 0.5, fontWeight: 600, fontSize: '0.75rem', backgroundColor: r.chipBg, color: r.chipColor }}
+              />
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{
+                  mt: 0.5,
+                  fontWeight: r.bold ? 700 : 500,
+                  color: r.bold ? 'var(--color-grey-900)' : 'var(--color-grey-800)',
+                  fontSize: r.bold ? '1rem' : undefined,
+                }}
+              >
+                {r.value}
+              </Typography>
+            )}
           </Box>
         ))}
       </Box>
