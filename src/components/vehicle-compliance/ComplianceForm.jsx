@@ -43,7 +43,7 @@ const ComplianceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref)
           ? 'Update COD / RTO Tracking'
           : 'Add COD Compliance Record'
       }
-      maxWidth="md"
+      maxWidth="lg"
       actions={
         readOnly ? (
           <Button

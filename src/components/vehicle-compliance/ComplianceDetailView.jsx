@@ -59,7 +59,7 @@ const ComplianceDetailView = ({ open, onClose, item }) => {
       open={open}
       onClose={onClose}
       title="COD Compliance Details"
-      maxWidth="md"
+      maxWidth="lg"
       actions={
         <Button
           variant="contained"

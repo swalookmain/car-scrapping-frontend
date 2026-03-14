@@ -155,7 +155,7 @@ const AuditLogDetailDialog = ({ open, onClose, log, loading }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle
-        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700, pb: 1 }}
+        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700, pb: 0 }}
       >
         Audit Log Details
         <IconButton onClick={onClose} size="small">
@@ -164,7 +164,7 @@ const AuditLogDetailDialog = ({ open, onClose, log, loading }) => {
       </DialogTitle>
       <Divider />
 
-      <DialogContent>
+      <DialogContent sx={{ pt: 5, mt: 2, '& > *:first-of-type': { mt: 1.5 } }}>
         {loading ? (
           <Box sx={{ py: 5, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
             <CircularProgress size={24} sx={{ color: 'var(--color-secondary-main)' }} />

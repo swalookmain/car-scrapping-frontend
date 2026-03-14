@@ -237,7 +237,7 @@ const InvoiceTable = ({ isLoading }) => {
         open={viewOpen}
         onClose={handleViewClose}
         title={viewStep === 0 ? 'Invoice Details' : 'Vehicle Details'}
-        maxWidth="md"
+        maxWidth="lg"
         actions={(
           <>
             {viewStep > 0 && (

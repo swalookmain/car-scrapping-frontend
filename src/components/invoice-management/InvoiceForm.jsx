@@ -519,7 +519,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
       open={open}
       onClose={handleClose}
       title={readOnly ? 'View Purchase Invoice' : (editingId ? 'Edit Purchase Invoice' : 'Add Purchase Invoice')}
-      maxWidth="md"
+      maxWidth="lg"
       actions={
         readOnly ? (
           <>

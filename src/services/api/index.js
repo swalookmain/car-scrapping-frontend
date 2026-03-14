@@ -6,4 +6,6 @@ export { default as invoicesApi } from './invoices/invoicesApi';
 export { default as inventoryApi } from './inventory/inventoryApi';
 export { default as auditLogsApi } from './auditLogs/auditLogsApi';
 export { default as vehicleComplianceApi } from './vehicleCompliance/vehicleComplianceApi';
+export { default as buyersApi } from './salesDispatch/buyersApi';
+export { default as salesInvoicesApi } from './salesDispatch/salesInvoicesApi';
 export { default as API_CONFIG, ENDPOINTS } from './core/config';

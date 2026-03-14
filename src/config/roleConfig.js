@@ -4,6 +4,8 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import InventoryIcon from '@mui/icons-material/Inventory2';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 
 
 export const ROLES = {
@@ -44,6 +46,14 @@ export const ROUTE_CONFIG = [
   },
   {
     path: '/vehicle-compliance',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/sales/buyers',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/sales/invoices',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
@@ -143,6 +153,23 @@ export const SIDEBAR_CONFIG = [
         path: '/vehicle-compliance',
         label: 'COD Tracking',
         icon: VerifiedUserIcon,
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
+    ],
+  },
+  {
+    section: 'Sales & Dispatch',
+    items: [
+      {
+        path: '/sales/buyers',
+        label: 'Buyers',
+        icon: StorefrontIcon,
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
+      {
+        path: '/sales/invoices',
+        label: 'Sales Invoices',
+        icon: LocalShippingIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],

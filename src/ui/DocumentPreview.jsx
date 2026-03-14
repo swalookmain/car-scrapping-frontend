@@ -98,7 +98,10 @@ const DocumentPreview = ({ open, onClose, src, name, mime }) => {
           justifyContent: 'center',
           alignItems: 'center',
           px: 2,
+          pt: 4,
+          mt: 2,
           pb: 2,
+          '& > *:first-of-type': { mt: 1.5 }
         }}
       >
         {isImage && src && (

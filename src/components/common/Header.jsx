@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useState, useRef, useEffect } from 'react';
 import { AppBar, Toolbar, IconButton, Box, InputBase, Avatar, LinearProgress, useMediaQuery, useTheme } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import MenuIcon from '@mui/icons-material/Menu';
 import TuneIcon from '@mui/icons-material/Tune'; 
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import SettingsIcon from '@mui/icons-material/SettingsOutlined';
@@ -134,8 +135,21 @@ const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading
             // --- NORMAL HEADER VIEW ---
             <>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    {/* Left spacing / logo area (collapse removed) */}
-                    <Box sx={{ width: 8 }} />
+                    {/* Hamburger button – only visible on mobile */}
+                    <IconButton
+                      onClick={handleDrawerToggle}
+                      size="medium"
+                      sx={{
+                        display: { xs: 'flex', md: 'none' },
+                        mr: 0.5,
+                        color: 'var(--color-grey-700)',
+                        borderRadius: '10px',
+                        '&:hover': { backgroundColor: 'var(--color-secondary-light)' },
+                      }}
+                    >
+                      <MenuIcon />
+                    </IconButton>
+                    <Box sx={{ width: { xs: 0, md: 8 } }} />
 
                     {/* Desktop Search Bar */}
                     <Box

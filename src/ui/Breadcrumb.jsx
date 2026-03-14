@@ -14,9 +14,9 @@ const Breadcrumb = ({ title, items = [] }) => {
   };
 
   return (
-    <div className="flex justify-between items-center px-4 py-2.5 bg-white/80 rounded-xl mb-4 border border-grey-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]" style={{ backdropFilter: 'blur(8px)' }}>
+    <div className="flex flex-wrap justify-between items-center gap-y-1 px-4 py-2.5 bg-white/80 rounded-xl mb-4 border border-grey-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]" style={{ backdropFilter: 'blur(8px)' }}>
       {/* Page Title (Left) */}
-      <h2 className="text-sm font-semibold text-grey-900 tracking-tight">
+      <h2 className="text-sm font-semibold text-grey-900 tracking-tight min-w-0 truncate mr-2">
         {title}
       </h2>
 

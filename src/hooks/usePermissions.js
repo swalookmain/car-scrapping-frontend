@@ -30,6 +30,19 @@ const PERMISSIONS = {
   'compliance:create': [ROLES.ADMIN, ROLES.STAFF],
   'compliance:edit': [ROLES.ADMIN, ROLES.STAFF],
 
+  // Buyer management
+  'buyer:view': [ROLES.ADMIN, ROLES.STAFF],
+  'buyer:create': [ROLES.ADMIN, ROLES.STAFF],
+  'buyer:edit': [ROLES.ADMIN, ROLES.STAFF],
+  'buyer:delete': [ROLES.ADMIN],
+
+  // Sales invoice management
+  'salesInvoice:view': [ROLES.ADMIN, ROLES.STAFF],
+  'salesInvoice:create': [ROLES.ADMIN, ROLES.STAFF],
+  'salesInvoice:edit': [ROLES.ADMIN, ROLES.STAFF],
+  'salesInvoice:confirm': [ROLES.ADMIN],
+  'salesInvoice:cancel': [ROLES.ADMIN],
+
   // Audit logs
   'auditLogs:view': [ROLES.ADMIN],
   'auditLogs:viewAll': [ROLES.SUPER_ADMIN],
