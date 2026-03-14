@@ -59,8 +59,8 @@ const GstSummaryDashboard = () => {
     queryKey: ['gst-summary', dateFrom, dateTo, invoiceType],
     queryFn: async () => {
       const filters = {};
-      if (dateFrom) filters.dateFrom = dateFrom;
-      if (dateTo) filters.dateTo = dateTo;
+      if (dateFrom) filters.fromDate = dateFrom;
+      if (dateTo) filters.toDate = dateTo;
       if (invoiceType) filters.invoiceType = invoiceType;
       const res = await taxComplianceApi.getGstSummary(filters);
       return res?.data || res;

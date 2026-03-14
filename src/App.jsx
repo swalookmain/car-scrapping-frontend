@@ -27,6 +27,9 @@ const EwayBills = lazy(() => import('./pages/adminPanel/EwayBills'));
 const GstSummary = lazy(() => import('./pages/adminPanel/GstSummary'));
 const GstAuditLogs = lazy(() => import('./pages/adminPanel/GstAuditLogs'));
 const DamageAdjustments = lazy(() => import('./pages/adminPanel/DamageAdjustments'));
+const AccountingOverview = lazy(() => import('./pages/adminPanel/AccountingOverview'));
+const Ledger = lazy(() => import('./pages/adminPanel/Ledger'));
+const PnlReport = lazy(() => import('./pages/adminPanel/PnlReport'));
 const SuperAdminDashboard = lazy(() => import('./pages/superAdmin/SuperAdminDashboard'));
 const OrganizationManagement = lazy(() => import('./pages/superAdmin/OrganizationManagement'));
 const AdminManagement = lazy(() => import('./pages/superAdmin/AdminManagement'));
@@ -186,6 +189,30 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <GstAuditLogs />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/accounting"
+                    element={
+                      <ProtectedRoute>
+                        <AccountingOverview />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/accounting/ledger"
+                    element={
+                      <ProtectedRoute>
+                        <Ledger />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/accounting/pnl"
+                    element={
+                      <ProtectedRoute>
+                        <PnlReport />
                       </ProtectedRoute>
                     }
                   />

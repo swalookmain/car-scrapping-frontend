@@ -7,6 +7,7 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 
 
@@ -76,6 +77,18 @@ export const ROUTE_CONFIG = [
   },
   {
     path: '/tax/audit',
+    allowedRoles: [ROLES.ADMIN],
+  },
+  {
+    path: '/accounting',
+    allowedRoles: [ROLES.ADMIN],
+  },
+  {
+    path: '/accounting/ledger',
+    allowedRoles: [ROLES.ADMIN],
+  },
+  {
+    path: '/accounting/pnl',
     allowedRoles: [ROLES.ADMIN],
   },
   {
@@ -226,6 +239,29 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/tax/audit',
         label: 'GST Audit Trail',
+        icon: AssignmentIcon,
+        allowedRoles: [ROLES.ADMIN],
+      },
+    ],
+  },
+  {
+    section: 'Accounting',
+    items: [
+      {
+        path: '/accounting',
+        label: 'Overview',
+        icon: AccountBalanceIcon,
+        allowedRoles: [ROLES.ADMIN],
+      },
+      {
+        path: '/accounting/ledger',
+        label: 'General Ledger',
+        icon: MenuBookIcon,
+        allowedRoles: [ROLES.ADMIN],
+      },
+      {
+        path: '/accounting/pnl',
+        label: 'Profit & Loss',
         icon: AssignmentIcon,
         allowedRoles: [ROLES.ADMIN],
       },
