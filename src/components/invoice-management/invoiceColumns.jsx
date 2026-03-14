@@ -70,6 +70,38 @@ export const AmountCell = ({ row }) => (
   </Typography>
 );
 
+export const PurchaseGstCell = ({ row }) => (
+  <Box>
+    {row.gstApplicable ? (
+      <>
+        {(row.isInterstate || row.is_interstate) ? (
+          <Typography variant="body2" sx={{ color: '#6a1b9a', fontSize: '0.7rem' }}>
+            IGST: ₹{Number(row.igstAmount || 0).toLocaleString('en-IN')}
+          </Typography>
+        ) : (row.cgstAmount != null || row.sgstAmount != null) ? (
+          <>
+            <Typography variant="body2" sx={{ color: '#2e7d32', fontSize: '0.65rem' }}>
+              C: ₹{Number(row.cgstAmount || 0).toLocaleString('en-IN')}
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#00695c', fontSize: '0.65rem' }}>
+              S: ₹{Number(row.sgstAmount || 0).toLocaleString('en-IN')}
+            </Typography>
+          </>
+        ) : (
+          <Typography variant="body2" sx={{ color: 'var(--color-grey-700)', fontSize: '0.75rem' }}>
+            ₹{Number(row.gstAmount || 0).toLocaleString('en-IN')} ({row.gstRate || 0}%)
+          </Typography>
+        )}
+        {row.reverseChargeApplicable && (
+          <Typography variant="caption" sx={{ color: '#e65100', fontSize: '0.6rem' }}>RCM</Typography>
+        )}
+      </>
+    ) : (
+      <Typography variant="body2" sx={{ color: 'var(--color-grey-400)', fontSize: '0.75rem' }}>N/A</Typography>
+    )}
+  </Box>
+);
+
 export const StatusCell = ({ row }) => {
   const st = invoiceStatusColor[row.status] || invoiceStatusColor.DRAFT;
   return <Chip label={st.label} size="small" sx={{ fontWeight: 600, fontSize: '0.75rem', backgroundColor: st.bg, color: st.color }} />;
@@ -131,6 +163,7 @@ export function getInvoiceColumns({ canPerform, handleView, handleEdit, openDele
         : []
     ),
     { field: 'purchaseAmount', headerName: 'Amount', width: '10%', render: (row) => <AmountCell row={row} /> },
+    { field: 'gst',            headerName: 'GST',    width: '10%', render: (row) => <PurchaseGstCell row={row} /> },
     { field: 'status', headerName: 'Status', width: '10%', render: (row) => <StatusCell row={row} /> },
     { field: 'createdBy', headerName: 'Created By', width: '12%', render: (row) => <CreatedByCell row={row} /> },
     { field: 'actions', headerName: 'Actions', width: '15%', render: (row) => <InvoiceActionsCell row={row} canPerform={canPerform} handleView={handleView} handleEdit={handleEdit} openDeleteConfirm={openDeleteConfirm} /> },

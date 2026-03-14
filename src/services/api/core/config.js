@@ -88,6 +88,18 @@ export const ENDPOINTS = {
       CANCEL: (id) => `/sales-dispatch/invoices/${id}/cancel`,
     },
   },
+  TAX_COMPLIANCE: {
+    CONFIG: '/tax-compliance/config',
+    EWAY_BILLS: '/tax-compliance/eway-bills',
+    EWAY_BILL_BY_INVOICE: (salesInvoiceId) => `/tax-compliance/eway-bills/invoice/${salesInvoiceId}`,
+    GST_AUDIT_LOG: '/tax-compliance/gst-audit-log',
+    GST_SUMMARY: '/reports/gst-summary',
+  },
+  DAMAGE_ADJUSTMENTS: {
+    BASE: '/damage-adjustments',
+    GET_ALL: '/damage-adjustments',
+    CREATE: '/damage-adjustments',
+  },
 };
 
 export default API_CONFIG;

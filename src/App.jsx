@@ -22,6 +22,11 @@ const AuditLogs = lazy(() => import('./pages/adminPanel/AuditLogs'));
 const VehicleCompliance = lazy(() => import('./pages/adminPanel/VehicleCompliance'));
 const Buyers = lazy(() => import('./pages/adminPanel/Buyers'));
 const SalesInvoices = lazy(() => import('./pages/adminPanel/SalesInvoices'));
+const TaxConfig = lazy(() => import('./pages/adminPanel/TaxConfig'));
+const EwayBills = lazy(() => import('./pages/adminPanel/EwayBills'));
+const GstSummary = lazy(() => import('./pages/adminPanel/GstSummary'));
+const GstAuditLogs = lazy(() => import('./pages/adminPanel/GstAuditLogs'));
+const DamageAdjustments = lazy(() => import('./pages/adminPanel/DamageAdjustments'));
 const SuperAdminDashboard = lazy(() => import('./pages/superAdmin/SuperAdminDashboard'));
 const OrganizationManagement = lazy(() => import('./pages/superAdmin/OrganizationManagement'));
 const AdminManagement = lazy(() => import('./pages/superAdmin/AdminManagement'));
@@ -113,6 +118,14 @@ function App() {
                     }
                   />
                   <Route
+                    path="/inventory/damage-adjustments"
+                    element={
+                      <ProtectedRoute>
+                        <DamageAdjustments />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/audit-logs"
                     element={
                       <ProtectedRoute>
@@ -141,6 +154,38 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <SalesInvoices />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/tax/config"
+                    element={
+                      <ProtectedRoute>
+                        <TaxConfig />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/tax/eway-bills"
+                    element={
+                      <ProtectedRoute>
+                        <EwayBills />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/tax/summary"
+                    element={
+                      <ProtectedRoute>
+                        <GstSummary />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/tax/audit"
+                    element={
+                      <ProtectedRoute>
+                        <GstAuditLogs />
                       </ProtectedRoute>
                     }
                   />

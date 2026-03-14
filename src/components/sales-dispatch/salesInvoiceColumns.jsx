@@ -41,14 +41,31 @@ export const SalesSubtotalCell = ({ row }) => (
 
 export const SalesGstCell = ({ row }) => (
   <Box>
-    <Typography variant="body2" sx={{ color: 'var(--color-grey-700)', fontSize: '0.8rem', textAlign: 'right' }}>
-      {row.gstApplicable
-        ? `₹${Number(row.gstAmount || 0).toLocaleString('en-IN')} (${row.gstRate || 0}%)`
-        : 'N/A'}
-    </Typography>
-    {row.reverseChargeApplicable && (
-      <Typography variant="caption" sx={{ color: '#e65100', fontSize: '0.65rem' }}>
-        RCM
+    {row.gstApplicable ? (
+      <>
+        {(row.isInterstate || row.is_interstate) ? (
+          <Typography variant="body2" sx={{ color: '#6a1b9a', fontSize: '0.8rem', textAlign: 'right' }}>
+            IGST: ₹{Number(row.igstAmount || 0).toLocaleString('en-IN')}
+          </Typography>
+        ) : (
+          <>
+            <Typography variant="body2" sx={{ color: '#2e7d32', fontSize: '0.7rem', textAlign: 'right' }}>
+              C: ₹{Number(row.cgstAmount || 0).toLocaleString('en-IN')}
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#00695c', fontSize: '0.7rem', textAlign: 'right' }}>
+              S: ₹{Number(row.sgstAmount || 0).toLocaleString('en-IN')}
+            </Typography>
+          </>
+        )}
+        {row.reverseChargeApplicable && (
+          <Typography variant="caption" sx={{ color: '#e65100', fontSize: '0.65rem' }}>
+            RCM
+          </Typography>
+        )}
+      </>
+    ) : (
+      <Typography variant="body2" sx={{ color: 'var(--color-grey-400)', fontSize: '0.8rem', textAlign: 'right' }}>
+        N/A
       </Typography>
     )}
   </Box>
