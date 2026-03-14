@@ -41,7 +41,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
       open={open}
       onClose={handleClose}
       title={editMode ? 'Edit Inventory Part' : 'Add Inventory Parts'}
-      maxWidth="md"
+      maxWidth="lg"
       actions={
         !readOnly && (
           <>

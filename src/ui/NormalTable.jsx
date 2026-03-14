@@ -233,8 +233,8 @@ const NormalTable = forwardRef(({
     return (
       <Paper sx={{ p: 0, borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)' }}>
           {toolbar && <Box sx={{ p: 0 }}>{toolbar}</Box>} 
-        <TableContainer>
-          <Table sx={{ borderCollapse: 'collapse' }}>
+        <TableContainer sx={{ overflowX: 'auto' }}>
+          <Table sx={{ borderCollapse: 'collapse', minWidth: 560 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: 'rgba(103,58,183,0.04)' }}>
                   {showCheckbox && ( 
@@ -402,8 +402,8 @@ const NormalTable = forwardRef(({
       {shouldVirtualize ? (
         /* ── Virtual scrolling for large non-paginated datasets (react-window v2 List) ── */
         <Box>
-          <TableContainer>
-            <Table stickyHeader sx={{ borderCollapse: 'collapse' }}>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table stickyHeader sx={{ borderCollapse: 'collapse', minWidth: 560 }}>
               {tableHeader}
             </Table>
           </TableContainer>
@@ -417,8 +417,8 @@ const NormalTable = forwardRef(({
         </Box>
       ) : (
         /* ── Standard paginated table ── */
-        <TableContainer>
-          <Table stickyHeader={false} sx={{ borderCollapse: 'collapse' }}>
+        <TableContainer sx={{ overflowX: 'auto' }}>
+          <Table stickyHeader={false} sx={{ borderCollapse: 'collapse', minWidth: 560 }}>
             {tableHeader}
             <TableBody>
               {renderStandardRows()}
@@ -440,7 +440,12 @@ const NormalTable = forwardRef(({
           sx={{
             borderTop: '1px solid var(--color-grey-100)',
             backgroundColor: 'rgba(237,231,246,0.08)',
-            '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+            '.MuiTablePagination-selectLabel': {
+              display: { xs: 'none', sm: 'block' },
+              color: 'var(--color-grey-500)',
+              fontSize: '0.8rem',
+            },
+            '.MuiTablePagination-displayedRows': {
               color: 'var(--color-grey-500)',
               fontSize: '0.8rem',
             },

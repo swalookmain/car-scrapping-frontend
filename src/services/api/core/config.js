@@ -69,6 +69,25 @@ export const ENDPOINTS = {
       UPDATE_RTO: (id) => `/vehicle-compliance/vechile-cod/${id}/rto`,
     },
   },
+  SALES_DISPATCH: {
+    BUYERS: {
+      BASE: '/sales-dispatch/buyers',
+      GET_ALL: '/sales-dispatch/buyers',
+      GET_BY_ID: (id) => `/sales-dispatch/buyers/${id}`,
+      CREATE: '/sales-dispatch/buyers',
+      UPDATE: (id) => `/sales-dispatch/buyers/${id}`,
+      DELETE: (id) => `/sales-dispatch/buyers/${id}`,
+    },
+    INVOICES: {
+      BASE: '/sales-dispatch/invoices',
+      GET_ALL: '/sales-dispatch/invoices',
+      GET_BY_ID: (id) => `/sales-dispatch/invoices/${id}`,
+      CREATE: '/sales-dispatch/invoices',
+      UPDATE: (id) => `/sales-dispatch/invoices/${id}`,
+      CONFIRM: (id) => `/sales-dispatch/invoices/${id}/confirm`,
+      CANCEL: (id) => `/sales-dispatch/invoices/${id}/cancel`,
+    },
+  },
 };
 
 export default API_CONFIG;

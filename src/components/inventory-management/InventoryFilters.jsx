@@ -115,7 +115,7 @@ const InventoryFilters = ({
 
       {/* Invoice autocomplete */}
       <Autocomplete
-        sx={{ width: 320 }}
+        sx={{ width: { xs: '100%', sm: 300, md: 320 } }}
         options={invoices}
         getOptionLabel={(inv) =>
           `${inv.invoiceNumber || ''}${inv.sellerName ? ` — ${inv.sellerName}` : ''}`
@@ -147,7 +147,7 @@ const InventoryFilters = ({
         label="Vehicle"
         value={vehicleFetching ? 'Loading...' : selectedVehicleLabel || filterVechileId}
         size="small"
-        sx={{ width: 240 }}
+        sx={{ width: { xs: '100%', sm: 220, md: 240 } }}
         disabled
       />
 

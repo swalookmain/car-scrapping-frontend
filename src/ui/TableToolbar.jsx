@@ -42,10 +42,12 @@ const TableToolbar = ({
     <Box
       sx={{
         display: 'flex',
+        flexWrap: 'wrap',
         justifyContent: 'space-between',
         alignItems: 'center',
-        px: 2.5,
-        py: 2,
+        gap: 1.5,
+        px: { xs: 1.5, sm: 2.5 },
+        py: { xs: 1.5, sm: 2 },
         background: 'linear-gradient(135deg, rgba(248,250,252,0.9) 0%, rgba(237,231,246,0.3) 100%)',
         backdropFilter: 'blur(8px)',
         borderRadius: '14px',
@@ -60,7 +62,9 @@ const TableToolbar = ({
         onChange={(e) => onSearchChange(e.target.value)}
         size="small"
         sx={{
-          width: 280,
+          width: { xs: '100%', sm: 260, md: 300 },
+          minWidth: { xs: 0, sm: 180 },
+          flex: { xs: '1 1 100%', sm: '0 0 auto' },
           backgroundColor: '#fff',
           borderRadius: '10px',
           '& .MuiOutlinedInput-root': {
@@ -87,7 +91,7 @@ const TableToolbar = ({
       />
 
       {/* Action Icons */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5, flex: { xs: '1 1 auto', sm: '0 0 auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-end' } }}>
         {showCopy && (
           <Tooltip title="Copy">
             <IconButton

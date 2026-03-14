@@ -47,6 +47,9 @@ const NormalModal = ({
           borderRadius: '16px',
           boxShadow: '0 24px 80px rgba(0,0,0,0.12), 0 8px 32px rgba(0,0,0,0.08)',
           border: '1px solid rgba(0,0,0,0.04)',
+          margin: { xs: '8px', sm: '16px', md: '32px' },
+          maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 32px)', md: 'calc(100% - 64px)' },
+          width: { xs: 'calc(100% - 16px)', sm: undefined },
         },
       }}
     >
@@ -80,8 +83,8 @@ const NormalModal = ({
           </IconButton>
         )}
       </DialogTitle>
-      <DialogContent sx={{ px: 2.5, pb: 1.5, overflowY: 'auto' }}>
-        {children}
+          <DialogContent sx={{ px: 2.5, pt: 5, mt: 1, pb: 3, overflowY: 'auto', '& > *:first-of-type': { mt: 1 } }}>
+            {children}
       </DialogContent>
       {actions && (
         <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 1, borderTop: '1px solid var(--color-grey-100)' }}>

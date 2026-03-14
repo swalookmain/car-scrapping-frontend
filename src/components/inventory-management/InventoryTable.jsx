@@ -266,7 +266,7 @@ const InventoryTable = ({ isLoading }) => {
         open={viewOpen}
         onClose={handleCloseView}
         title="Inventory Detail"
-        maxWidth="md"
+        maxWidth="lg"
         actions={
           <Button
             variant="contained"

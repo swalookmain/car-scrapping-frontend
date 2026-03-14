@@ -20,10 +20,10 @@ const ConfirmDialog = ({ open, title = 'Confirm', description = 'Are you sure?',
         },
       }}
     >
-      <DialogTitle sx={{ fontWeight: 600, fontSize: '1rem', pt: 2.5, pb: 1 }}>{title}</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" sx={{ color: 'var(--color-grey-600)' }}>{description}</Typography>
-      </DialogContent>
+      <DialogTitle sx={{ fontWeight: 600, fontSize: '1rem', pt: 2.5, pb: 0 }}>{title}</DialogTitle>
+          <DialogContent sx={{ pt: 3.5, mt: 1.5, pb: 0.5, px: 3, '& > *:first-of-type': { mt: 1 } }}>
+            <Typography variant="body2" sx={{ color: 'var(--color-grey-600)' }}>{description}</Typography>
+          </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
         <Button onClick={onClose} sx={{ borderRadius: '10px', color: 'var(--color-grey-600)' }}> {cancelText} </Button>
         <Button
