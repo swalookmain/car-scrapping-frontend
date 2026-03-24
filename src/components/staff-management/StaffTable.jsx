@@ -32,7 +32,7 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
         const res = await usersApi.getAllStaffByOrganization(organizationId, page + 1, rowsPerPage);
         const items = Array.isArray(res?.data) ? res.data : [];
         return {
-          data: items.map((it) => ({ id: it._id || it.id, name: it.name, phone: it.phone || '', email: it.email || '', status: it.isActive ? 'Active' : 'Inactive' })),
+          data: items.map((it) => ({ id: it._id || it.id, name: it.name, phone: it.phoneNumber || it.phone || '', email: it.email || '', status: it.isActive ? 'Active' : 'Inactive' })),
           total: res?.meta?.total ?? items.length,
         };
       } else {
@@ -40,7 +40,7 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
         const items = Array.isArray(res?.data) ? res.data : [];
         const staffItems = items.filter((u) => u.role === 'STAFF');
         return {
-          data: staffItems.map((it) => ({ id: it._id || it.id, name: it.name, phone: it.phone || '', email: it.email || '', status: it.isActive ? 'Active' : 'Inactive' })),
+          data: staffItems.map((it) => ({ id: it._id || it.id, name: it.name, phone: it.phoneNumber || it.phone || '', email: it.email || '', status: it.isActive ? 'Active' : 'Inactive' })),
           total: res?.meta?.total ?? staffItems.length,
         };
       }
@@ -68,7 +68,7 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
   // Create staff entry when form submits; StaffForm will call this with the new staff data (without id)
   const handleCreateStaff = async (staff) => {
     try {
-      const payload = { name: staff.name, phone: staff.phone, email: staff.email, password: staff.password, isActive: Boolean(staff.isActive) };
+      const payload = { name: staff.name, phoneNumber: staff.phone, email: staff.email, password: staff.password, isActive: Boolean(staff.isActive) };
       await usersApi.createStaff(payload);
       toast.success('Staff member created successfully');
       queryClient.invalidateQueries({ queryKey: ['staff'] });
@@ -83,7 +83,7 @@ const StaffTable = ({ isLoading, organizationId = null }) => {
   const handleCreateOrUpdateStaff = async (staff, editingId) => {
     if (editingId) {
       try {
-        await usersApi.updateUser(editingId, { name: staff.name, phone: staff.phone, email: staff.email, isActive: Boolean(staff.isActive) });
+        await usersApi.updateUser(editingId, { name: staff.name, phoneNumber: staff.phone, email: staff.email, isActive: Boolean(staff.isActive) });
         toast.success('Staff member updated successfully');
         queryClient.invalidateQueries({ queryKey: ['staff'] });
       } catch (err) {

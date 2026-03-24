@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useImperativeHandle, useRef, useMemo } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
   Box,
@@ -66,6 +66,7 @@ const INITIAL_VEHICLE = {
   color: '',
   year_of_manufacture: '',
   vehicle_purchase_date: '',
+  rto_district_branch: '',
 };
 
 // ── Component ──────────────────────────────────────────────────
@@ -80,9 +81,6 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
   const [editingId, setEditingId] = useState(null);
   const [editingVehicleId, setEditingVehicleId] = useState(null);
   const [vehicleLoading, setVehicleLoading] = useState(false);
-
-  // refs for focus-on-error
-  const fieldRefs = useRef({});
 
   // ── Fetch tax config for GST breakup ─────────────────────────
   const { data: taxConfigData } = useQuery({
@@ -157,6 +155,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
             color: item.vehicle.color || '',
             year_of_manufacture: item.vehicle.year_of_manufacture ?? '',
             vehicle_purchase_date: item.vehicle.vehicle_purchase_date ? item.vehicle.vehicle_purchase_date.slice(0, 10) : '',
+            rto_district_branch: item.vehicle.rto_district_branch || '',
           };
           setVehicle(loadedVehicle);
           setInitialVehicle(loadedVehicle);
@@ -179,7 +178,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
                 const vehicles = Array.isArray(res?.data) ? res.data : (res?.data ? [res.data] : []);
                 const vData = vehicles.length > 0 ? vehicles[0] : null;
                 if (vData) populateVehicleFromData(vData);
-              } catch (err) {
+              } catch {
                 // ignore
               } finally {
                 setVehicleLoading(false);
@@ -256,6 +255,8 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
     if (!vehicle.engine_number.trim()) err.engine_number = 'Engine number is required';
     if (!vehicle.year_of_manufacture) err.year_of_manufacture = 'Year of manufacture is required';
     if (!vehicle.vehicle_purchase_date) err.vehicle_purchase_date = 'Vehicle purchase date is required';
+    if (!vehicle.rto_district_branch?.trim())
+      err.rto_district_branch = 'RTO district/branch is required';
 
     setErrors(err);
     return Object.keys(err).length === 0;
@@ -276,6 +277,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
       color: vData.color || '',
       year_of_manufacture: vData.year_of_manufacture ?? vData.yearOfManufacture ?? '',
       vehicle_purchase_date: (vData.vehicle_purchase_date || vData.vehiclePurchaseDate) ? (vData.vehicle_purchase_date || vData.vehiclePurchaseDate).slice(0, 10) : '',
+      rto_district_branch: vData.rto_district_branch || '',
     };
     setVehicle(loadedVehicle);
     setInitialVehicle(loadedVehicle);
@@ -334,18 +336,11 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
       sellerGstin: invoice.sellerGstin,
       purchaseAmount: Number(invoice.purchaseAmount),
       purchaseDate: invoice.purchaseDate,
+      placeOfSupplyState: invoice.sellerState || taxConfig.stateCode,
       gstApplicable: invoice.gstApplicable,
       gstRate: invoice.gstRate ? Number(invoice.gstRate) : 0,
       gstAmount: invoice.gstAmount ? Number(invoice.gstAmount) : 0,
       reverseChargeApplicable: invoice.sellerType === 'DIRECT' ? invoice.reverseChargeApplicable : false,
-      sellerState: invoice.sellerState || undefined,
-      // Structured GST breakup
-      taxableAmount: purchaseGstBreakup.taxableAmount,
-      cgstAmount: purchaseGstBreakup.cgstAmount,
-      sgstAmount: purchaseGstBreakup.sgstAmount,
-      igstAmount: purchaseGstBreakup.igstAmount,
-      totalTaxAmount: purchaseGstBreakup.totalTaxAmount,
-      isInterstate: purchaseGstBreakup.isInterstate,
       status: invoice.status,
     };
 
@@ -364,29 +359,19 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
     }
 
     const vehiclePayload = {
-      // include both snake_case and camelCase to match API variations
       ownerName: vehicle.ownerName,
-      owner_name: vehicle.ownerName,
       vehicle_type: vehicle.vehicle_type,
-      vehicleType: vehicle.vehicle_type,
       make: vehicle.make,
-      model_name: vehicle.model_name,
-      modelName: vehicle.model_name,
+      model: vehicle.model_name,
       variant: vehicle.variant,
       fuel_type: vehicle.fuel_type,
-      fuelType: vehicle.fuel_type,
       registration_number: vehicle.registration_number,
-      registrationNumber: vehicle.registration_number,
-      vehicleNumber: vehicle.registration_number,
       chassis_number: vehicle.chassis_number,
-      chassisNumber: vehicle.chassis_number,
       engine_number: vehicle.engine_number,
-      engineNumber: vehicle.engine_number,
       color: vehicle.color,
       year_of_manufacture: vehicle.year_of_manufacture ? Number(vehicle.year_of_manufacture) : 0,
-      yearOfManufacture: vehicle.year_of_manufacture ? Number(vehicle.year_of_manufacture) : 0,
       vehicle_purchase_date: vehicle.vehicle_purchase_date,
-      vehiclePurchaseDate: vehicle.vehicle_purchase_date,
+      rto_district_branch: vehicle.rto_district_branch,
     };
 
     onSubmit({ invoice: invoicePayload, vehicle: vehiclePayload, editingId, editingVehicleId });

@@ -110,6 +110,18 @@ export default function InvoiceVehicleStep({ vehicle, errors, onChange, readOnly
             sx={inputSx}
           />
         </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            label="RTO District / Branch"
+            value={vehicle.rto_district_branch || ''}
+            onChange={(e) => onChange('rto_district_branch', e.target.value)}
+            fullWidth
+            disabled={readOnly}
+            sx={inputSx}
+            error={Boolean(errors.rto_district_branch)}
+            helperText={errors.rto_district_branch}
+          />
+        </Grid>
       </Grid>
 
       <Divider sx={{ my: 1 }} />
