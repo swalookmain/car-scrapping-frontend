@@ -332,13 +332,6 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
         gstRate: invoice.gstApplicable ? Number(invoice.gstRate) : 0,
         reverseChargeApplicable: invoice.reverseChargeApplicable,
         placeOfSupplyState: invoice.placeOfSupplyState || undefined,
-        // Structured GST breakup
-        taxableAmount: gstBreakup.taxableAmount,
-        cgstAmount: gstBreakup.cgstAmount,
-        sgstAmount: gstBreakup.sgstAmount,
-        igstAmount: gstBreakup.igstAmount,
-        totalTaxAmount: gstBreakup.totalTaxAmount,
-        isInterstate: gstBreakup.isInterstate,
         ewayBillNumber: invoice.ewayBillNumber.trim() || undefined,
         ewayBillDocumentUrl: ewayDoc
           ? (typeof ewayDoc === 'object' ? ewayDoc.dataUrl : ewayDoc)

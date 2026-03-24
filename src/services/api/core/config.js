@@ -2,7 +2,7 @@
 //    The localhost fallback is only safe for local development.
 //    Set it in Vercel → Settings → Environment Variables.
 const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5003',
   TIMEOUT: 30000,
 };
 
