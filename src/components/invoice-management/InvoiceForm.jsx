@@ -223,7 +223,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
   const validateInvoice = () => {
     const err = {};
     if (!invoice.sellerName.trim()) err.sellerName = 'Seller name is required';
-    if (!invoice.invoiceNumber.trim()) err.invoiceNumber = 'Invoice number is required';
+    // if (!invoice.invoiceNumber.trim()) err.invoiceNumber = 'Invoice number is required';
     if (!invoice.purchaseAmount && invoice.purchaseAmount !== 0) err.purchaseAmount = 'Purchase amount is required';
     if (!invoice.purchaseDate) err.purchaseDate = 'Purchase date is required';
 
@@ -332,7 +332,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
     const invoicePayload = {
       sellerName: invoice.sellerName,
       sellerType: invoice.sellerType,
-      invoiceNumber: invoice.invoiceNumber,
+      // invoiceNumber: invoice.invoiceNumber,
       sellerGstin: invoice.sellerGstin,
       purchaseAmount: Number(invoice.purchaseAmount),
       purchaseDate: invoice.purchaseDate,
@@ -432,7 +432,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
             helperText={errors.sellerName}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        {/* <Grid item xs={12} sm={6}>
           <TextField
             label="Invoice Number"
             value={invoice.invoiceNumber}
@@ -443,7 +443,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
             error={Boolean(errors.invoiceNumber)}
             helperText={errors.invoiceNumber}
           />
-        </Grid>
+        </Grid> */}
         <Grid item xs={12} sm={6}>
           <TextField
             label="Seller GSTIN"

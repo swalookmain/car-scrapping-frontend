@@ -9,16 +9,28 @@ export const ActorRoleCell   = ({ row }) => <ActorRoleChip value={row.actorRole}
 export const AuditStatusCell = ({ row }) => <StatusChip value={row.status} />;
 export const IpCell          = ({ row }) => <IpDeviceCell row={row} />;
 
-export const ActorIdCell = ({ row }) =>
-  row.actorId ? (
-    <Tooltip title={row.actorId} arrow>
-      <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.76rem', color: 'var(--color-grey-600)', cursor: 'default' }}>
-        …{row.actorId.slice(-12)}
-      </Typography>
+export const ActorIdCell = ({ row }) => {
+  if (!row.actorId && !row.actorName) {
+    return <Typography variant="body2" sx={{ color: 'var(--color-grey-400)' }}>-</Typography>;
+  }
+  
+  return (
+    <Tooltip title={`ID: ${row.actorId || 'N/A'}`} arrow>
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        {row.actorName && (
+          <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--color-grey-800)', fontSize: '0.8rem' }}>
+            {row.actorName}
+          </Typography>
+        )}
+        {row.actorId && (
+          <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'var(--color-grey-500)', fontSize: '0.7rem' }}>
+            …{row.actorId.slice(-8)}
+          </Typography>
+        )}
+      </Box>
     </Tooltip>
-  ) : (
-    <Typography variant="body2" sx={{ color: 'var(--color-grey-400)' }}>-</Typography>
   );
+};
 
 export const ResourceCell = ({ row }) => (
   <Tooltip title={row.resource} arrow>

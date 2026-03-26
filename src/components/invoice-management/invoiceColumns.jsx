@@ -120,13 +120,15 @@ export const InvoiceActionsCell = ({ row, canPerform, handleView, handleEdit, op
         <VisibilityIcon fontSize="small" />
       </IconButton>
     </Tooltip>
-    {canPerform('invoice:edit') && (
+    
+    {canPerform('invoice:edit') && row.status !== 'CONFIRMED' && (
       <Tooltip title="Edit">
         <IconButton size="small" onClick={() => handleEdit(row)} aria-label="edit" sx={{ color: 'var(--color-secondary-main)', p: 0.5, minWidth: 'auto' }}>
           <EditIcon fontSize="small" />
         </IconButton>
       </Tooltip>
     )}
+
     {canPerform('invoice:delete') && (
       <Tooltip title="Delete">
         <IconButton size="small" onClick={() => openDeleteConfirm(row)} aria-label="delete" sx={{ color: '#e53935', p: 0.5, minWidth: 'auto' }}>
@@ -136,6 +138,7 @@ export const InvoiceActionsCell = ({ row, canPerform, handleView, handleEdit, op
     )}
   </Box>
 );
+
 
 /**
  * Returns the column definition array for InvoiceTable.

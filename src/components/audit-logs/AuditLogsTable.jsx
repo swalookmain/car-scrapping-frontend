@@ -80,12 +80,12 @@ const AuditLogsTable = ({ isLoading: parentLoading, variant = 'admin' }) => {
   const toggleFilters = useCallback(() => setShowFilters((p) => !p), []);
   const closeDetail   = useCallback(() => setDetailOpen(false), []);
 
-  // ── Local search ───────────────────────────────────────────────
+// ── Local search ───────────────────────────────────────────────
   const filteredLogs = useMemo(() => {
     if (!query.trim()) return logs;
     const q = query.toLowerCase();
     return logs.filter((l) =>
-      [l.action, l.actorRole, l.actorId, l.resource, l.resourceId, l.ip, l.browser, l.os, l.status]
+      [l.action, l.actorRole, l.actorId, l.actorName, l.resource, l.resourceId, l.ip, l.browser, l.os, l.status]
         .join(' ')
         .toLowerCase()
         .includes(q)
