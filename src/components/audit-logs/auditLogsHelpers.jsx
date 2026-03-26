@@ -46,6 +46,7 @@ export const mapLog = (log) => ({
   id:             log._id   || log.id   || '',
   action:         log.action         || '',
   actorId:        log.actorId        || '',
+  actorName:      log.actorName      || '',
   actorRole:      log.actorRole      || 'SYSTEM',
   organizationId: log.organizationId || '',
   resource:       log.resource       || '',
