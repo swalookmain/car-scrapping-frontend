@@ -23,7 +23,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import InventoryFilters from './InventoryFilters';
 import InventoryDetailView from './InventoryDetailView';
 import MarkDamagedModal from './MarkDamagedModal';
-import { getInventoryColumns } from './inventoryColumns';
+import { getInventoryColumns } from './getInventoryColumns.jsx';
 
 // ── Filter Options ─────────────────────────────────────────────
 const FILTER_CONDITIONS = ['', 'GOOD', 'DAMAGED'];

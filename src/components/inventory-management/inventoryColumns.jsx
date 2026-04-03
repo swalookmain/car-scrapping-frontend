@@ -4,37 +4,12 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
-
-// ── Status / Condition / Category Colors ──────────────────────
-export const inventoryStatusColor = {
-  AVAILABLE: { bg: '#e8f5e9', color: '#2e7d32', label: 'Available' },
-  PARTIAL_SOLD: { bg: '#fff3e0', color: '#e65100', label: 'Partial Sold' },
-  SOLD_OUT: { bg: '#ffebee', color: '#c62828', label: 'Sold Out' },
-  DAMAGE_ONLY: { bg: '#fce4ec', color: '#ad1457', label: 'Damaged' },
-};
-
-export const inventoryConditionColor = {
-  GOOD: { bg: '#e8f5e9', color: '#2e7d32', label: 'Good' },
-  DAMAGED: { bg: '#ffebee', color: '#c62828', label: 'Damaged' },
-};
-
-export const inventoryCategoryColor = {
-  ENGINE: { bg: '#e3f2fd', color: '#1565c0' },
-  TRANSMISSION: { bg: '#f3e5f5', color: '#6a1b9a' },
-  BODY: { bg: '#fff3e0', color: '#e65100' },
-  METAL: { bg: '#e0f2f1', color: '#00695c' },
-  PLASTIC: { bg: '#fce4ec', color: '#ad1457' },
-  ELECTRICAL: { bg: '#fff9c4', color: '#f57f17' },
-  OTHER: { bg: '#f5f5f5', color: '#616161' },
-};
-
-/** Computes available quantity: opening + received - issued */
-export function calcAvailable(row) {
-  const opening = Number(row.openingStock) || 0;
-  const received = Number(row.quantityReceived) || 0;
-  const issued = Number(row.quantityIssued) || 0;
-  return opening + received - issued;
-}
+import {
+  calcAvailable,
+  inventoryCategoryColor,
+  inventoryConditionColor,
+  inventoryStatusColor,
+} from './inventoryColumnHelpers';
 
 // ── Named cell components (canonical pattern) ────────────────
 export const ItemCodeCell = ({ row }) => (
@@ -118,20 +93,3 @@ export const InventoryActionsCell = ({ row, canPerform, handleView, handleEdit, 
   </Box>
 );
 
-// ── Column factory ─────────────────────────────────────────────
-export function getInventoryColumns({ canPerform, handleView, handleEdit, openDeleteConfirm, handleMarkDamaged }) {
-  return [
-    { field: 'itemCode',         headerName: 'Item Code',    width: '9%',  render: (row) => <ItemCodeCell row={row} /> },
-    { field: 'partName',         headerName: 'Part Name',    width: '13%', render: (row) => <PartNameCell row={row} /> },
-    { field: 'vehicleCode',      headerName: 'Vehicle Code', width: '9%',  render: (row) => <VehicleCodeCell row={row} /> },
-    { field: 'invoiceId',        headerName: 'Invoice',      width: '9%',  render: (row) => <InvoiceRefCell row={row} /> },
-    { field: 'partType',         headerName: 'Category',     width: '9%',  render: (row) => <CategoryChip row={row} /> },
-    { field: 'condition',        headerName: 'Condition',    width: '8%',  render: (row) => <InventoryConditionChip row={row} /> },
-    { field: 'openingStock',     headerName: 'Opening',      width: '6%',  render: (row) => <OpeningCell row={row} /> },
-    { field: 'quantityReceived', headerName: 'Received',     width: '6%',  render: (row) => <ReceivedCell row={row} /> },
-    { field: 'quantityIssued',   headerName: 'Issued',       width: '6%',  render: (row) => <IssuedCell row={row} /> },
-    { field: 'available',        headerName: 'Available',    width: '6%',  render: (row) => <AvailableCell row={row} /> },
-    { field: 'status',           headerName: 'Status',       width: '9%',  render: (row) => <InventoryStatusChip row={row} /> },
-    { field: 'actions',          headerName: 'Actions',      width: '10%', render: (row) => <InventoryActionsCell row={row} canPerform={canPerform} handleView={handleView} handleEdit={handleEdit} openDeleteConfirm={openDeleteConfirm} handleMarkDamaged={handleMarkDamaged} /> },
-  ];
-}

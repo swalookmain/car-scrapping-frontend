@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
-import { calcAvailable } from './inventoryColumns';
+import { calcAvailable } from './inventoryColumnHelpers';
 
 const MarkDamagedModal = ({ open, onClose, item, onSubmit, loading = false }) => {
   const [quantity, setQuantity] = useState('');
@@ -33,7 +33,7 @@ const MarkDamagedModal = ({ open, onClose, item, onSubmit, loading = false }) =>
     if (!quantity || qty <= 0) {
       errs.quantity = 'Quantity must be greater than 0';
     } else if (qty > availableQty) {
-      errs.quantity = `Cannot exceed available quantity (${availableQty})`;
+      errs.quantity = `Cannot exceed good stock available (${availableQty})`;
     } else if (!Number.isInteger(qty)) {
       errs.quantity = 'Quantity must be a whole number';
     }
@@ -138,7 +138,7 @@ const MarkDamagedModal = ({ open, onClose, item, onSubmit, loading = false }) =>
             </Box>
             <Box>
               <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Available Quantity
+                Good Stock Available
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, color: availableQty > 0 ? '#2e7d32' : '#c62828' }}>
                 {availableQty}
@@ -159,7 +159,7 @@ const MarkDamagedModal = ({ open, onClose, item, onSubmit, loading = false }) =>
             if (errors.quantity) setErrors((prev) => ({ ...prev, quantity: '' }));
           }}
           error={Boolean(errors.quantity)}
-          helperText={errors.quantity || `Max: ${availableQty}`}
+          helperText={errors.quantity || `Max good stock: ${availableQty}`}
           fullWidth
           size="small"
           inputProps={{ min: 1, max: availableQty, step: 1 }}
