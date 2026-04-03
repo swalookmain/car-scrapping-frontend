@@ -84,7 +84,7 @@ const InventoryDetailView = ({ item }) => {
     { label: 'Quantity Received', value: item.quantityReceived ?? 0, color: '#2e7d32' },
     { label: 'Quantity Issued', value: item.quantityIssued ?? 0, color: '#c62828' },
     {
-      label: 'Available',
+      label: 'Remaining Qty',
       value: avail,
       color: avail > 0 ? '#2e7d32' : '#c62828',
       bold: true,

@@ -4,4 +4,4 @@ export { default as InventoryForm }     from '../../components/inventory-managem
 export { default as InventoryFilters }  from '../../components/inventory-management/InventoryFilters';
 export { default as InventoryDetailView } from '../../components/inventory-management/InventoryDetailView';
 export { default as MarkDamagedModal }  from '../../components/inventory-management/MarkDamagedModal';
-export { getInventoryColumns }          from '../../components/inventory-management/inventoryColumns';
+export { getInventoryColumns }          from '../../components/inventory-management/getInventoryColumns.jsx';
