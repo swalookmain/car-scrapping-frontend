@@ -176,9 +176,9 @@ const AuditLogDetailDialog = ({ open, onClose, log, loading }) => {
             {/* Identifiers */}
             <DetailRow label="Log ID"    value={log._id || log.id} />
             {log.actorName && <DetailRow label="Actor Name" value={log.actorName} />}
-            
+
             <DetailRow label="Actor ID"  value={log.actorId} />
-            <DetailRow label="Actor Role"><ActorRoleChip value={log.actorRole} /></DetailRow>
+            <DetailRow label="User"><ActorRoleChip value={log.actorRole} /></DetailRow>
             {log.organizationId && <DetailRow label="Org ID" value={log.organizationId} />}
 
             <Divider sx={{ my: 0.5 }} />

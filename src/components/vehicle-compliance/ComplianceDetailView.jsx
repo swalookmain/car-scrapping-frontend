@@ -40,8 +40,17 @@ const ComplianceDetailView = ({ open, onClose, item }) => {
   const st = rtoStatusColor[r.rtoStatus] || rtoStatusColor.NOT_APPLIED;
 
   const rows = [
-    { label: 'Vehicle ID', value: r.vehicleId || '—' },
-    { label: 'Invoice ID', value: r.invoiceId || '—' },
+    { label: 'Vehicle', value: (() => {
+      const veh = r.vehicle || r.vehicleData || null;
+      const regNo = veh?.registration_number || veh?.registrationNumber || r.registrationNumber || '';
+      const make = veh?.make || '';
+      const model = veh?.model_name || veh?.model || '';
+      return regNo || (make || model ? `${make} ${model}`.trim() : '') || (r.vehicleId ? `${r.vehicleId.slice(0, 8)}...` : '—');
+    })() },
+    { label: 'Invoice No.', value: (() => {
+      const inv = r.invoice || r.invoiceData || null;
+      return inv?.invoiceNumber || r.invoiceNumber || (r.invoiceId ? `${r.invoiceId.slice(0, 8)}...` : '—');
+    })() },
     { label: 'COD Generated', value: r.codGenerated ? 'Yes' : 'No' },
     { label: 'COD Inward No.', value: r.codInwardNumber || '—' },
     { label: 'COD Issue Date', value: formatDate(r.codIssueDate) },

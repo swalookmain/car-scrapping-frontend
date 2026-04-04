@@ -40,9 +40,18 @@ const DamageAdjustmentDetailView = ({ item }) => {
 
   const partRows = [
     { label: 'Part Name', value: item.part?.partName || item.partName || '—' },
-    { label: 'Part ID', value: (item.partId || item.part?._id || item.part?.id || '—')?.toString()?.slice(-8)?.toUpperCase() },
-    { label: 'Vehicle Code', value: (item.part?.vechileId || item.part?.vehicleId || item.vehicleCode || '—')?.toString()?.slice(-8)?.toUpperCase() },
-    { label: 'Invoice ID', value: (item.part?.invoiceId || item.invoiceId || '—')?.toString()?.slice(-8)?.toUpperCase() },
+    { label: 'Item Code', value: item.part?.itemCode || item.itemCode || (item.partId || item.part?._id || item.part?.id || '—')?.toString()?.slice(-8)?.toUpperCase() },
+    { label: 'Vehicle', value: (() => {
+      const veh = item.part?.vehicle || item.vehicle || item.vehicleData || null;
+      const regNo = veh?.registration_number || veh?.registrationNumber || item.registrationNumber || '';
+      const make = veh?.make || '';
+      const model = veh?.model_name || veh?.model || '';
+      return regNo || (make || model ? `${make} ${model}`.trim() : '') || (item.part?.vechileId || item.part?.vehicleId || item.vehicleCode || '—')?.toString()?.slice(-8)?.toUpperCase();
+    })() },
+    { label: 'Invoice No.', value: (() => {
+      const inv = item.part?.invoice || item.invoice || item.invoiceData || null;
+      return inv?.invoiceNumber || item.part?.invoiceNumber || item.invoiceNumber || (item.part?.invoiceId || item.invoiceId || '—')?.toString()?.slice(-8)?.toUpperCase();
+    })() },
     { label: 'Category', value: item.part?.partType || item.category || '—' },
   ];
 

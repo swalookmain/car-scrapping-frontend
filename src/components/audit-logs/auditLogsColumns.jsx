@@ -63,7 +63,7 @@ export const AuditActionsCell = ({ row, onView }) => {
 // ── Column factory ─────────────────────────────────────────────
 export function getAuditLogsColumns({ handleViewDetail }) {
   return [
-    { field: 'actorRole', headerName: 'Actor Role', width: '11%', render: (row) => <ActorRoleCell row={row} /> },
+    { field: 'actorRole', headerName: 'User', width: '11%', render: (row) => <ActorRoleCell row={row} /> },
     { field: 'actorId',   headerName: 'Created By', width: '13%', render: (row) => <ActorIdCell row={row} /> },
     { field: 'resource',  headerName: 'Resource',   width: '20%', render: (row) => <ResourceCell row={row} /> },
     { field: 'status',    headerName: 'Status',     width: '9%',  render: (row) => <AuditStatusCell row={row} /> },

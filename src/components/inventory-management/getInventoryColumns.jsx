@@ -22,9 +22,9 @@ export function getInventoryColumns({
   handleMarkDamaged,
 }) {
   return [
-    { field: 'itemCode', headerName: 'Item Code', width: '9%', render: (row) => <ItemCodeCell row={row} /> },
+    // { field: 'itemCode', headerName: 'Item Code', width: '9%', render: (row) => <ItemCodeCell row={row} /> },
     { field: 'partName', headerName: 'Part Name', width: '13%', render: (row) => <PartNameCell row={row} /> },
-    { field: 'vehicleCode', headerName: 'Vehicle Code', width: '9%', render: (row) => <VehicleCodeCell row={row} /> },
+    { field: 'vehicleCode', headerName: 'Vehicle', width: '9%', render: (row) => <VehicleCodeCell row={row} /> },
     { field: 'invoiceId', headerName: 'Invoice', width: '9%', render: (row) => <InvoiceRefCell row={row} /> },
     { field: 'partType', headerName: 'Category', width: '9%', render: (row) => <CategoryChip row={row} /> },
     { field: 'condition', headerName: 'Condition', width: '8%', render: (row) => <InventoryConditionChip row={row} /> },

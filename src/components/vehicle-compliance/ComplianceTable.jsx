@@ -11,6 +11,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import ComplianceFilters from './ComplianceFilters';
 import ComplianceDetailView from './ComplianceDetailView';
 import { getComplianceColumns } from './complianceColumns';
+import { useLookupMaps, enrichRow } from '../../hooks/useLookupMaps';
 
 const ComplianceTable = ({ isLoading }) => {
   const { canPerform } = usePermissions();
@@ -55,6 +56,9 @@ const ComplianceTable = ({ isLoading }) => {
   const records = complianceResult?.data ?? [];
   const total = complianceResult?.total ?? 0;
 
+  // ── Lookup maps for resolving vehicleId/invoiceId ────────────
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(true);
+
   // ── Fetch Invoices for filter dropdown (shared cache) ──────────────
   const { data: invoicesForFilter = [], isLoading: invoiceLoading } = useQuery({
     queryKey: ['invoices-all-for-filter'],
@@ -88,9 +92,9 @@ const ComplianceTable = ({ isLoading }) => {
   }, []);
 
   const handleView = useCallback((row) => {
-    setViewItem(row);
+    setViewItem(enrichRow(row, invoiceMap, vehicleMap, vehicleByInvoiceMap));
     setViewOpen(true);
-  }, []);
+  }, [invoiceMap, vehicleMap, vehicleByInvoiceMap]);
 
   const handleCreateOrUpdate = async ({ payload, editingId, isUpdate }) => {
     try {
@@ -123,7 +127,10 @@ const ComplianceTable = ({ isLoading }) => {
     );
   }, [query, records]);
 
-  const tableData = filtered.map((item) => ({ ...item, id: item._id || item.id }));
+  const tableData = filtered.map((item) => ({
+    ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap),
+    id: item._id || item.id,
+  }));
 
   // ── Columns ──────────────────────────────────────────────────
   const columns = useMemo(

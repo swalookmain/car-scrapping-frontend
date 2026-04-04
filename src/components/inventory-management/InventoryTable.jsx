@@ -24,6 +24,7 @@ import InventoryFilters from './InventoryFilters';
 import InventoryDetailView from './InventoryDetailView';
 import MarkDamagedModal from './MarkDamagedModal';
 import { getInventoryColumns } from './getInventoryColumns.jsx';
+import { useLookupMaps, enrichRow } from '../../hooks/useLookupMaps';
 
 // ── Filter Options ─────────────────────────────────────────────
 const FILTER_CONDITIONS = ['', 'GOOD', 'DAMAGED'];
@@ -78,6 +79,9 @@ const InventoryTable = ({ isLoading }) => {
   const inventory = inventoryResult?.data  ?? [];
   const total     = inventoryResult?.total ?? 0;
 
+  // ── Lookup maps for resolving vehicleId/invoiceId ────────────
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(true);
+
   // ── Fetch Invoices for filter dropdown ────────────────────────
   const { data: invoicesForFilter = [] } = useQuery({
     queryKey: ['invoices-all-for-filter'],
@@ -113,9 +117,10 @@ const InventoryTable = ({ isLoading }) => {
   const handleView = async (row) => {
     try {
       const res = await inventoryApi.getById(row._id || row.id);
-      setViewItem(res?.data || res || row);
+      const data = res?.data || res || row;
+      setViewItem(enrichRow(data, invoiceMap, vehicleMap, vehicleByInvoiceMap));
     } catch {
-      setViewItem(row);
+      setViewItem(enrichRow(row, invoiceMap, vehicleMap, vehicleByInvoiceMap));
     }
     setViewOpen(true);
   };
@@ -211,7 +216,10 @@ const InventoryTable = ({ isLoading }) => {
     );
   }, [query, inventory]);
 
-  const tableData = filtered.map((item) => ({ ...item, id: item._id || item.id }));
+  const tableData = filtered.map((item) => ({
+    ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap),
+    id: item._id || item.id,
+  }));
 
   // ── Columns ────────────────────────────────────────────
   const columns = useMemo(

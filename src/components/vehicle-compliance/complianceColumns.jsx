@@ -25,17 +25,30 @@ export const boolChip = (val, yesLabel = 'Yes', noLabel = 'No') => (
 );
 
 // ── Cell components (named to avoid inline lambdas) ───────────
-export const VehicleIdCell = ({ row }) => (
-  <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--color-grey-900)', fontSize: '0.8rem' }}>
-    {row.vehicleId ? `${row.vehicleId.slice(0, 8)}...` : '—'}
-  </Typography>
-);
+export const VehicleIdCell = ({ row }) => {
+  // Show registration number or make/model if vehicle is populated, else fall back to truncated ID
+  const veh = row.vehicle || row.vehicleData || null;
+  const regNo = veh?.registration_number || veh?.registrationNumber || row.registrationNumber || '';
+  const make = veh?.make || '';
+  const model = veh?.model_name || veh?.model || '';
+  const display = regNo || (make || model ? `${make} ${model}`.trim() : '');
+  return (
+    <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--color-grey-900)', fontSize: '0.8rem' }}>
+      {display || (row.vehicleId ? `${row.vehicleId.slice(0, 8)}...` : '—')}
+    </Typography>
+  );
+};
 
-export const InvoiceIdCell = ({ row }) => (
-  <Typography variant="body2" sx={{ color: 'var(--color-grey-700)', fontSize: '0.8rem' }}>
-    {row.invoiceId ? `${row.invoiceId.slice(0, 8)}...` : '—'}
-  </Typography>
-);
+export const InvoiceIdCell = ({ row }) => {
+  // Show invoiceNumber if invoice is populated, else fall back to truncated ID
+  const inv = row.invoice || row.invoiceData || null;
+  const invoiceNumber = inv?.invoiceNumber || row.invoiceNumber || '';
+  return (
+    <Typography variant="body2" sx={{ color: 'var(--color-grey-700)', fontSize: '0.8rem' }}>
+      {invoiceNumber || (row.invoiceId ? `${row.invoiceId.slice(0, 8)}...` : '—')}
+    </Typography>
+  );
+};
 
 export const CodInwardCell = ({ row }) => (
   <Typography variant="body2" sx={{ color: 'var(--color-grey-700)' }}>
@@ -79,8 +92,8 @@ export const ActionsCell = ({ row, canPerform, handleView, handleEdit }) => {
  * @param {{ canPerform: (perm: string) => boolean, handleView: (row: object) => void, handleEdit: (row: object) => void }} opts
  */
 export const getComplianceColumns = ({ canPerform, handleView, handleEdit }) => [
-  { field: 'vehicleId', headerName: 'Vehicle ID', width: '14%', render: (row) => <VehicleIdCell row={row} /> },
-  { field: 'invoiceId', headerName: 'Invoice ID', width: '14%', render: (row) => <InvoiceIdCell row={row} /> },
+  { field: 'vehicleId', headerName: 'Vehicle', width: '14%', render: (row) => <VehicleIdCell row={row} /> },
+  { field: 'invoiceId', headerName: 'Invoice No.', width: '14%', render: (row) => <InvoiceIdCell row={row} /> },
   { field: 'codGenerated', headerName: 'COD', width: '8%', render: (row) => boolChip(row.codGenerated) },
   { field: 'codInwardNumber', headerName: 'COD Inward No.', width: '12%', render: (row) => <CodInwardCell row={row} /> },
   { field: 'cvsGenerated', headerName: 'CVS', width: '8%', render: (row) => boolChip(row.cvsGenerated) },

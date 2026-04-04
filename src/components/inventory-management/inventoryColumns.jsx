@@ -14,7 +14,7 @@ import {
 // ── Named cell components (canonical pattern) ────────────────
 export const ItemCodeCell = ({ row }) => (
   <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--color-grey-900)', fontFamily: 'monospace', fontSize: '0.8rem' }}>
-    {row._id?.slice(-8)?.toUpperCase() || row.id?.slice?.(-8)?.toUpperCase() || '—'}
+    {row.itemCode || row._id?.slice(-8)?.toUpperCase() || row.id?.slice?.(-8)?.toUpperCase() || '—'}
   </Typography>
 );
 
@@ -24,17 +24,28 @@ export const PartNameCell = ({ row }) => (
   </Typography>
 );
 
-export const VehicleCodeCell = ({ row }) => (
-  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-600)' }}>
-    {(row.vechileId || row.vehicleId || '—')?.toString()?.slice(-8)?.toUpperCase()}
-  </Typography>
-);
+export const VehicleCodeCell = ({ row }) => {
+  const veh = row.vehicle || row.vehicleData || null;
+  const regNo = veh?.registration_number || veh?.registrationNumber || row.registrationNumber || '';
+  const make = veh?.make || '';
+  const model = veh?.model_name || veh?.model || '';
+  const display = regNo || (make || model ? `${make} ${model}`.trim() : '');
+  return (
+    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-600)' }}>
+      {display || (row.vechileId || row.vehicleId || '—')?.toString()?.slice(-8)?.toUpperCase()}
+    </Typography>
+  );
+};
 
-export const InvoiceRefCell = ({ row }) => (
-  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-600)' }}>
-    {(row.invoiceId || '—')?.toString()?.slice(-8)?.toUpperCase()}
-  </Typography>
-);
+export const InvoiceRefCell = ({ row }) => {
+  const inv = row.invoice || row.invoiceData || null;
+  const invoiceNumber = inv?.invoiceNumber || row.invoiceNumber || '';
+  return (
+    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-600)' }}>
+      {invoiceNumber || (row.invoiceId || '—')?.toString()?.slice(-8)?.toUpperCase()}
+    </Typography>
+  );
+};
 
 export const CategoryChip = ({ row }) => {
   const cc = inventoryCategoryColor[row.partType] || inventoryCategoryColor.OTHER;
