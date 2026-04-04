@@ -275,3 +275,16 @@ body {
 .MuiTablePagination-root {
   border-top: 1px solid var(--color-grey-100);
 }
+
+.MuiAutocomplete-hasPopupIcon.css-1jcag7i-MuiAutocomplete-root .MuiOutlinedInput-root,
+.MuiAutocomplete-hasClearIcon.css-1jcag7i-MuiAutocomplete-root .MuiOutlinedInput-root {
+  padding-right: 180px !important;
+}
+
+[class*="MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"] {
+  padding-right: 100px !important;
+}
+
+[class*="MuiTypography-root"] {
+  text-align: left !important;
+}

@@ -23,21 +23,32 @@ export const DamagePartNameCell = ({ row }) => (
 
 export const DamageItemCodeCell = ({ row }) => (
   <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-600)' }}>
-    {(row.partId || row.part?._id || row.part?.id || '—')?.toString()?.slice(-8)?.toUpperCase()}
+    {row.part?.itemCode || row.itemCode || (row.partId || row.part?._id || row.part?.id || '—')?.toString()?.slice(-8)?.toUpperCase()}
   </Typography>
 );
 
-export const DamageVehicleCodeCell = ({ row }) => (
-  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-600)' }}>
-    {(row.part?.vechileId || row.part?.vehicleId || row.vehicleCode || '—')?.toString()?.slice(-8)?.toUpperCase()}
-  </Typography>
-);
+export const DamageVehicleCodeCell = ({ row }) => {
+  const veh = row.part?.vehicle || row.vehicle || row.vehicleData || null;
+  const regNo = veh?.registration_number || veh?.registrationNumber || row.registrationNumber || '';
+  const make = veh?.make || '';
+  const model = veh?.model_name || veh?.model || '';
+  const display = regNo || (make || model ? `${make} ${model}`.trim() : '');
+  return (
+    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-600)' }}>
+      {display || (row.part?.vechileId || row.part?.vehicleId || row.vehicleCode || '—')?.toString()?.slice(-8)?.toUpperCase()}
+    </Typography>
+  );
+};
 
-export const DamageInvoiceRefCell = ({ row }) => (
-  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-600)' }}>
-    {(row.part?.invoiceId || row.invoiceId || '—')?.toString()?.slice(-8)?.toUpperCase()}
-  </Typography>
-);
+export const DamageInvoiceRefCell = ({ row }) => {
+  const inv = row.part?.invoice || row.invoice || row.invoiceData || null;
+  const invoiceNumber = inv?.invoiceNumber || row.part?.invoiceNumber || row.invoiceNumber || '';
+  return (
+    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-600)' }}>
+      {invoiceNumber || (row.part?.invoiceId || row.invoiceId || '—')?.toString()?.slice(-8)?.toUpperCase()}
+    </Typography>
+  );
+};
 
 export const DamageQuantityCell = ({ row }) => (
   <Typography variant="body2" sx={{ fontWeight: 600, color: '#c62828', textAlign: 'center' }}>
@@ -100,7 +111,7 @@ export const DamageActionsCell = ({ row, handleView }) => (
 // ── Column Factory ─────────────────────────────────────────────
 export function getDamageAdjustmentColumns({ handleView }) {
   return [
-    { field: 'id',                headerName: 'Adj. ID',         width: '9%',  render: (row) => <DamageIdCell row={row} /> },
+    // { field: 'id',                headerName: 'Adj. ID',         width: '9%',  render: (row) => <DamageIdCell row={row} /> },
     { field: 'partName',          headerName: 'Part Name',       width: '13%', render: (row) => <DamagePartNameCell row={row} /> },
     { field: 'itemCode',          headerName: 'Item Code',       width: '9%',  render: (row) => <DamageItemCodeCell row={row} /> },
     { field: 'vehicleCode',       headerName: 'Vehicle',         width: '9%',  render: (row) => <DamageVehicleCodeCell row={row} /> },

@@ -7,6 +7,7 @@ import TableToolbar from '../../ui/TableToolbar';
 import { getGstAuditColumns } from './gstAuditColumns';
 import { taxComplianceApi } from '../../services/api';
 import inputSx from '../../services/inputStyles';
+import { useLookupMaps, enrichRow } from '../../hooks/useLookupMaps';
 
 const GST_EVENT_TYPES = ['', 'GST_CALCULATED', 'RCM_APPLIED', 'EWAY_ADDED'];
 const INVOICE_TYPES = ['', 'PURCHASE', 'SALES'];
@@ -38,6 +39,9 @@ const GstAuditTable = ({ isLoading }) => {
   const auditLogs = auditResult?.data ?? [];
   const total = auditResult?.total ?? 0;
 
+  // ── Lookup maps for resolving invoiceId ─────────────────────
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(true);
+
   // ── Search Filter ────────────────────────────────────────────
   const filtered = useMemo(() => {
     if (!query.trim()) return auditLogs;
@@ -51,7 +55,10 @@ const GstAuditTable = ({ isLoading }) => {
     );
   }, [query, auditLogs]);
 
-  const tableData = filtered.map((item) => ({ ...item, id: item._id || item.id }));
+  const tableData = filtered.map((item) => ({
+    ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap),
+    id: item._id || item.id,
+  }));
 
   // ── Columns ──────────────────────────────────────────────────
   const columns = useMemo(() => getGstAuditColumns(), []);

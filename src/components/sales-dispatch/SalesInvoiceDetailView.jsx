@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Box, Typography, Chip, Divider, Table, TableHead, TableBody, TableRow, TableCell } from '@mui/material';
 import InvoicePayments from '../accounting/InvoicePayments';
+import { useLookupMaps, enrichRow } from '../../hooks/useLookupMaps';
 
 // ── Color maps ─────────────────────────────────────────────────
 const statusColor = {
@@ -31,37 +32,42 @@ const FieldLabel = ({ children }) => (
 const SalesInvoiceDetailView = ({ item }) => {
   if (!item) return null;
 
-  const st = statusColor[item.status] || statusColor.DRAFT;
+  // API response se invoice object aur items array ko extract kar rahe hain
+  const invoiceData = item.invoice || item;
+  const items = item.items || [];
+
+  // Lookup maps to resolve vehicleCode/invoiceRef in items
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(true);
+
+  const st = statusColor[invoiceData.status] || statusColor.DRAFT;
 
   const headerRows = [
-    { label: 'Invoice Number', value: item.invoiceNumber || '—' },
+    { label: 'Invoice Number', value: invoiceData.invoiceNumber || '—' },
     { label: 'Status', value: st.label, chip: true, chipBg: st.bg, chipColor: st.color },
-    { label: 'Invoice Date', value: item.invoiceDate ? new Date(item.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' },
-    { label: 'Buyer', value: item.buyer?.buyerName || item.buyerName || '—' },
-    { label: 'Buyer Type', value: item.buyer?.buyerType || '—' },
-    { label: 'Buyer GSTIN', value: item.buyer?.gstin || '—' },
+    { label: 'Invoice Date', value: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' },
+    { label: 'Buyer', value: invoiceData.buyer?.buyerName || invoiceData.buyerName || '—' },
+    { label: 'Buyer Type', value: invoiceData.buyer?.buyerType || '—' },
+    { label: 'Buyer GSTIN', value: invoiceData.buyer?.gstin || '—' },
   ];
 
   const gstRows = [
-    { label: 'GST Applicable', value: item.gstApplicable ? 'Yes' : 'No' },
-    { label: 'GST Rate', value: item.gstRate != null ? `${item.gstRate}%` : '—' },
-    { label: 'Place of Supply', value: item.placeOfSupplyState || item.place_of_supply_state || '—' },
-    { label: 'Intra/Inter State', value: item.isInterstate || item.is_interstate ? 'Inter-State' : 'Intra-State', chip: true, chipBg: (item.isInterstate || item.is_interstate) ? '#f3e5f5' : '#e3f2fd', chipColor: (item.isInterstate || item.is_interstate) ? '#6a1b9a' : '#1565c0' },
-    { label: 'Taxable Amount', value: item.taxableAmount != null ? `₹${Number(item.taxableAmount).toLocaleString('en-IN')}` : (item.subtotalAmount != null ? `₹${Number(item.subtotalAmount).toLocaleString('en-IN')}` : '—') },
-    { label: 'CGST', value: item.cgstAmount != null ? `₹${Number(item.cgstAmount).toLocaleString('en-IN')}` : '—' },
-    { label: 'SGST', value: item.sgstAmount != null ? `₹${Number(item.sgstAmount).toLocaleString('en-IN')}` : '—' },
-    { label: 'IGST', value: item.igstAmount != null ? `₹${Number(item.igstAmount).toLocaleString('en-IN')}` : '—' },
-    { label: 'Total Tax', value: item.totalTaxAmount != null ? `₹${Number(item.totalTaxAmount).toLocaleString('en-IN')}` : (item.gstAmount != null ? `₹${Number(item.gstAmount).toLocaleString('en-IN')}` : '—') },
-    { label: 'Reverse Charge (RCM)', value: item.reverseChargeApplicable ? 'Yes' : 'No', chip: true, chipBg: item.reverseChargeApplicable ? '#fff3e0' : '#e8f5e9', chipColor: item.reverseChargeApplicable ? '#e65100' : '#2e7d32' },
-    { label: 'Total Payable', value: item.totalAmount != null ? `₹${Number(item.totalAmount).toLocaleString('en-IN')}` : '—', bold: true },
+    { label: 'GST Applicable', value: invoiceData.gstApplicable ? 'Yes' : 'No' },
+    { label: 'GST Rate', value: invoiceData.gstRate != null ? `${invoiceData.gstRate}%` : '—' },
+    { label: 'Place of Supply', value: invoiceData.placeOfSupplyState || invoiceData.place_of_supply_state || '—' },
+    { label: 'Intra/Inter State', value: invoiceData.isInterstate || invoiceData.is_interstate ? 'Inter-State' : 'Intra-State', chip: true, chipBg: (invoiceData.isInterstate || invoiceData.is_interstate) ? '#f3e5f5' : '#e3f2fd', chipColor: (invoiceData.isInterstate || invoiceData.is_interstate) ? '#6a1b9a' : '#1565c0' },
+    { label: 'Taxable Amount', value: invoiceData.taxableAmount != null ? `₹${Number(invoiceData.taxableAmount).toLocaleString('en-IN')}` : (invoiceData.subtotalAmount != null ? `₹${Number(invoiceData.subtotalAmount).toLocaleString('en-IN')}` : '—') },
+    { label: 'CGST', value: invoiceData.cgstAmount != null ? `₹${Number(invoiceData.cgstAmount).toLocaleString('en-IN')}` : '—' },
+    { label: 'SGST', value: invoiceData.sgstAmount != null ? `₹${Number(invoiceData.sgstAmount).toLocaleString('en-IN')}` : '—' },
+    { label: 'IGST', value: invoiceData.igstAmount != null ? `₹${Number(invoiceData.igstAmount).toLocaleString('en-IN')}` : '—' },
+    { label: 'Total Tax', value: invoiceData.totalTaxAmount != null ? `₹${Number(invoiceData.totalTaxAmount).toLocaleString('en-IN')}` : (invoiceData.gstAmount != null ? `₹${Number(invoiceData.gstAmount).toLocaleString('en-IN')}` : '—') },
+    { label: 'Reverse Charge (RCM)', value: invoiceData.reverseChargeApplicable ? 'Yes' : 'No', chip: true, chipBg: invoiceData.reverseChargeApplicable ? '#fff3e0' : '#e8f5e9', chipColor: invoiceData.reverseChargeApplicable ? '#e65100' : '#2e7d32' },
+    { label: 'Total Payable', value: invoiceData.totalAmount != null ? `₹${Number(invoiceData.totalAmount).toLocaleString('en-IN')}` : '—', bold: true },
   ];
 
   const ewayRows = [
-    { label: 'E-Way Bill Number', value: item.ewayBillNumber || '—' },
-    { label: 'E-Way Bill Document', value: item.ewayBillDocumentUrl ? 'Uploaded' : 'Not uploaded' },
+    { label: 'E-Way Bill Number', value: invoiceData.ewayBillNumber || '—' },
+    { label: 'E-Way Bill Document', value: invoiceData.ewayBillDocumentUrl ? 'Uploaded' : 'Not uploaded' },
   ];
-
-  const items = item.items || [];
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -107,8 +113,8 @@ const SalesInvoiceDetailView = ({ item }) => {
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>#</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Item Code</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Part Name</TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Vehicle Code</TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Invoice Ref</TableCell>
+                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Vehicle</TableCell>
+                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Invoice No.</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Qty</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Unit Price</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Line Total</TableCell>
@@ -120,8 +126,25 @@ const SalesInvoiceDetailView = ({ item }) => {
                   <TableCell sx={{ fontSize: '0.8rem' }}>{idx + 1}</TableCell>
                   <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{it.itemCode || '—'}</TableCell>
                   <TableCell sx={{ fontSize: '0.8rem' }}>{it.partName || it.part?.partName || '—'}</TableCell>
-                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{it.vehicleCode || '—'}</TableCell>
-                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{it.purchaseInvoiceNumber || '—'}</TableCell>
+                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                    {(() => {
+                      const enriched = enrichRow({ vehicleId: it.vehicleId || it.vechileId, invoiceId: it.invoiceId }, invoiceMap, vehicleMap, vehicleByInvoiceMap);
+                      const veh = enriched.vehicle;
+                      if (veh) {
+                        const regNo = veh.registration_number || veh.registrationNumber || '';
+                        const make = veh.make || '';
+                        const model = veh.model_name || veh.model || '';
+                        return regNo || (make || model ? `${make} ${model}`.trim() : '') || it.vehicleCode || '—';
+                      }
+                      return it.vehicleCode || '—';
+                    })()}
+                  </TableCell>
+                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                    {(() => {
+                      const enriched = enrichRow({ invoiceId: it.invoiceId }, invoiceMap, vehicleMap, vehicleByInvoiceMap);
+                      return enriched.invoiceNumber || it.purchaseInvoiceNumber || '—';
+                    })()}
+                  </TableCell>
                   <TableCell align="right" sx={{ fontSize: '0.8rem' }}>{it.quantity || 0}</TableCell>
                   <TableCell align="right" sx={{ fontSize: '0.8rem' }}>
                     {it.unitPrice != null ? `₹${Number(it.unitPrice).toLocaleString('en-IN')}` : '—'}
@@ -202,10 +225,10 @@ const SalesInvoiceDetailView = ({ item }) => {
             </Typography>
           </Box>
         ))}
-        {item.ewayBillDocumentUrl && (
+        {invoiceData.ewayBillDocumentUrl && (
           <Box>
             <a
-              href={item.ewayBillDocumentUrl}
+              href={invoiceData.ewayBillDocumentUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: '#1565c0', fontSize: '0.85rem' }}
@@ -216,21 +239,21 @@ const SalesInvoiceDetailView = ({ item }) => {
         )}
       </Box>
 
-      {item.createdAt && (
+      {invoiceData.createdAt && (
         <>
           <Divider />
           <Box sx={{ display: 'flex', gap: 4 }}>
             <Box>
               <FieldLabel>Created At</FieldLabel>
               <Typography variant="body2" sx={{ mt: 0.5, color: 'var(--color-grey-600)' }}>
-                {new Date(item.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                {new Date(invoiceData.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
               </Typography>
             </Box>
-            {item.updatedAt && (
+            {invoiceData.updatedAt && (
               <Box>
                 <FieldLabel>Updated At</FieldLabel>
                 <Typography variant="body2" sx={{ mt: 0.5, color: 'var(--color-grey-600)' }}>
-                  {new Date(item.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  {new Date(invoiceData.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </Typography>
               </Box>
             )}
@@ -239,14 +262,14 @@ const SalesInvoiceDetailView = ({ item }) => {
       )}
 
       {/* ── Payments ─────────────────────────────────────────── */}
-      {item.status === 'CONFIRMED' && item.id && (
+      {invoiceData.status === 'CONFIRMED' && (invoiceData.id || invoiceData._id) && (
         <>
           <Divider />
           <SectionLabel>Payments</SectionLabel>
           <InvoicePayments
             invoiceType="SALES"
-            invoiceId={item.id || item._id}
-            totalAmount={item.totalAmount}
+            invoiceId={invoiceData.id || invoiceData._id}
+            totalAmount={invoiceData.totalAmount}
           />
         </>
       )}

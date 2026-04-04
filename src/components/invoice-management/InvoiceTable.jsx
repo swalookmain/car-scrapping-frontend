@@ -104,36 +104,41 @@ const InvoiceTable = ({ isLoading }) => {
     }
   };
 
-  const handleCreateOrUpdate = async ({ invoice, vehicle, editingId, editingVehicleId }) => {
+  const handleSaveInvoice = async (invoice, editingId) => {
     try {
+      let savedInvoiceId = editingId;
       if (editingId) {
-        // Update invoice
         await invoicesApi.update(editingId, invoice);
-
-        // Update or create vehicle
-        if (editingVehicleId) {
-          await invoicesApi.updateVehicle(editingVehicleId, vehicle);
-        } else {
-          await invoicesApi.createVehicle({ ...vehicle, invoiceId: editingId });
-        }
       } else {
-        // Create invoice first
         const invoiceRes = await invoicesApi.create(invoice);
         const createdInvoice = invoiceRes?.data || invoiceRes;
-        const newInvoiceId = createdInvoice?._id || createdInvoice?.id;
-
-        // Then create vehicle linked to invoice
-        if (newInvoiceId) {
-          await invoicesApi.createVehicle({ ...vehicle, invoiceId: newInvoiceId });
-        }
+        savedInvoiceId = createdInvoice?._id || createdInvoice?.id;
       }
-
       toast.success(editingId ? 'Invoice updated successfully' : 'Invoice created successfully');
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      return { success: true, id: savedInvoiceId };
     } catch (err) {
       console.error('Invoice save error:', err);
       toast.error('Failed to save invoice. Please try again.');
+      return { success: false };
+    }
+  };
+
+  const handleSubmitVehicle = async (vehicle, invoiceId, editingVehicleId) => {
+    try {
+      if (editingVehicleId) {
+        await invoicesApi.updateVehicle(editingVehicleId, vehicle);
+      } else {
+        if (!invoiceId) throw new Error('Missing invoice ID');
+        await invoicesApi.createVehicle({ ...vehicle, invoiceId });
+      }
+      toast.success(editingVehicleId ? 'Vehicle details updated' : 'Vehicle details added');
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      return { success: true };
+    } catch (err) {
+      console.error('Vehicle save error:', err);
+      toast.error('Failed to save vehicle details. Please try again.');
+      return { success: false };
     }
   };
 
@@ -232,12 +237,12 @@ const InvoiceTable = ({ isLoading }) => {
         onRowsPerPageChange={(r) => { setRowsPerPage(r); setPage(0); }}
       />
 
-      <InvoiceForm ref={formRef} onSubmit={handleCreateOrUpdate} />
+      <InvoiceForm ref={formRef} onSaveInvoice={handleSaveInvoice} onSubmitVehicle={handleSubmitVehicle} />
 
       <NormalModal
         open={viewOpen}
         onClose={handleViewClose}
-        title={viewStep === 0 ? 'Invoice Details' : 'Vehicle Details'}
+        title={viewStep === 0 ? `Invoice Details${viewItem?.invoiceNumber ? ` — ${viewItem.invoiceNumber}` : ''}` : `Vehicle Details${viewItem?.invoiceNumber ? ` — ${viewItem.invoiceNumber}` : ''}`}
         maxWidth="lg"
         actions={(
           <>
@@ -262,28 +267,63 @@ const InvoiceTable = ({ isLoading }) => {
           const make = veh.make || inv.vehicleMake || '';
           const model = veh.model_name || veh.model || inv.vehicleModel || '';
           const st = invoiceStatusColor[inv.status] || invoiceStatusColor.DRAFT;
+
+          // Build invoice rows - base fields
           const invoiceRows = [
-            { label: 'Invoice No.', value: inv.invoiceNumber },
+            { label: 'Invoice No.', value: inv.invoiceNumber || '—' },
             { label: 'Seller Name', value: inv.sellerName },
             { label: 'Seller Type', value: inv.sellerType },
+            { label: 'Status', value: st.label },
             { label: 'Purchase Amount', value: inv.purchaseAmount != null ? `₹${Number(inv.purchaseAmount).toLocaleString('en-IN')}` : '—' },
             { label: 'Purchase Date', value: inv.purchaseDate ? new Date(inv.purchaseDate).toLocaleDateString() : '—' },
+            { label: 'Seller GSTIN', value: inv.sellerGstin || '—' },
+            { label: 'Seller State', value: inv.sellerState || inv.placeOfSupplyState || '—' },
             { label: 'GST Applicable', value: inv.gstApplicable ? 'Yes' : 'No' },
-            { label: 'GST Rate', value: inv.gstRate ?? '—' },
-            { label: 'GST Amount', value: inv.gstAmount ?? '—' },
-            { label: 'Mobile', value: inv.mobile || '—' },
-            { label: 'Email', value: inv.email || '—' },
+            ...(inv.gstApplicable ? [
+              { label: 'GST Rate', value: inv.gstRate != null ? `${inv.gstRate}%` : '—' },
+              { label: 'GST Amount', value: inv.gstAmount != null ? `₹${Number(inv.gstAmount).toLocaleString('en-IN')}` : '—' },
+              { label: 'Reverse Charge (RCM)', value: inv.reverseChargeApplicable ? 'Yes' : 'No' },
+            ] : []),
           ];
 
+          // Add seller-type-specific fields
+          if (inv.sellerType === 'DIRECT') {
+            invoiceRows.push(
+              { label: 'Mobile', value: inv.mobile || '—' },
+              { label: 'Email', value: inv.email || '—' },
+              { label: 'Aadhaar Number', value: inv.aadhaarNumber || '—' },
+              { label: 'PAN Number', value: inv.panNumber || '—' },
+              { label: 'Lead Source', value: inv.leadSource || '—' },
+            );
+          } else if (inv.sellerType === 'MSTC') {
+            invoiceRows.push(
+              { label: 'Auction Number', value: inv.auctionNumber || '—' },
+              { label: 'Auction Date', value: inv.auctionDate ? new Date(inv.auctionDate).toLocaleDateString() : '—' },
+              { label: 'Source', value: inv.source || '—' },
+              { label: 'Lot Number', value: inv.lotNumber || '—' },
+            );
+          } else if (inv.sellerType === 'GEM') {
+            invoiceRows.push(
+              { label: 'Mobile', value: inv.mobile || '—' },
+              { label: 'Email', value: inv.email || '—' },
+            );
+          }
+
+          // Build vehicle rows - show ALL vehicle fields
           const vehicleRows = [
-            { label: 'Vehicle (Make / Model)', value: make || model ? `${make} ${model}`.trim() : '—' },
-            { label: 'Registration No.', value: veh.registration_number || inv.registrationNumber || '—' },
-            { label: 'Chassis No.', value: veh.chassis_number || '—' },
-            { label: 'Engine No.', value: veh.engine_number || '—' },
+            { label: 'Owner Name', value: veh.ownerName || veh.owner || veh.owner_name || '—' },
+            { label: 'Vehicle Type', value: veh.vehicle_type || veh.vehicleType || '—' },
+            { label: 'Make', value: make || '—' },
+            { label: 'Model', value: model || '—' },
+            { label: 'Variant', value: veh.variant || '—' },
+            { label: 'Fuel Type', value: veh.fuel_type || veh.fuelType || '—' },
             { label: 'Color', value: veh.color || '—' },
-            { label: 'Year of Manufacture', value: veh.year_of_manufacture || '—' },
-            { label: 'Vehicle Purchase Date', value: veh.vehicle_purchase_date ? new Date(veh.vehicle_purchase_date).toLocaleDateString() : '—' },
-            { label: 'Status', value: st.label },
+            { label: 'Registration No.', value: veh.registration_number || veh.registrationNumber || inv.registrationNumber || '—' },
+            { label: 'Chassis No.', value: veh.chassis_number || veh.chassisNumber || '—' },
+            { label: 'Engine No.', value: veh.engine_number || veh.engineNumber || '—' },
+            { label: 'Year of Manufacture', value: veh.year_of_manufacture || veh.yearOfManufacture || '—' },
+            { label: 'Vehicle Purchase Date', value: (veh.vehicle_purchase_date || veh.vehiclePurchaseDate) ? new Date(veh.vehicle_purchase_date || veh.vehiclePurchaseDate).toLocaleDateString() : '—' },
+            { label: 'RTO District / Branch', value: veh.rto_district_branch || '—' },
           ];
 
           const rows = viewStep === 0 ? invoiceRows : vehicleRows;
@@ -340,7 +380,7 @@ const InvoiceTable = ({ isLoading }) => {
         title="Delete Invoice"
         description={
           confirmTarget
-            ? `Delete invoice "${confirmTarget.invoiceNumber || confirmTarget.id}"? This cannot be undone.`
+            ? `Delete invoice "${confirmTarget.invoiceNumber || confirmTarget.sellerName || confirmTarget.id}"? This cannot be undone.`
             : 'Delete item?'
         }
         onClose={() => { setConfirmOpen(false); setConfirmTarget(null); }}

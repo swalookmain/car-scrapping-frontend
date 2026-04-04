@@ -11,6 +11,7 @@ import {
   Stepper,
   Step,
   StepLabel,
+  StepButton,
   Divider,
   Grid,
   CircularProgress
@@ -70,7 +71,7 @@ const INITIAL_VEHICLE = {
 };
 
 // ── Component ──────────────────────────────────────────────────
-const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) => {
+const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = false, onClose }, ref) => {
   const [open, setOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [invoice, setInvoice] = useState({ ...INITIAL_INVOICE });
@@ -284,31 +285,55 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
     setEditingVehicleId(vData._id || vData.id || null);
   };
 
+  // ── Payload Helper ───────────────────────────────────────────
+  const getInvoicePayload = () => {
+    const invoicePayload = {
+      sellerName: invoice.sellerName,
+      sellerType: invoice.sellerType,
+      sellerGstin: invoice.sellerGstin,
+      purchaseAmount: Number(invoice.purchaseAmount),
+      purchaseDate: invoice.purchaseDate,
+      placeOfSupplyState: invoice.sellerState || taxConfig.stateCode,
+      gstApplicable: invoice.gstApplicable,
+      gstRate: invoice.gstRate ? Number(invoice.gstRate) : 0,
+      gstAmount: invoice.gstAmount ? Number(invoice.gstAmount) : 0,
+      reverseChargeApplicable: invoice.sellerType === 'DIRECT' ? invoice.reverseChargeApplicable : false,
+      status: invoice.status,
+    };
+
+    if (invoice.sellerType === 'DIRECT') {
+      invoicePayload.mobile = invoice.mobile;
+      invoicePayload.email = invoice.email;
+      invoicePayload.aadhaarNumber = invoice.aadhaarNumber;
+      invoicePayload.panNumber = invoice.panNumber;
+      invoicePayload.leadSource = invoice.leadSource;
+    } else if (invoice.sellerType === 'MSTC') {
+      invoicePayload.auctionNumber = invoice.auctionNumber;
+      invoicePayload.auctionDate = invoice.auctionDate;
+      invoicePayload.source = invoice.source;
+      invoicePayload.lotNumber = invoice.lotNumber;
+    }
+    return invoicePayload;
+  };
+
   // ── Step Navigation ──────────────────────────────────────────
   const handleNext = async () => {
     if (activeStep === 0) {
       if (!validateInvoice()) return;
 
-      // When editing, fetch existing vehicle invoice by invoice ID
-      if (editingId && !editingVehicleId) {
-        setVehicleLoading(true);
-        try {
-          const res = await invoicesApi.getVehicleById(editingId);
-          // API returns { data: [...], meta: {...} } - get first item from array
-          const vehicles = Array.isArray(res?.data) ? res.data : (res?.data ? [res.data] : []);
-          const vData = vehicles.length > 0 ? vehicles[0] : null;
-          if (vData) {
-            populateVehicleFromData(vData);
-          }
-        } catch (err) {
-          // vehicle may not exist yet – keep empty form
-          console.error('Vehicle fetch error:', err);
-        } finally {
-          setVehicleLoading(false);
+      setVehicleLoading(true);
+      try {
+        const payload = getInvoicePayload();
+        const res = await onSaveInvoice(payload, editingId);
+        
+        if (res && res.success) {
+          const newId = res.id;
+          setEditingId(newId);
+          setActiveStep(1);
         }
+      } finally {
+        setVehicleLoading(false);
       }
-
-      setActiveStep(1);
     } else {
       handleSubmit();
     }
@@ -325,38 +350,8 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
   };
 
   // ── Submit ───────────────────────────────────────────────────
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateVehicle()) return;
-
-    // Build invoice payload based on seller type
-    const invoicePayload = {
-      sellerName: invoice.sellerName,
-      sellerType: invoice.sellerType,
-      // invoiceNumber: invoice.invoiceNumber,
-      sellerGstin: invoice.sellerGstin,
-      purchaseAmount: Number(invoice.purchaseAmount),
-      purchaseDate: invoice.purchaseDate,
-      placeOfSupplyState: invoice.sellerState || taxConfig.stateCode,
-      gstApplicable: invoice.gstApplicable,
-      gstRate: invoice.gstRate ? Number(invoice.gstRate) : 0,
-      gstAmount: invoice.gstAmount ? Number(invoice.gstAmount) : 0,
-      reverseChargeApplicable: invoice.sellerType === 'DIRECT' ? invoice.reverseChargeApplicable : false,
-      status: invoice.status,
-    };
-
-    // Add seller-specific fields
-    if (invoice.sellerType === 'DIRECT') {
-      invoicePayload.mobile = invoice.mobile;
-      invoicePayload.email = invoice.email;
-      invoicePayload.aadhaarNumber = invoice.aadhaarNumber;
-      invoicePayload.panNumber = invoice.panNumber;
-      invoicePayload.leadSource = invoice.leadSource;
-    } else if (invoice.sellerType === 'MSTC') {
-      invoicePayload.auctionNumber = invoice.auctionNumber;
-      invoicePayload.auctionDate = invoice.auctionDate;
-      invoicePayload.source = invoice.source;
-      invoicePayload.lotNumber = invoice.lotNumber;
-    }
 
     const vehiclePayload = {
       ownerName: vehicle.ownerName,
@@ -374,18 +369,22 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
       rto_district_branch: vehicle.rto_district_branch,
     };
 
-    onSubmit({ invoice: invoicePayload, vehicle: vehiclePayload, editingId, editingVehicleId });
+    setVehicleLoading(true);
+    const res = await onSubmitVehicle(vehiclePayload, editingId, editingVehicleId);
+    setVehicleLoading(false);
 
-    // Reset
-    setInvoice({ ...INITIAL_INVOICE });
-    setVehicle({ ...INITIAL_VEHICLE });
-    setInitialInvoice(null);
-    setInitialVehicle(null);
-    setErrors({});
-    setEditingId(null);
-    setEditingVehicleId(null);
-    setActiveStep(0);
-    setOpen(false);
+    if (res && res.success) {
+      // Reset
+      setInvoice({ ...INITIAL_INVOICE });
+      setVehicle({ ...INITIAL_VEHICLE });
+      setInitialInvoice(null);
+      setInitialVehicle(null);
+      setErrors({});
+      setEditingId(null);
+      setEditingVehicleId(null);
+      setActiveStep(0);
+      setOpen(false);
+    }
   };
 
   const handleClose = () => {
@@ -633,7 +632,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
                 '&:hover': { backgroundColor: 'var(--color-secondary-dark)' },
               }}
             >
-              {activeStep === STEPS.length - 1 ? (editingId ? 'Save' : 'Create Invoice') : 'Next'}
+              {activeStep === STEPS.length - 1 ? 'Save Vehicle' : (editingId ? 'Save & Next' : 'Save & Next')}
             </Button>
           </>
         )
@@ -641,6 +640,7 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
     >
       {/* Stepper */}
       <Stepper
+        nonLinear={!!editingId}
         activeStep={activeStep}
         sx={{
           mb: 3,
@@ -648,9 +648,15 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
           '& .MuiStepIcon-root.Mui-completed': { color: 'var(--color-secondary-main)' },
         }}
       >
-        {STEPS.map((label) => (
+        {STEPS.map((label, index) => (
           <Step key={label}>
-            <StepLabel>{label}</StepLabel>
+            {editingId && !readOnly ? (
+              <StepButton color="inherit" onClick={() => setActiveStep(index)}>
+                {label}
+              </StepButton>
+            ) : (
+              <StepLabel>{label}</StepLabel>
+            )}
           </Step>
         ))}
       </Stepper>
@@ -667,7 +673,8 @@ const InvoiceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) =>
 });
 
 InvoiceForm.propTypes = {
-  onSubmit: PropTypes.func,
+  onSaveInvoice: PropTypes.func,
+  onSubmitVehicle: PropTypes.func,
   readOnly: PropTypes.bool,
   onClose: PropTypes.func,
 };

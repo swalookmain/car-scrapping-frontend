@@ -265,7 +265,15 @@ export function useInventoryForm({ onSubmit, readOnly }) {
       setEditingId(item._id || item.id);
       setSelectedInvoiceId(item.invoiceId || '');
       setSelectedVehicleId(item.vechileId || item.vehicleId || '');
-      setVehicleLabel(item.vehicleCode || item.vechileId || '');
+      setVehicleLabel(() => {
+        const veh = item.vehicle;
+        if (veh) {
+          return [veh.make, veh.model_name || veh.model, veh.registration_number || veh.registrationNumber]
+            .filter(Boolean)
+            .join(' • ') || item.vehicleCode || item.vechileId || '';
+        }
+        return item.registrationNumber || item.vehicleCode || item.vechileId || '';
+      });
       setParts([{
         _uid:             generatePartId(),
         partName:         item.partName || '',

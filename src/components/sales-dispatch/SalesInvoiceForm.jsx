@@ -28,6 +28,7 @@ import { useQuery } from '@tanstack/react-query';
 import { buyersApi, inventoryApi, invoicesApi, taxComplianceApi } from '../../services/api';
 import { calculateGst, INDIAN_STATE_CODES } from '../../services/taxEngine';
 import DocUploadField from '../vehicle-compliance/DocUploadField';
+import { useLookupMaps } from '../../hooks/useLookupMaps';
 
 // ── Constants ──────────────────────────────────────────────────
 const INITIAL_INVOICE = {
@@ -66,6 +67,9 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
   const [ewayDoc, setEwayDoc] = useState(null);
 
   const editMode = Boolean(editingId);
+
+  // ── Lookup maps for resolving vehicleId/invoiceId in parts ───
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(open);
 
   // ── Fetch buyers for dropdown ────────────────────────────────
   const { data: buyersData = [] } = useQuery({
@@ -249,13 +253,26 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
 
     setItems((prev) => {
       const updated = [...prev];
+      // Resolve vehicle from lookup maps
+      const vehId = part.vechileId || part.vehicleId || '';
+      const veh = (vehId && vehicleMap[vehId]) ? vehicleMap[vehId] : (part.invoiceId && vehicleByInvoiceMap[part.invoiceId]) ? vehicleByInvoiceMap[part.invoiceId] : null;
+      const vehRegNo = veh?.registration_number || veh?.registrationNumber || '';
+      const vehMake = veh?.make || '';
+      const vehModel = veh?.model_name || veh?.model || '';
+      const vehDisplay = vehRegNo || (vehMake || vehModel ? `${vehMake} ${vehModel}`.trim() : '') || vehId?.toString()?.slice(-8)?.toUpperCase() || '';
+
+      // Resolve invoice from lookup maps
+      const invId = part.invoiceId || '';
+      const inv = (invId && invoiceMap[invId]) ? invoiceMap[invId] : null;
+      const invDisplay = inv?.invoiceNumber || invId?.toString()?.slice(-8)?.toUpperCase() || '';
+
       updated[index] = {
         ...updated[index],
         partId: part._id || part.id,
         itemCode: part.itemCode || (part._id || part.id)?.slice(-8)?.toUpperCase() || '',
         partName: part.partName || '',
-        vehicleCode: (part.vechileId || part.vehicleId || '')?.toString()?.slice(-8)?.toUpperCase() || '',
-        purchaseInvoiceNumber: (part.invoiceId || '')?.toString()?.slice(-8)?.toUpperCase() || '',
+        vehicleCode: vehDisplay,
+        purchaseInvoiceNumber: invDisplay,
         availableQuantity: avail,
         category: part.partType || '',
       };

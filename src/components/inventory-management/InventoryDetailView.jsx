@@ -68,7 +68,7 @@ const InventoryDetailView = ({ item }) => {
   const cc = categoryColor[item.partType] || categoryColor.OTHER;
 
   const infoRows = [
-    { label: 'Item Code', value: (item._id || item.id || '—')?.toString()?.slice(-8)?.toUpperCase() },
+    { label: 'Item Code', value: item.itemCode || (item._id || item.id || '—')?.toString()?.slice(-8)?.toUpperCase() },
     { label: 'Part Name', value: item.partName || '—' },
     { label: 'Category', value: item.partType || '—', chip: true, chipBg: cc.bg, chipColor: cc.color },
     { label: 'Condition', value: cond.label, chip: true, chipBg: cond.bg, chipColor: cond.color },
@@ -93,12 +93,21 @@ const InventoryDetailView = ({ item }) => {
 
   const sourceRows = [
     {
-      label: 'Vehicle Code',
-      value: (item.vechileId || item.vehicleId || '—')?.toString()?.slice(-8)?.toUpperCase(),
+      label: 'Vehicle',
+      value: (() => {
+        const veh = item.vehicle || item.vehicleData || null;
+        const regNo = veh?.registration_number || veh?.registrationNumber || item.registrationNumber || '';
+        const make = veh?.make || '';
+        const model = veh?.model_name || veh?.model || '';
+        return regNo || (make || model ? `${make} ${model}`.trim() : '') || (item.vechileId || item.vehicleId || '\u2014')?.toString()?.slice(-8)?.toUpperCase();
+      })(),
     },
     {
-      label: 'Invoice ID',
-      value: (item.invoiceId || '—')?.toString()?.slice(-8)?.toUpperCase(),
+      label: 'Invoice No.',
+      value: (() => {
+        const inv = item.invoice || item.invoiceData || null;
+        return inv?.invoiceNumber || item.invoiceNumber || (item.invoiceId || '\u2014')?.toString()?.slice(-8)?.toUpperCase();
+      })(),
     },
   ];
 

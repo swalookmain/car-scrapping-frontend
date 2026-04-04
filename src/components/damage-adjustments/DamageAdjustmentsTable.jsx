@@ -8,6 +8,7 @@ import TableToolbar from '../../ui/TableToolbar';
 import { damageAdjustmentsApi } from '../../services/api';
 import { getDamageAdjustmentColumns } from './damageAdjustmentColumns';
 import DamageAdjustmentDetailView from './DamageAdjustmentDetailView';
+import { useLookupMaps, enrichRow } from '../../hooks/useLookupMaps';
 
 const DamageAdjustmentsTable = ({ isLoading }) => {
   const [query, setQuery] = useState('');
@@ -33,11 +34,17 @@ const DamageAdjustmentsTable = ({ isLoading }) => {
   const adjustments = adjustmentsResult?.data ?? [];
   const total = adjustmentsResult?.total ?? 0;
 
+  // ── Lookup maps for resolving vehicleId/invoiceId ────────────
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(true);
+
   // ── Handlers ──────────────────────────────────────────────────
   const handleView = useCallback((row) => {
-    setViewItem(row);
+    // Enrich both the row and its nested part data
+    const enrichedPart = row.part ? enrichRow(row.part, invoiceMap, vehicleMap, vehicleByInvoiceMap) : row.part;
+    const enriched = { ...enrichRow(row, invoiceMap, vehicleMap, vehicleByInvoiceMap), part: enrichedPart };
+    setViewItem(enriched);
     setViewOpen(true);
-  }, []);
+  }, [invoiceMap, vehicleMap, vehicleByInvoiceMap]);
 
   const handleCloseView = useCallback(() => {
     setViewOpen(false);
@@ -64,7 +71,15 @@ const DamageAdjustmentsTable = ({ isLoading }) => {
     );
   }, [query, adjustments]);
 
-  const tableData = filtered.map((item) => ({ ...item, id: item._id || item.id }));
+  const tableData = filtered.map((item) => {
+    // Enrich both the row and its nested part data
+    const enrichedPart = item.part ? enrichRow(item.part, invoiceMap, vehicleMap, vehicleByInvoiceMap) : item.part;
+    return {
+      ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap),
+      part: enrichedPart,
+      id: item._id || item.id,
+    };
+  });
 
   // ── Columns ───────────────────────────────────────────────────
   const columns = useMemo(
