@@ -80,7 +80,7 @@ const InventoryTable = ({ isLoading }) => {
   const total     = inventoryResult?.total ?? 0;
 
   // ── Lookup maps for resolving vehicleId/invoiceId ────────────
-  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(true);
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap } = useLookupMaps(true);
 
   // ── Fetch Invoices for filter dropdown ────────────────────────
   const { data: invoicesForFilter = [] } = useQuery({
@@ -118,9 +118,9 @@ const InventoryTable = ({ isLoading }) => {
     try {
       const res = await inventoryApi.getById(row._id || row.id);
       const data = res?.data || res || row;
-      setViewItem(enrichRow(data, invoiceMap, vehicleMap, vehicleByInvoiceMap));
+      setViewItem(enrichRow(data, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap));
     } catch {
-      setViewItem(enrichRow(row, invoiceMap, vehicleMap, vehicleByInvoiceMap));
+      setViewItem(enrichRow(row, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap));
     }
     setViewOpen(true);
   };
@@ -217,7 +217,7 @@ const InventoryTable = ({ isLoading }) => {
   }, [query, inventory]);
 
   const tableData = filtered.map((item) => ({
-    ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap),
+    ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap),
     id: item._id || item.id,
   }));
 

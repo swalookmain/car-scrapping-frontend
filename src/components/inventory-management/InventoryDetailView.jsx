@@ -68,7 +68,7 @@ const InventoryDetailView = ({ item }) => {
   const cc = categoryColor[item.partType] || categoryColor.OTHER;
 
   const infoRows = [
-    { label: 'Item Code', value: item.itemCode || (item._id || item.id || '—')?.toString()?.slice(-8)?.toUpperCase() },
+    // { label: 'Item Code', value: item.itemCode || (item._id || item.id || '—')?.toString()?.slice(-8)?.toUpperCase() },
     { label: 'Part Name', value: item.partName || '—' },
     { label: 'Category', value: item.partType || '—', chip: true, chipBg: cc.bg, chipColor: cc.color },
     { label: 'Condition', value: cond.label, chip: true, chipBg: cond.bg, chipColor: cond.color },

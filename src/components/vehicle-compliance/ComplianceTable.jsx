@@ -57,7 +57,7 @@ const ComplianceTable = ({ isLoading }) => {
   const total = complianceResult?.total ?? 0;
 
   // ── Lookup maps for resolving vehicleId/invoiceId ────────────
-  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(true);
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap } = useLookupMaps(true);
 
   // ── Fetch Invoices for filter dropdown (shared cache) ──────────────
   const { data: invoicesForFilter = [], isLoading: invoiceLoading } = useQuery({
@@ -92,9 +92,9 @@ const ComplianceTable = ({ isLoading }) => {
   }, []);
 
   const handleView = useCallback((row) => {
-    setViewItem(enrichRow(row, invoiceMap, vehicleMap, vehicleByInvoiceMap));
+    setViewItem(enrichRow(row, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap));
     setViewOpen(true);
-  }, [invoiceMap, vehicleMap, vehicleByInvoiceMap]);
+  }, [invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap]);
 
   const handleCreateOrUpdate = async ({ payload, editingId, isUpdate }) => {
     try {
@@ -128,7 +128,7 @@ const ComplianceTable = ({ isLoading }) => {
   }, [query, records]);
 
   const tableData = filtered.map((item) => ({
-    ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap),
+    ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap),
     id: item._id || item.id,
   }));
 

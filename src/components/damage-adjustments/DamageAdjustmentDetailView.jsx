@@ -32,7 +32,7 @@ const DamageAdjustmentDetailView = ({ item }) => {
   const newCond = conditionColor[item.newCondition] || conditionColor.DAMAGED;
 
   const adjustmentRows = [
-    { label: 'Adjustment ID', value: (item._id || item.id || '—')?.toString()?.slice(-8)?.toUpperCase() },
+    // { label: 'Adjustment ID', value: (item._id || item.id || '—')?.toString()?.slice(-8)?.toUpperCase() },
     { label: 'Quantity Affected', value: item.quantityAffected ?? 0, color: '#c62828', bold: true },
     { label: 'Previous Condition', value: prevCond.label, chip: true, chipBg: prevCond.bg, chipColor: prevCond.color },
     { label: 'New Condition', value: newCond.label, chip: true, chipBg: newCond.bg, chipColor: newCond.color },
@@ -40,7 +40,7 @@ const DamageAdjustmentDetailView = ({ item }) => {
 
   const partRows = [
     { label: 'Part Name', value: item.part?.partName || item.partName || '—' },
-    { label: 'Item Code', value: item.part?.itemCode || item.itemCode || (item.partId || item.part?._id || item.part?.id || '—')?.toString()?.slice(-8)?.toUpperCase() },
+    // { label: 'Item Code', value: item.part?.itemCode || item.itemCode || (item.partId || item.part?._id || item.part?.id || '—')?.toString()?.slice(-8)?.toUpperCase() },
     { label: 'Vehicle', value: (() => {
       const veh = item.part?.vehicle || item.vehicle || item.vehicleData || null;
       const regNo = veh?.registration_number || veh?.registrationNumber || item.registrationNumber || '';

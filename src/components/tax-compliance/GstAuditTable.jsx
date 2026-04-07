@@ -40,7 +40,7 @@ const GstAuditTable = ({ isLoading }) => {
   const total = auditResult?.total ?? 0;
 
   // ── Lookup maps for resolving invoiceId ─────────────────────
-  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(true);
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap } = useLookupMaps(true);
 
   // ── Search Filter ────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -56,7 +56,7 @@ const GstAuditTable = ({ isLoading }) => {
   }, [query, auditLogs]);
 
   const tableData = filtered.map((item) => ({
-    ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap),
+    ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap),
     id: item._id || item.id,
   }));
 

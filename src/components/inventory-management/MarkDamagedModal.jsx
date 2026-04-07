@@ -111,14 +111,14 @@ const MarkDamagedModal = ({ open, onClose, item, onSubmit, loading = false }) =>
                 {item.partName || '—'}
               </Typography>
             </Box>
-            <Box>
+            {/* <Box>
               <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Item Code
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-700)' }}>
                 {item.itemCode || (item._id || item.id || '—')?.toString()?.slice(-8)?.toUpperCase()}
               </Typography>
-            </Box>
+            </Box> */}
             <Box>
               <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Current Condition

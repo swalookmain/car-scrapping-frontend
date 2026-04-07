@@ -111,7 +111,7 @@ const SalesInvoiceDetailView = ({ item }) => {
             <TableHead>
               <TableRow sx={{ backgroundColor: 'var(--color-grey-50)' }}>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>#</TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Item Code</TableCell>
+                {/* <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Item Code</TableCell> */}
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Part Name</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Vehicle</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Invoice No.</TableCell>

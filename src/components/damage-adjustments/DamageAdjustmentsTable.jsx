@@ -35,16 +35,16 @@ const DamageAdjustmentsTable = ({ isLoading }) => {
   const total = adjustmentsResult?.total ?? 0;
 
   // ── Lookup maps for resolving vehicleId/invoiceId ────────────
-  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(true);
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap } = useLookupMaps(true);
 
   // ── Handlers ──────────────────────────────────────────────────
   const handleView = useCallback((row) => {
     // Enrich both the row and its nested part data
-    const enrichedPart = row.part ? enrichRow(row.part, invoiceMap, vehicleMap, vehicleByInvoiceMap) : row.part;
-    const enriched = { ...enrichRow(row, invoiceMap, vehicleMap, vehicleByInvoiceMap), part: enrichedPart };
+    const enrichedPart = row.part ? enrichRow(row.part, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap) : row.part;
+    const enriched = { ...enrichRow(row, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap), part: enrichedPart };
     setViewItem(enriched);
     setViewOpen(true);
-  }, [invoiceMap, vehicleMap, vehicleByInvoiceMap]);
+  }, [invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap]);
 
   const handleCloseView = useCallback(() => {
     setViewOpen(false);
@@ -73,9 +73,9 @@ const DamageAdjustmentsTable = ({ isLoading }) => {
 
   const tableData = filtered.map((item) => {
     // Enrich both the row and its nested part data
-    const enrichedPart = item.part ? enrichRow(item.part, invoiceMap, vehicleMap, vehicleByInvoiceMap) : item.part;
+    const enrichedPart = item.part ? enrichRow(item.part, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap) : item.part;
     return {
-      ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap),
+      ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap),
       part: enrichedPart,
       id: item._id || item.id,
     };

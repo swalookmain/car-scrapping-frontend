@@ -69,7 +69,7 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
   const editMode = Boolean(editingId);
 
   // ── Lookup maps for resolving vehicleId/invoiceId in parts ───
-  const { invoiceMap, vehicleMap, vehicleByInvoiceMap } = useLookupMaps(open);
+  const { invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap } = useLookupMaps(open);
 
   // ── Fetch buyers for dropdown ────────────────────────────────
   const { data: buyersData = [] } = useQuery({
@@ -253,16 +253,21 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
 
     setItems((prev) => {
       const updated = [...prev];
+
+      // Resolve part details if needed
+      const pId = part._id || part.id;
+      const fullPart = (pId && partMap[pId]) ? partMap[pId] : part;
+
       // Resolve vehicle from lookup maps
-      const vehId = part.vechileId || part.vehicleId || '';
-      const veh = (vehId && vehicleMap[vehId]) ? vehicleMap[vehId] : (part.invoiceId && vehicleByInvoiceMap[part.invoiceId]) ? vehicleByInvoiceMap[part.invoiceId] : null;
+      const vehId = fullPart.vechileId || fullPart.vehicleId || '';
+      const veh = (vehId && vehicleMap[vehId]) ? vehicleMap[vehId] : (fullPart.invoiceId && vehicleByInvoiceMap[fullPart.invoiceId]) ? vehicleByInvoiceMap[fullPart.invoiceId] : null;
       const vehRegNo = veh?.registration_number || veh?.registrationNumber || '';
       const vehMake = veh?.make || '';
       const vehModel = veh?.model_name || veh?.model || '';
       const vehDisplay = vehRegNo || (vehMake || vehModel ? `${vehMake} ${vehModel}`.trim() : '') || vehId?.toString()?.slice(-8)?.toUpperCase() || '';
 
       // Resolve invoice from lookup maps
-      const invId = part.invoiceId || '';
+      const invId = fullPart.invoiceId || '';
       const inv = (invId && invoiceMap[invId]) ? invoiceMap[invId] : null;
       const invDisplay = inv?.invoiceNumber || invId?.toString()?.slice(-8)?.toUpperCase() || '';
 
@@ -526,7 +531,7 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
             <TableHead>
               <TableRow sx={{ backgroundColor: 'var(--color-grey-50)' }}>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 220 }}>Part</TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 80 }}>Item Code</TableCell>
+                {/* <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 80 }}>Item Code</TableCell> */}
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 80 }}>Vehicle</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 60 }} align="center">Avail.</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 90 }} align="right">Quantity *</TableCell>
