@@ -288,3 +288,11 @@ body {
 [class*="MuiTypography-root"] {
   text-align: left !important;
 }
+
+[class*="MuiTypography-h1"] {
+  text-align: center !important;
+}
+
+[class*="MuiTypography-h5"] {
+  text-align: center !important;
+}
