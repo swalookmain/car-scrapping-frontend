@@ -113,7 +113,7 @@ export function getDamageAdjustmentColumns({ handleView }) {
   return [
     // { field: 'id',                headerName: 'Adj. ID',         width: '9%',  render: (row) => <DamageIdCell row={row} /> },
     { field: 'partName',          headerName: 'Part Name',       width: '13%', render: (row) => <DamagePartNameCell row={row} /> },
-    { field: 'itemCode',          headerName: 'Item Code',       width: '9%',  render: (row) => <DamageItemCodeCell row={row} /> },
+    // { field: 'itemCode',          headerName: 'Item Code',       width: '9%',  render: (row) => <DamageItemCodeCell row={row} /> },
     { field: 'vehicleCode',       headerName: 'Vehicle',         width: '9%',  render: (row) => <DamageVehicleCodeCell row={row} /> },
     { field: 'invoiceRef',        headerName: 'Invoice',         width: '9%',  render: (row) => <DamageInvoiceRefCell row={row} /> },
     { field: 'quantityAffected',  headerName: 'Qty',             width: '6%',  render: (row) => <DamageQuantityCell row={row} /> },
