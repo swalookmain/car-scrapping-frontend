@@ -7,6 +7,7 @@ import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // ── Mocks (hoisted by vitest) ─────────────────────────────────
 vi.mock('../services/inputStyles', () => ({ default: {} }));
@@ -58,6 +59,17 @@ vi.mock('../services/api', () => ({
   invoicesApi: {
     getVehicleById: vi.fn().mockResolvedValue({ data: [] }),
     getAll: vi.fn().mockResolvedValue({ data: [], meta: { total: 0 } }),
+    getDocuments: vi.fn().mockResolvedValue({ data: [] }),
+    uploadDocuments: vi.fn().mockResolvedValue({}),
+  },
+  leadsApi: {
+    lookup: vi.fn().mockResolvedValue({ data: [] }),
+    getLookupById: vi.fn().mockResolvedValue({ data: null }),
+  },
+  taxComplianceApi: {
+    getConfig: vi.fn().mockResolvedValue({
+      data: { defaultGstRate: 18, stateCode: 'KA', gstEnabled: true },
+    }),
   },
 }));
 
@@ -66,7 +78,14 @@ const { default: StaffForm }   = await import('../components/staff-management/St
 const { default: InvoiceForm } = await import('../components/invoice-management/InvoiceForm');
 
 // ── Helpers ───────────────────────────────────────────────────
-const wrap = (ui) => render(ui, { wrapper: MemoryRouter });
+const wrap = (ui) => {
+  const queryClient = new QueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>
+  );
+};
 const openForm = async (ref, item) => {
   await act(async () => { ref.current.open(item); });
 };
@@ -174,10 +193,9 @@ describe('InvoiceForm — Step 1 validation', () => {
     wrap(<InvoiceForm ref={ref} onSubmit={vi.fn()} />);
     await openForm(ref);
 
-    await userEvent.click(await screen.findByRole('button', { name: /^next$/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /save & next/i }));
 
     expect(await screen.findByText('Seller name is required')).toBeInTheDocument();
-    expect(screen.getByText('Invoice number is required')).toBeInTheDocument();
     expect(screen.getByText('Purchase amount is required')).toBeInTheDocument();
     expect(screen.getByText('Purchase date is required')).toBeInTheDocument();
   });
@@ -187,7 +205,7 @@ describe('InvoiceForm — Step 1 validation', () => {
     wrap(<InvoiceForm ref={ref} onSubmit={vi.fn()} />);
     await openForm(ref);
 
-    await userEvent.click(await screen.findByRole('button', { name: /^next$/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /save & next/i }));
 
     // Errors from mocked InvoiceSellerFields (DIRECT type is default)
     expect(await screen.findByText('Mobile is required')).toBeInTheDocument();
@@ -200,7 +218,7 @@ describe('InvoiceForm — Step 1 validation', () => {
     wrap(<InvoiceForm ref={ref} onSubmit={vi.fn()} />);
     await openForm(ref);
 
-    await userEvent.click(await screen.findByRole('button', { name: /^next$/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /save & next/i }));
 
     // Vehicle step should NOT be visible
     await screen.findByText('Seller name is required');

@@ -124,8 +124,24 @@ const InvoiceTable = ({ isLoading }) => {
     }
   };
 
-  const handleSubmitVehicle = async (vehicle, invoiceId, editingVehicleId) => {
+  const handleSubmitVehicle = async (
+    vehicle,
+    invoiceId,
+    editingVehicleId,
+    documents = {},
+  ) => {
     try {
+      if (!editingVehicleId) {
+        const formData = new FormData();
+        formData.append('invoiceId', invoiceId);
+        Object.entries(documents).forEach(([field, file]) => {
+          if (file) {
+            formData.append(field, file);
+          }
+        });
+        await invoicesApi.uploadDocuments(formData);
+      }
+
       if (editingVehicleId) {
         await invoicesApi.updateVehicle(editingVehicleId, vehicle);
       } else {

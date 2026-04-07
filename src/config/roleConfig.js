@@ -9,6 +9,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 
 
 export const ROLES = {
@@ -33,6 +34,10 @@ export const ROUTE_CONFIG = [
   },
   {
     path: '/staff',
+    allowedRoles: [ROLES.ADMIN],
+  },
+  {
+    path: '/leads',
     allowedRoles: [ROLES.ADMIN],
   },
   {
@@ -155,6 +160,17 @@ export const SIDEBAR_CONFIG = [
         path: '/staff',
         label: 'Staff',
         icon: PeopleIcon,
+        allowedRoles: [ROLES.ADMIN],
+      },
+    ],
+  },
+  {
+    section: 'Lead Management',
+    items: [
+      {
+        path: '/leads',
+        label: 'Leads',
+        icon: AssignmentIndIcon,
         allowedRoles: [ROLES.ADMIN],
       },
     ],

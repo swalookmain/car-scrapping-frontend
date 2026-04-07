@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
+  Autocomplete,
   Grid,
   TextField,
   MenuItem,
@@ -16,7 +17,16 @@ const LEAD_SOURCES = ['WEBSITE', 'WORD_OF_MOUTH'];
  * Renders seller-type-specific invoice fields.
  * Extracted from InvoiceForm to reduce component size.
  */
-export default function InvoiceSellerFields({ sellerType, invoice, errors, onChange, readOnly }) {
+export default function InvoiceSellerFields({
+  sellerType,
+  invoice,
+  errors,
+  onChange,
+  readOnly,
+  leadOptions = [],
+  onLeadSearch,
+  onLeadSelect,
+}) {
   if (sellerType === 'DIRECT') {
     return (
       <>
@@ -24,6 +34,29 @@ export default function InvoiceSellerFields({ sellerType, invoice, errors, onCha
           Seller KYC Details
         </Typography>
         <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <Autocomplete
+              options={leadOptions}
+              value={leadOptions.find((item) => item.id === invoice.leadId) || null}
+              onInputChange={(_, value) => onLeadSearch?.(value)}
+              onChange={(_, value) => onLeadSelect?.(value)}
+              getOptionLabel={(option) =>
+                option?.label ||
+                [option?.name, option?.vehicleName].filter(Boolean).join(' - ')
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Lead Lookup"
+                  placeholder="Search by name or vehicle"
+                  fullWidth
+                  sx={inputSx}
+                  helperText="Optional. Select an open lead to prefill invoice details."
+                />
+              )}
+              disabled={readOnly}
+            />
+          </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
               label="Mobile"
@@ -189,4 +222,7 @@ InvoiceSellerFields.propTypes = {
   errors: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
   readOnly: PropTypes.bool,
+  leadOptions: PropTypes.array,
+  onLeadSearch: PropTypes.func,
+  onLeadSelect: PropTypes.func,
 };

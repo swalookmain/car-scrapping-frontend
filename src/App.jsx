@@ -16,6 +16,7 @@ const Login = lazy(() => import('./pages/auth/Login'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
 const Dashboard = lazy(() => import('./pages/adminPanel/Dashboard'));
 const Staff = lazy(() => import('./pages/adminPanel/Staff'));
+const Leads = lazy(() => import('./pages/adminPanel/leads/Leads'));
 const Invoice = lazy(() => import('./pages/adminPanel/Invoice'));
 const Inventory = lazy(() => import('./pages/adminPanel/Inventory'));
 const AuditLogs = lazy(() => import('./pages/adminPanel/AuditLogs'));
@@ -101,6 +102,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Staff />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/leads"
+                    element={
+                      <ProtectedRoute>
+                        <Leads />
                       </ProtectedRoute>
                     }
                   />
