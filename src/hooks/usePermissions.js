@@ -13,6 +13,13 @@ const PERMISSIONS = {
   'staff:edit': [ROLES.ADMIN],
   'staff:delete': [ROLES.ADMIN],
 
+  // Lead management
+  'lead:view': [ROLES.ADMIN, ROLES.STAFF],
+  'lead:create': [ROLES.ADMIN],
+  'lead:edit': [ROLES.ADMIN, ROLES.STAFF],
+  'lead:assign': [ROLES.ADMIN],
+  'lead:documentUpload': [ROLES.ADMIN],
+
   // Invoice management
   'invoice:view': [ROLES.ADMIN, ROLES.STAFF],
   'invoice:create': [ROLES.ADMIN, ROLES.STAFF],

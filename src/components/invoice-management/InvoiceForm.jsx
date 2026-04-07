@@ -1,4 +1,10 @@
-import React, { useState, forwardRef, useImperativeHandle, useMemo } from 'react';
+import React, {
+  useEffect,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+  useMemo,
+} from 'react';
 import PropTypes from 'prop-types';
 import {
   Box,
@@ -19,7 +25,7 @@ import {
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
 import { useQuery } from '@tanstack/react-query';
-import { invoicesApi, taxComplianceApi } from '../../services/api';
+import { invoicesApi, leadsApi, taxComplianceApi } from '../../services/api';
 import { calculateGst, INDIAN_STATE_CODES } from '../../services/taxEngine';
 import InvoiceSellerFields from './InvoiceSellerFields';
 import InvoiceVehicleStep from './InvoiceVehicleStep';
@@ -52,10 +58,12 @@ const INITIAL_INVOICE = {
   auctionDate: '',
   source: '',
   lotNumber: '',
+  leadId: '',
 };
 
 const INITIAL_VEHICLE = {
   ownerName: '',
+  isOwnerSelf: true,
   vehicle_type: 'CAR',
   make: '',
   model_name: '',
@@ -82,6 +90,43 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
   const [editingId, setEditingId] = useState(null);
   const [editingVehicleId, setEditingVehicleId] = useState(null);
   const [vehicleLoading, setVehicleLoading] = useState(false);
+  const [leadQuery, setLeadQuery] = useState('');
+  const [leadOptions, setLeadOptions] = useState([]);
+  const [documents, setDocuments] = useState({
+    aadhaarFront: null,
+    aadhaarBack: null,
+    rcFront: null,
+    rcBack: null,
+    pan: null,
+    bankDetail: null,
+  });
+  const [existingDocuments, setExistingDocuments] = useState([]);
+
+  useEffect(() => {
+    if (!open || readOnly || invoice.sellerType !== 'DIRECT') return;
+
+    let active = true;
+    leadsApi
+      .lookup(leadQuery)
+      .then((res) => {
+        if (!active) return;
+        const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        setLeadOptions(
+          items.map((item) => ({
+            ...item,
+            id: item._id || item.id,
+            label: `${item.name} - ${item.vehicleName}`,
+          })),
+        );
+      })
+      .catch(() => {
+        if (active) setLeadOptions([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, readOnly, leadQuery, invoice.sellerType]);
 
   // ── Fetch tax config for GST breakup ─────────────────────────
   const { data: taxConfigData } = useQuery({
@@ -134,6 +179,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
           aadhaarNumber: item.aadhaarNumber || '',
           panNumber: item.panNumber || '',
           leadSource: item.leadSource || 'WEBSITE',
+          leadId: item.leadId || '',
           auctionNumber: item.auctionNumber || '',
           auctionDate: item.auctionDate ? item.auctionDate.slice(0, 10) : '',
           source: item.source || '',
@@ -141,10 +187,26 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
         };
         setInvoice(loadedInvoice);
         setInitialInvoice(loadedInvoice);
+        const invoiceId = item._id || item.id || null;
+        if (invoiceId) {
+          invoicesApi
+            .getDocuments(invoiceId)
+            .then((res) => {
+              const docs = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+              setExistingDocuments(docs);
+            })
+            .catch(() => setExistingDocuments([]));
+        } else {
+          setExistingDocuments([]);
+        }
         // Populate vehicle fields if present
         if (item.vehicle) {
           const loadedVehicle = {
             ownerName: item.vehicle.ownerName || '',
+            isOwnerSelf:
+              typeof item.vehicle.isOwnerSelf === 'boolean'
+                ? item.vehicle.isOwnerSelf
+                : true,
             vehicle_type: item.vehicle.vehicle_type || 'CAR',
             make: item.vehicle.make || '',
             model_name: item.vehicle.model_name || item.vehicle.model || '',
@@ -194,6 +256,15 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
         setInitialVehicle(null);
         setEditingId(null);
         setEditingVehicleId(null);
+        setDocuments({
+          aadhaarFront: null,
+          aadhaarBack: null,
+          rcFront: null,
+          rcBack: null,
+          pan: null,
+          bankDetail: null,
+        });
+        setExistingDocuments([]);
       }
       setActiveStep(0);
       setErrors({});
@@ -218,6 +289,59 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     if (readOnly) return;
     setVehicle((p) => ({ ...p, [field]: value }));
     if (errors[field]) setErrors((p) => ({ ...p, [field]: '' }));
+  };
+
+  const handleDocumentChange = (field, value) => {
+    setDocuments((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const handleLeadSelect = async (leadOption) => {
+    if (!leadOption) {
+      handleInvoiceChange('leadId', '');
+      return;
+    }
+
+    try {
+      const res = await leadsApi.getLookupById(leadOption.id);
+      const lead = res?.data || res;
+      setInvoice((prev) => ({
+        ...prev,
+        leadId: lead._id || lead.id || '',
+        sellerType: 'DIRECT',
+        sellerName: lead.name || prev.sellerName,
+        mobile: lead.mobileNumber || prev.mobile,
+        email: lead.email || prev.email,
+        aadhaarNumber: lead.aadhaarNumber || prev.aadhaarNumber,
+        panNumber: lead.panNumber || prev.panNumber,
+        leadSource: lead.leadSource || prev.leadSource,
+        purchaseAmount: lead.purchaseAmount ?? prev.purchaseAmount,
+        purchaseDate: lead.purchaseDate ? lead.purchaseDate.slice(0, 10) : prev.purchaseDate,
+        sellerState: lead.placeOfSupplyState || prev.sellerState,
+        reverseChargeApplicable:
+          typeof lead.reverseChargeApplicable === 'boolean'
+            ? lead.reverseChargeApplicable
+            : prev.reverseChargeApplicable,
+      }));
+      setVehicle((prev) => ({
+        ...prev,
+        ownerName: lead.name || prev.ownerName,
+        isOwnerSelf:
+          typeof lead.isOwnerSelf === 'boolean' ? lead.isOwnerSelf : prev.isOwnerSelf,
+        vehicle_type: lead.vehicleType || prev.vehicle_type,
+        make: lead.vehicleName || prev.make,
+        variant: lead.variant || prev.variant,
+        fuel_type: lead.fuelType || prev.fuel_type,
+        registration_number: lead.registrationNumber || prev.registration_number,
+        chassis_number: lead.last5ChassisNumber || prev.chassis_number,
+        engine_number: lead.engineNumber || prev.engine_number,
+        color: lead.color || prev.color,
+        year_of_manufacture: lead.yearOfManufacture ?? prev.year_of_manufacture,
+        rto_district_branch: lead.rtoDistrictBranch || prev.rto_district_branch,
+      }));
+    } catch {
+      // keep manual flow usable even if lookup hydration fails
+    }
   };
 
   // ── Validation ───────────────────────────────────────────────
@@ -248,6 +372,9 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
 
   const validateVehicle = () => {
     const err = {};
+    const existingTypes = new Set(
+      existingDocuments.map((document) => document.documentType),
+    );
     if (!vehicle.ownerName.trim()) err.ownerName = 'Owner name is required';
     if (!vehicle.make.trim()) err.make = 'Make is required';
     if (!vehicle.model_name.trim()) err.model_name = 'Model is required';
@@ -258,6 +385,12 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     if (!vehicle.vehicle_purchase_date) err.vehicle_purchase_date = 'Vehicle purchase date is required';
     if (!vehicle.rto_district_branch?.trim())
       err.rto_district_branch = 'RTO district/branch is required';
+    if (!documents.aadhaarFront && !existingTypes.has('aadhaarFront') && !existingTypes.has('ownerId')) {
+      err.aadhaarFront = 'Aadhaar front is required';
+    }
+    if (!documents.rcFront && !existingTypes.has('rcFront')) {
+      err.rcFront = 'RC front is required';
+    }
 
     setErrors(err);
     return Object.keys(err).length === 0;
@@ -279,6 +412,8 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
       year_of_manufacture: vData.year_of_manufacture ?? vData.yearOfManufacture ?? '',
       vehicle_purchase_date: (vData.vehicle_purchase_date || vData.vehiclePurchaseDate) ? (vData.vehicle_purchase_date || vData.vehiclePurchaseDate).slice(0, 10) : '',
       rto_district_branch: vData.rto_district_branch || '',
+      isOwnerSelf:
+        typeof vData.isOwnerSelf === 'boolean' ? vData.isOwnerSelf : true,
     };
     setVehicle(loadedVehicle);
     setInitialVehicle(loadedVehicle);
@@ -299,6 +434,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
       gstAmount: invoice.gstAmount ? Number(invoice.gstAmount) : 0,
       reverseChargeApplicable: invoice.sellerType === 'DIRECT' ? invoice.reverseChargeApplicable : false,
       status: invoice.status,
+      leadId: invoice.leadId || undefined,
     };
 
     if (invoice.sellerType === 'DIRECT') {
@@ -355,6 +491,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
 
     const vehiclePayload = {
       ownerName: vehicle.ownerName,
+      isOwnerSelf: Boolean(vehicle.isOwnerSelf),
       vehicle_type: vehicle.vehicle_type,
       make: vehicle.make,
       model: vehicle.model_name,
@@ -370,7 +507,12 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     };
 
     setVehicleLoading(true);
-    const res = await onSubmitVehicle(vehiclePayload, editingId, editingVehicleId);
+    const res = await onSubmitVehicle(
+      vehiclePayload,
+      editingId,
+      editingVehicleId,
+      documents,
+    );
     setVehicleLoading(false);
 
     if (res && res.success) {
@@ -382,6 +524,15 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
       setErrors({});
       setEditingId(null);
       setEditingVehicleId(null);
+      setDocuments({
+        aadhaarFront: null,
+        aadhaarBack: null,
+        rcFront: null,
+        rcBack: null,
+        pan: null,
+        bankDetail: null,
+      });
+      setExistingDocuments([]);
       setActiveStep(0);
       setOpen(false);
     }
@@ -394,6 +545,15 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     setInitialInvoice(null);
     setInitialVehicle(null);
     setErrors({});
+    setDocuments({
+      aadhaarFront: null,
+      aadhaarBack: null,
+      rcFront: null,
+      rcBack: null,
+      pan: null,
+      bankDetail: null,
+    });
+    setExistingDocuments([]);
     setActiveStep(0);
   };
 
@@ -582,6 +742,9 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
         errors={errors}
         onChange={handleInvoiceChange}
         readOnly={readOnly}
+        leadOptions={leadOptions}
+        onLeadSearch={setLeadQuery}
+        onLeadSelect={handleLeadSelect}
       />
     </Box>
   );
@@ -666,7 +829,16 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
             <CircularProgress sx={{ color: 'var(--color-secondary-main)' }} />
           </Box>
-        ) : <InvoiceVehicleStep vehicle={vehicle} errors={errors} onChange={handleVehicleChange} readOnly={readOnly} />
+        ) : (
+          <InvoiceVehicleStep
+            vehicle={vehicle}
+            errors={errors}
+            onChange={handleVehicleChange}
+            readOnly={readOnly}
+            documents={documents}
+            onDocumentChange={handleDocumentChange}
+          />
+        )
       )}
     </NormalModal>
   );

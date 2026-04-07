@@ -3,8 +3,10 @@ import PropTypes from 'prop-types';
 import {
   Box,
   Divider,
+  FormControlLabel,
   Grid,
   MenuItem,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material';
@@ -12,12 +14,20 @@ import inputSx from '../../services/inputStyles';
 
 const VEHICLE_TYPES = ['CAR', 'BIKE', 'COMMERCIAL'];
 const FUEL_TYPES = ['PETROL', 'DIESEL', 'CNG', 'ELECTRIC', 'HYBRID'];
+const DOCUMENT_ACCEPT = '.jpg,.jpeg,.png,.pdf';
 
 /**
  * Renders all vehicle detail fields for step 2 of InvoiceForm.
  * Extracted from InvoiceForm to reduce component size.
  */
-export default function InvoiceVehicleStep({ vehicle, errors, onChange, readOnly }) {
+export default function InvoiceVehicleStep({
+  vehicle,
+  errors,
+  onChange,
+  readOnly,
+  documents,
+  onDocumentChange,
+}) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
@@ -34,6 +44,18 @@ export default function InvoiceVehicleStep({ vehicle, errors, onChange, readOnly
             sx={inputSx}
             error={Boolean(errors.ownerName)}
             helperText={errors.ownerName}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={Boolean(vehicle.isOwnerSelf)}
+                onChange={(e) => onChange('isOwnerSelf', e.target.checked)}
+                disabled={readOnly}
+              />
+            }
+            label={vehicle.isOwnerSelf ? 'Owner: Self' : 'Owner: Other'}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -202,6 +224,48 @@ export default function InvoiceVehicleStep({ vehicle, errors, onChange, readOnly
           />
         </Grid>
       </Grid>
+
+      {!readOnly && (
+        <>
+          <Divider sx={{ my: 1 }} />
+
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
+            Required Purchase Documents
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'var(--color-grey-500)' }}>
+            Supported formats: JPEG, PNG, PDF.
+          </Typography>
+          <Grid container spacing={2}>
+            {[
+              ['aadhaarFront', 'Aadhaar Front'],
+              ['aadhaarBack', 'Aadhaar Back'],
+              ['rcFront', 'RC Front'],
+              ['rcBack', 'RC Back'],
+              ['pan', 'PAN'],
+              ['bankDetail', 'Bank Detail'],
+            ].map(([field, label]) => (
+              <Grid item xs={12} sm={6} key={field}>
+                <TextField
+                  type="file"
+                  label={label}
+                  fullWidth
+                  sx={inputSx}
+                  inputProps={{ accept: DOCUMENT_ACCEPT }}
+                  InputLabelProps={{ shrink: true }}
+                  error={Boolean(errors[field])}
+                  helperText={errors[field]}
+                  onChange={(e) => onDocumentChange(field, e.target.files?.[0] || null)}
+                />
+                {documents?.[field]?.name && (
+                  <Typography variant="caption" sx={{ color: 'var(--color-grey-500)' }}>
+                    Selected: {documents[field].name}
+                  </Typography>
+                )}
+              </Grid>
+            ))}
+          </Grid>
+        </>
+      )}
     </Box>
   );
 }
@@ -211,4 +275,6 @@ InvoiceVehicleStep.propTypes = {
   errors: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
   readOnly: PropTypes.bool,
+  documents: PropTypes.object,
+  onDocumentChange: PropTypes.func,
 };
