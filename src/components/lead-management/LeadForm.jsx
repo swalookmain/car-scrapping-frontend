@@ -60,6 +60,22 @@ const INITIAL_FORM = {
   remarks: '',
 };
 
+const SectionLabel = ({ children }) => (
+  <Typography
+    variant="subtitle2"
+    sx={{ 
+      fontWeight: 700, 
+      color: 'var(--color-grey-700)', 
+      textTransform: 'uppercase', 
+      letterSpacing: 0.8,
+      fontSize: '0.75rem',
+      mb: 1
+    }}
+  >
+    {children}
+  </Typography>
+);
+
 const LeadForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -208,317 +224,368 @@ const LeadForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
       maxWidth="lg"
       actions={
         <>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => setOpen(false)} sx={{ color: 'var(--color-grey-600)' }}>
+            Cancel
+          </Button>
           {!readOnly && (
-            <Button variant="contained" onClick={handleSave} disabled={saving}>
-              {editingId ? 'Save Lead' : 'Create Lead'}
+            <Button 
+              variant="contained" 
+              onClick={handleSave} 
+              disabled={saving}
+              sx={{ 
+                backgroundColor: 'var(--color-secondary-main)',
+                '&:hover': { backgroundColor: 'var(--color-secondary-dark)' } 
+              }}
+            >
+              {editingId ? 'Update Lead' : 'Create Lead'}
             </Button>
           )}
         </>
       }
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-          Lead Details
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Lead Name"
-              value={form.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-              error={Boolean(errors.name)}
-              helperText={errors.name}
-            />
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, py: 1 }}>
+        {/* 1. Basic Info */}
+        <Box>
+          <SectionLabel>Basic & Contact Information</SectionLabel>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Lead Name *"
+                value={form.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+                error={Boolean(errors.name)}
+                helperText={errors.name}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Mobile Number *"
+                value={form.mobileNumber}
+                onChange={(e) => handleChange('mobileNumber', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+                error={Boolean(errors.mobileNumber)}
+                helperText={errors.mobileNumber}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Email"
+                value={form.email}
+                onChange={(e) => handleChange('email', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Location"
+                value={form.location}
+                onChange={(e) => handleChange('location', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Lead Source"
+                select
+                value={form.leadSource}
+                onChange={(e) => handleChange('leadSource', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              >
+                {LEAD_SOURCES.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {item.replaceAll('_', ' ')}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Mobile Number"
-              value={form.mobileNumber}
-              onChange={(e) => handleChange('mobileNumber', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-              error={Boolean(errors.mobileNumber)}
-              helperText={errors.mobileNumber}
-            />
+        </Box>
+
+        {/* 2. Vehicle Spec */}
+        <Box>
+          <SectionLabel>Vehicle Specification</SectionLabel>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Vehicle Name *"
+                value={form.vehicleName}
+                onChange={(e) => handleChange('vehicleName', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+                error={Boolean(errors.vehicleName)}
+                helperText={errors.vehicleName}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                select
+                label="Vehicle Type"
+                value={form.vehicleType}
+                onChange={(e) => handleChange('vehicleType', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              >
+                {VEHICLE_TYPES.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {item}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                select
+                label="Wheel Variant *"
+                value={form.variant}
+                onChange={(e) => handleChange('variant', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+                error={Boolean(errors.variant)}
+                helperText={errors.variant}
+              >
+                {WHEEL_VARIANTS.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {item.replaceAll('_', ' ')}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                select
+                label="Fuel Type"
+                value={form.fuelType}
+                onChange={(e) => handleChange('fuelType', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              >
+                {FUEL_TYPES.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {item}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Year Of Manufacture"
+                type="number"
+                value={form.yearOfManufacture}
+                onChange={(e) => handleChange('yearOfManufacture', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Color"
+                value={form.color}
+                onChange={(e) => handleChange('color', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Location"
-              value={form.location}
-              onChange={(e) => handleChange('location', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
+        </Box>
+
+        {/* 3. Ident & RTO */}
+        <Box>
+          <SectionLabel>Identification & RTO Information</SectionLabel>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Registration Number"
+                value={form.registrationNumber}
+                onChange={(e) => handleChange('registrationNumber', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Last 5 Chassis Digits"
+                value={form.last5ChassisNumber}
+                onChange={(e) => handleChange('last5ChassisNumber', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+                error={Boolean(errors.last5ChassisNumber)}
+                helperText={errors.last5ChassisNumber}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Engine Number"
+                value={form.engineNumber}
+                onChange={(e) => handleChange('engineNumber', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="RTO District / Branch"
+                value={form.rtoDistrictBranch}
+                onChange={(e) => handleChange('rtoDistrictBranch', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <Autocomplete
-              options={staffOptions}
-              value={selectedStaff}
-              onChange={(_, value) => handleChange('assignedTo', value?.id || '')}
-              renderInput={(params) => (
-                <TextField {...params} label="Assign Staff" fullWidth sx={inputSx} />
-              )}
-              clearOnEscape
-              disabled={readOnly}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Vehicle Name"
-              value={form.vehicleName}
-              onChange={(e) => handleChange('vehicleName', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-              error={Boolean(errors.vehicleName)}
-              helperText={errors.vehicleName}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              select
-              label="Wheel Variant"
-              value={form.variant}
-              onChange={(e) => handleChange('variant', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-              error={Boolean(errors.variant)}
-              helperText={errors.variant}
-            >
-              {WHEEL_VARIANTS.map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item.replaceAll('_', ' ')}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              select
-              label="Vehicle Type"
-              value={form.vehicleType}
-              onChange={(e) => handleChange('vehicleType', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            >
-              {VEHICLE_TYPES.map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              select
-              label="Fuel Type"
-              value={form.fuelType}
-              onChange={(e) => handleChange('fuelType', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            >
-              {FUEL_TYPES.map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Last 5 Chassis Digits"
-              value={form.last5ChassisNumber}
-              onChange={(e) => handleChange('last5ChassisNumber', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-              error={Boolean(errors.last5ChassisNumber)}
-              helperText={errors.last5ChassisNumber}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Registration Number"
-              value={form.registrationNumber}
-              onChange={(e) => handleChange('registrationNumber', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Engine Number"
-              value={form.engineNumber}
-              onChange={(e) => handleChange('engineNumber', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="RTO District / Branch"
-              value={form.rtoDistrictBranch}
-              onChange={(e) => handleChange('rtoDistrictBranch', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Color"
-              value={form.color}
-              onChange={(e) => handleChange('color', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Year Of Manufacture"
-              type="number"
-              value={form.yearOfManufacture}
-              onChange={(e) => handleChange('yearOfManufacture', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Lead Source"
-              select
-              value={form.leadSource}
-              onChange={(e) => handleChange('leadSource', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            >
-              {LEAD_SOURCES.map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item.replaceAll('_', ' ')}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={form.isOwnerSelf}
-                  onChange={(e) => handleChange('isOwnerSelf', e.target.checked)}
-                  disabled={readOnly}
-                />
-              }
-              label={form.isOwnerSelf ? 'Owner: Self' : 'Owner: Other'}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={form.reverseChargeApplicable}
-                  onChange={(e) =>
-                    handleChange('reverseChargeApplicable', e.target.checked)
+        </Box>
+
+        {/* 4. Owner Info */}
+        <Box>
+          <SectionLabel>Owner & Identity Details</SectionLabel>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12} sm={4}>
+               <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', pt: 1 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={form.isOwnerSelf}
+                      onChange={(e) => handleChange('isOwnerSelf', e.target.checked)}
+                      disabled={readOnly}
+                      color="secondary"
+                    />
                   }
-                  disabled={readOnly}
+                  label={<Typography variant="body2" sx={{ fontWeight: 600 }}>{form.isOwnerSelf ? 'Owner: Self' : 'Owner: Other'}</Typography>}
                 />
-              }
-              label="Reverse Charge"
-            />
+               </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Aadhaar Number"
+                value={form.aadhaarNumber}
+                onChange={(e) => handleChange('aadhaarNumber', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="PAN Number"
+                value={form.panNumber}
+                onChange={(e) => handleChange('panNumber', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Email"
-              value={form.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
+        </Box>
+
+        {/* 5. Financials */}
+        <Box>
+          <SectionLabel>Financials & Assignment</SectionLabel>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Purchase Amount"
+                type="number"
+                value={form.purchaseAmount}
+                onChange={(e) => handleChange('purchaseAmount', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Purchase Date"
+                type="date"
+                value={form.purchaseDate}
+                onChange={(e) => handleChange('purchaseDate', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+               <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', pt: 1 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={form.reverseChargeApplicable}
+                      onChange={(e) =>
+                        handleChange('reverseChargeApplicable', e.target.checked)
+                      }
+                      disabled={readOnly}
+                      color="secondary"
+                    />
+                  }
+                  label={<Typography variant="body2" sx={{ fontWeight: 600 }}>Reverse Charge</Typography>}
+                />
+               </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Place Of Supply State"
+                value={form.placeOfSupplyState}
+                onChange={(e) => handleChange('placeOfSupplyState', e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Autocomplete
+                options={staffOptions}
+                value={selectedStaff}
+                onChange={(_, value) => handleChange('assignedTo', value?.id || '')}
+                renderInput={(params) => (
+                  <TextField {...params} label="Assign Staff" fullWidth sx={inputSx} />
+                )}
+                clearOnEscape
+                disabled={readOnly}
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Aadhaar Number"
-              value={form.aadhaarNumber}
-              onChange={(e) => handleChange('aadhaarNumber', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="PAN Number"
-              value={form.panNumber}
-              onChange={(e) => handleChange('panNumber', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Place Of Supply State"
-              value={form.placeOfSupplyState}
-              onChange={(e) => handleChange('placeOfSupplyState', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Purchase Amount"
-              type="number"
-              value={form.purchaseAmount}
-              onChange={(e) => handleChange('purchaseAmount', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Purchase Date"
-              type="date"
-              value={form.purchaseDate}
-              onChange={(e) => handleChange('purchaseDate', e.target.value)}
-              fullWidth
-              sx={inputSx}
-              disabled={readOnly}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              label="Remarks / Additional Comments"
-              value={form.remarks}
-              onChange={(e) => handleChange('remarks', e.target.value)}
-              fullWidth
-              multiline
-              minRows={3}
-              sx={inputSx}
-              disabled={readOnly}
-            />
-          </Grid>
-        </Grid>
+        </Box>
+
+        {/* 6. Remarks */}
+        <Box>
+          <SectionLabel>Remarks & Additional Comments</SectionLabel>
+          <TextField
+            label="Internal Remarks"
+            value={form.remarks}
+            onChange={(e) => handleChange('remarks', e.target.value)}
+            fullWidth
+            multiline
+            minRows={3}
+            sx={{ ...inputSx, mt: 1 }}
+            disabled={readOnly}
+            placeholder="Add any specific details or customer preferences here..."
+          />
+        </Box>
       </Box>
     </NormalModal>
   );
 });
+
+LeadForm.displayName = 'LeadForm';
 
 LeadForm.propTypes = {
   onSubmit: PropTypes.func.isRequired,
