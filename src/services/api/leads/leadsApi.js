@@ -25,6 +25,11 @@ export const leadsApi = {
     return response.data;
   },
 
+  delete: async (id) => {
+    const response = await axiosInstance.delete(ENDPOINTS.LEADS.DELETE(id));
+    return response.data;
+  },
+
   assign: async (id, staffId) => {
     const response = await axiosInstance.patch(
       ENDPOINTS.LEADS.ASSIGN(id),

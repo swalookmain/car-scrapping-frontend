@@ -1,14 +1,15 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropTypes from 'prop-types';
-import { Box, Button, Divider, Typography } from '@mui/material';
+import { Autocomplete, Box, Button, Divider, TextField, Typography } from '@mui/material';
 import toast from 'react-hot-toast';
-import { leadsApi } from '../../services/api';
+import { leadsApi, usersApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import ConfirmDialog from '../../ui/ConfirmDialog';
 import NormalModal from '../../ui/NormalModal';
 import NormalTable from '../../ui/NormalTable';
 import TableToolbar from '../../ui/TableToolbar';
 import LeadForm from './LeadForm';
-import LeadDocumentForm from './LeadDocumentForm';
 import getLeadColumns from './leadColumns';
 
 const SectionLabel = ({ children }) => (
@@ -31,13 +32,26 @@ const FieldLabel = ({ children }) => (
 
 const LeadsTable = ({ isLoading }) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const tableRef = useRef(null);
   const leadFormRef = useRef(null);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [viewItem, setViewItem] = useState(null);
-  const [documentLead, setDocumentLead] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignTarget, setAssignTarget] = useState(null);
+  const [staffOptions, setStaffOptions] = useState([]);
+  const [selectedStaffId, setSelectedStaffId] = useState('');
+
+  const organizationId =
+    user?.organizationId ??
+    user?.organization?._id ??
+    user?.organization ??
+    user?.orgId ??
+    null;
 
   const { data, isLoading: loadingData, refetch } = useQuery({
     queryKey: ['leads', page, rowsPerPage, query],
@@ -76,26 +90,105 @@ const LeadsTable = ({ isLoading }) => {
         onEdit: (row) => {
           leadFormRef.current?.open(row);
         },
+        onAddDetails: async (row) => {
+          try {
+            const details = await leadsApi.getById(row.id);
+            leadFormRef.current?.openPending(details?.data || details || row);
+          } catch {
+            leadFormRef.current?.openPending(row);
+          }
+        },
+        onAssign: async (row) => {
+          setAssignTarget(row);
+          setSelectedStaffId(row.assignedTo?._id || row.assignedTo || '');
+          setAssignOpen(true);
+          if (!organizationId) return;
+          try {
+            const res = await usersApi.getAllStaffByOrganization(organizationId, 1, 100);
+            const items = Array.isArray(res?.data) ? res.data : [];
+            setStaffOptions(
+              items.map((item) => ({
+                id: item._id || item.id,
+                label: item.name,
+              })),
+            );
+          } catch {
+            setStaffOptions([]);
+          }
+        },
+        onDelete: (row) => {
+          setConfirmTarget(row);
+          setConfirmOpen(true);
+        },
       }),
-    [],
+    [organizationId],
   );
 
   const handleSubmit = async (payload, editingId) => {
     try {
       if (editingId) {
-        await leadsApi.update(editingId, payload);
+        const updated = await leadsApi.update(editingId, payload);
         if (payload.assignedTo) {
           await leadsApi.assign(editingId, payload.assignedTo);
         }
-        toast.success('Lead updated successfully');
+        queryClient.invalidateQueries({ queryKey: ['leads'] });
+        return updated?.data || updated;
       } else {
-        await leadsApi.create(payload);
-        toast.success('Lead created successfully');
+        const created = await leadsApi.create(payload);
+        queryClient.invalidateQueries({ queryKey: ['leads'] });
+        return created?.data || created;
       }
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
     } catch (error) {
       console.error(error);
       toast.error('Failed to save lead');
+      throw error;
+    }
+  };
+
+  const handleDelete = async (row) => {
+    try {
+      const id = row?._id || row?.id;
+      if (!id) return;
+      await leadsApi.delete(id);
+      toast.success('Lead deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to delete lead');
+    } finally {
+      setConfirmOpen(false);
+      setConfirmTarget(null);
+    }
+  };
+
+  const handleUploadDocuments = async (leadId, formData) => {
+    try {
+      await leadsApi.uploadDocuments(leadId, formData);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('Documents uploaded successfully');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to upload documents');
+      throw error;
+    }
+  };
+
+  const handleAssign = async () => {
+    try {
+      const leadId = assignTarget?._id || assignTarget?.id;
+      if (!leadId || !selectedStaffId) {
+        toast.error('Please select a staff member');
+        return;
+      }
+      await leadsApi.assign(leadId, selectedStaffId);
+      toast.success('Lead assigned successfully');
+      setAssignOpen(false);
+      setAssignTarget(null);
+      setSelectedStaffId('');
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to assign lead');
     }
   };
 
@@ -140,17 +233,10 @@ const LeadsTable = ({ isLoading }) => {
         }}
       />
 
-      <LeadForm ref={leadFormRef} onSubmit={handleSubmit} />
-
-      <LeadDocumentForm
-        open={Boolean(documentLead)}
-        leadName={documentLead?.name}
-        onClose={() => setDocumentLead(null)}
-        onSubmit={async (formData) => {
-          if (!documentLead?.id) return;
-          await leadsApi.uploadDocuments(documentLead.id, formData);
-          toast.success('Lead documents uploaded');
-        }}
+      <LeadForm
+        ref={leadFormRef}
+        onSubmit={handleSubmit}
+        onUploadDocuments={handleUploadDocuments}
       />
 
       <NormalModal
@@ -161,8 +247,14 @@ const LeadsTable = ({ isLoading }) => {
         actions={
           <>
             {viewItem?.status !== 'CLOSED' && (
-              <Button onClick={() => setDocumentLead(viewItem)}>
-                Upload Documents
+              <Button
+                onClick={() => {
+                  const current = viewItem;
+                  setViewItem(null);
+                  leadFormRef.current?.open(current);
+                }}
+              >
+                Edit / Complete Steps
               </Button>
             )}
             <Button variant="contained" onClick={() => setViewItem(null)}>
@@ -197,9 +289,11 @@ const LeadsTable = ({ isLoading }) => {
               <SectionLabel>Vehicle Details</SectionLabel>
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1.5 }}>
                 {[
+                  ['Owner Name', viewItem.ownerName || '—'],
                   ['Vehicle', viewItem.vehicleName],
                   ['Variant', viewItem.variant?.replaceAll('_', ' ')],
                   ['Registration', viewItem.registrationNumber || '—'],
+                  ['Condition', viewItem.vehicleWorkingCondition?.replaceAll('_', ' ') || '—'],
                   ['Last 5 Chassis', viewItem.last5ChassisNumber || '—'],
                   ['Year of Mfg', viewItem.yearOfManufacture || '—'],
                   ['RTO / District', viewItem.rtoDistrictBranch || '—'],
@@ -269,6 +363,59 @@ const LeadsTable = ({ isLoading }) => {
           </Box>
         )}
       </NormalModal>
+
+      <NormalModal
+        open={assignOpen}
+        onClose={() => {
+          setAssignOpen(false);
+          setAssignTarget(null);
+          setSelectedStaffId('');
+        }}
+        title={`Assign Lead${assignTarget?.name ? ` - ${assignTarget.name}` : ''}`}
+        maxWidth="sm"
+        actions={
+          <>
+            <Button
+              onClick={() => {
+                setAssignOpen(false);
+                setAssignTarget(null);
+                setSelectedStaffId('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="contained" onClick={handleAssign}>
+              Assign
+            </Button>
+          </>
+        }
+      >
+        <Autocomplete
+          options={staffOptions}
+          value={staffOptions.find((item) => item.id === selectedStaffId) || null}
+          onChange={(_, value) => setSelectedStaffId(value?.id || '')}
+          renderInput={(params) => (
+            <TextField {...params} label="Select Staff" fullWidth />
+          )}
+        />
+      </NormalModal>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete Lead"
+        description={
+          confirmTarget
+            ? `Delete lead "${confirmTarget.name || confirmTarget.id}"? This cannot be undone.`
+            : 'Delete this lead?'
+        }
+        onClose={() => {
+          setConfirmOpen(false);
+          setConfirmTarget(null);
+        }}
+        onConfirm={() => handleDelete(confirmTarget)}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </>
   );
 };

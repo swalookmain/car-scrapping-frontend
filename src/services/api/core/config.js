@@ -54,6 +54,7 @@ export const ENDPOINTS = {
     GET_BY_ID: (id) => `/leads/${id}`,
     CREATE: '/leads',
     UPDATE: (id) => `/leads/${id}`,
+    DELETE: (id) => `/leads/${id}`,
     ASSIGN: (id) => `/leads/${id}/assign`,
     UPDATE_STATUS: (id) => `/leads/${id}/status`,
     UPLOAD_DOCUMENTS: (id) => `/leads/${id}/documents`,
