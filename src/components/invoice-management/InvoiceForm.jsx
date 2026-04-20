@@ -90,7 +90,6 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
   const [editingId, setEditingId] = useState(null);
   const [editingVehicleId, setEditingVehicleId] = useState(null);
   const [vehicleLoading, setVehicleLoading] = useState(false);
-  const [leadQuery, setLeadQuery] = useState('');
   const [leadOptions, setLeadOptions] = useState([]);
   const [documents, setDocuments] = useState({
     aadhaarFront: null,
@@ -104,18 +103,17 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
 
   useEffect(() => {
     if (!open || readOnly || invoice.sellerType !== 'DIRECT') return;
-
     let active = true;
     leadsApi
-      .lookup(leadQuery)
+      .getAll({ page: 1, limit: 200, status: 'OPEN' })
       .then((res) => {
         if (!active) return;
-        const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        const items = Array.isArray(res?.data) ? res.data : [];
         setLeadOptions(
           items.map((item) => ({
             ...item,
             id: item._id || item.id,
-            label: `${item.name} - ${item.vehicleName}`,
+            label: `${item.name}${item.vehicleName ? ` - ${item.vehicleName}` : ''}`,
           })),
         );
       })
@@ -126,7 +124,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     return () => {
       active = false;
     };
-  }, [open, readOnly, leadQuery, invoice.sellerType]);
+  }, [open, readOnly, invoice.sellerType]);
 
   // ── Fetch tax config for GST breakup ─────────────────────────
   const { data: taxConfigData } = useQuery({
@@ -296,14 +294,14 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
-  const handleLeadSelect = async (leadOption) => {
-    if (!leadOption) {
+  const handleLeadSelect = async (leadId) => {
+    if (!leadId) {
       handleInvoiceChange('leadId', '');
       return;
     }
 
     try {
-      const res = await leadsApi.getLookupById(leadOption.id);
+      const res = await leadsApi.getLookupById(leadId);
       const lead = res?.data || res;
       setInvoice((prev) => ({
         ...prev,
@@ -560,6 +558,36 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
   // ── Step 1: Invoice Details ──────────────────────────────────
   const renderInvoiceStep = () => (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {invoice.sellerType === 'DIRECT' && (
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
+            Lead Selection
+          </Typography>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12}>
+              <TextField
+                select
+                label="Lead Selection"
+                value={invoice.leadId || ''}
+                onChange={(e) => handleLeadSelect(e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+                helperText="Select a lead to auto-fetch all details."
+              >
+                <MenuItem value="">None</MenuItem>
+                {leadOptions.map((lead) => (
+                  <MenuItem key={lead.id} value={lead.id}>
+                    {lead.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
+          <Divider sx={{ my: 2 }} />
+        </Box>
+      )}
+
       <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
         Basic Invoice Information
       </Typography>
@@ -742,9 +770,6 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
         errors={errors}
         onChange={handleInvoiceChange}
         readOnly={readOnly}
-        leadOptions={leadOptions}
-        onLeadSearch={setLeadQuery}
-        onLeadSelect={handleLeadSelect}
       />
     </Box>
   );
