@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 // Icons hum MUI ke hi use kar rahe hain kyunki woh already installed hain
 import { Home as HomeIcon, NavigateNext as NavigateNextIcon } from '@mui/icons-material';
-
+// Tailwind CSS classes ke saath custom styles bhi add kiye hain for better look and feel
 const Breadcrumb = ({ title, items = [] }) => {
   const navigate = useNavigate();
 
