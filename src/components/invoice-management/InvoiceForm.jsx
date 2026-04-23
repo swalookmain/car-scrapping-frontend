@@ -100,6 +100,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     bankDetail: null,
   });
   const [existingDocuments, setExistingDocuments] = useState([]);
+  const [leadDocuments, setLeadDocuments] = useState([]);
 
   useEffect(() => {
     if (!open || readOnly || invoice.sellerType !== 'DIRECT') return;
@@ -337,8 +338,10 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
         year_of_manufacture: lead.yearOfManufacture ?? prev.year_of_manufacture,
         rto_district_branch: lead.rtoDistrictBranch || prev.rto_district_branch,
       }));
+      setLeadDocuments(Array.isArray(lead.documents) ? lead.documents : []);
     } catch {
       // keep manual flow usable even if lookup hydration fails
+      setLeadDocuments([]);
     }
   };
 
@@ -531,6 +534,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
         bankDetail: null,
       });
       setExistingDocuments([]);
+      setLeadDocuments([]);
       setActiveStep(0);
       setOpen(false);
     }
@@ -552,6 +556,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
       bankDetail: null,
     });
     setExistingDocuments([]);
+    setLeadDocuments([]);
     setActiveStep(0);
   };
 
@@ -771,6 +776,35 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
         onChange={handleInvoiceChange}
         readOnly={readOnly}
       />
+
+      {invoice.sellerType === 'DIRECT' && invoice.leadId && (
+        <Box sx={{ mt: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
+            Lead Documents
+          </Typography>
+          {leadDocuments.length > 0 ? (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+              {leadDocuments.map((document) => (
+                <Button
+                  key={document._id || document.id || document.url}
+                  variant="outlined"
+                  size="small"
+                  href={document.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  sx={{ textTransform: 'none', borderRadius: '8px' }}
+                >
+                  {document.documentType?.replaceAll('_', ' ')} {document.pageSide ? `(${document.pageSide})` : ''}
+                </Button>
+              ))}
+            </Box>
+          ) : (
+            <Typography variant="caption" sx={{ color: 'var(--color-grey-500)' }}>
+              No lead documents found. You can upload in step 2.
+            </Typography>
+          )}
+        </Box>
+      )}
     </Box>
   );
 
