@@ -21,6 +21,7 @@ const STATUS_COLOR = {
   OPEN: { bg: '#eef2f6', color: '#4b5565' },
   IN_PROCESS: { bg: '#fff8e1', color: '#b45309' },
   CLOSED: { bg: '#e8f5e9', color: '#2e7d32' },
+  CANCELLED: { bg: '#ffebee', color: '#c62828' },
 };
 
 const ActionCell = ({ row, onView, onEdit, onAddDetails, onAssign, onDelete }) => {

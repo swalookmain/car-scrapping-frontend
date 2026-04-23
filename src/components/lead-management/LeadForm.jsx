@@ -24,16 +24,25 @@ import { usersApi } from '../../services/api';
 
 const VEHICLE_TYPES = ['CAR', 'BIKE', 'COMMERCIAL'];
 const LEAD_SOURCES = ['WEBSITE', 'WHATSAPP', 'INSTAGRAM', 'MAIN_SITE', 'OTHER'];
-const STEPS = ['Lead Details', 'Vehicle Details', 'KYC Details', 'Documents'];
+const STEPS = [
+  'Lead Details',
+  'Vehicle Details',
+  'Document 1',
+  'KYC Details',
+  'Documents',
+];
+const VEHICLE_NUMBER_REGEX =
+  /^(?:[A-Z]{2}[- ]?\d{1,2}[- ]?[A-Z]{1,3}[- ]?\d{4}|[0-9]{2}[- ]?BH[- ]?[0-9]{4}[- ]?[A-Z]{2})$/;
 
 const INITIAL_FORM = {
   name: '',
   mobileNumber: '',
   location: '',
   purchaseDate: '',
+  leadSource: 'WEBSITE',
   isOwnerSelf: true,
   vehicleWorkingCondition: 'WORKING',
-  leadSource: 'WEBSITE',
+  isInterested: true,
   ownerName: '',
   registrationNumber: '',
   vehicleType: 'CAR',
@@ -78,6 +87,8 @@ const SectionLabel = ({ children }) => (
 
 SectionLabel.propTypes = { children: PropTypes.node.isRequired };
 
+const normalizeRegistration = (value) => (value || '').toUpperCase().replace(/[\s-]+/g, '');
+
 const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, ref) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -90,62 +101,128 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
   const [errors, setErrors] = useState({});
   const [staffOptions, setStaffOptions] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [savedStepPayloads, setSavedStepPayloads] = useState({
+    0: null,
+    1: null,
+    3: null,
+  });
 
-  const organizationId = user?.organizationId ?? user?.organization?._id ?? user?.organization ?? user?.orgId ?? null;
+  const organizationId =
+    user?.organizationId ??
+    user?.organization?._id ??
+    user?.organization ??
+    user?.orgId ??
+    null;
 
   useEffect(() => {
     if (!open || !organizationId) return;
     let mounted = true;
-    usersApi.getAllStaffByOrganization(organizationId, 1, 100).then((res) => {
-      if (!mounted) return;
-      const items = Array.isArray(res?.data) ? res.data : [];
-      setStaffOptions(items.map((item) => ({ id: item._id || item.id, label: item.name })));
-    }).catch(() => {
-      if (mounted) setStaffOptions([]);
-    });
+    usersApi
+      .getAllStaffByOrganization(organizationId, 1, 100)
+      .then((res) => {
+        if (!mounted) return;
+        const items = Array.isArray(res?.data) ? res.data : [];
+        setStaffOptions(items.map((item) => ({ id: item._id || item.id, label: item.name })));
+      })
+      .catch(() => {
+        if (mounted) setStaffOptions([]);
+      });
     return () => {
       mounted = false;
     };
   }, [open, organizationId]);
 
+  const buildStepPayload = (currentStep, currentForm) => {
+    if (currentStep === 0) {
+      return {
+        name: currentForm.name,
+        mobileNumber: currentForm.mobileNumber,
+        location: currentForm.location,
+        purchaseDate: currentForm.purchaseDate || undefined,
+        leadSource: currentForm.leadSource,
+      };
+    }
+    if (currentStep === 1) {
+      return {
+        isOwnerSelf: currentForm.isOwnerSelf,
+        vehicleWorkingCondition: currentForm.vehicleWorkingCondition,
+        isInterested: currentForm.isInterested,
+        ownerName: currentForm.ownerName || undefined,
+        registrationNumber: currentForm.registrationNumber || undefined,
+        vehicleType: currentForm.vehicleType || undefined,
+        vehicleName: currentForm.vehicleName || undefined,
+        variant: currentForm.variant || undefined,
+        yearOfManufacture: currentForm.yearOfManufacture
+          ? Number(currentForm.yearOfManufacture)
+          : undefined,
+        color: currentForm.color || undefined,
+        rtoDistrictBranch: currentForm.rtoDistrictBranch || undefined,
+        last5ChassisNumber: currentForm.last5ChassisNumber || undefined,
+      };
+    }
+    return {
+      aadhaarNumber: currentForm.aadhaarNumber || undefined,
+      aadhaarLinkedMobileNumber: currentForm.aadhaarLinkedMobileNumber || undefined,
+      email: currentForm.email || undefined,
+      panNumber: currentForm.panNumber || undefined,
+      bankAccountNumber: currentForm.bankAccountNumber || undefined,
+      bankIfscCode: currentForm.bankIfscCode || undefined,
+      bankBranchName: currentForm.bankBranchName || undefined,
+      bankName: currentForm.bankName || undefined,
+      assignedTo: currentForm.assignedTo || undefined,
+      remarks: currentForm.remarks || undefined,
+    };
+  };
+
   const getPendingStep = (nextForm, docs = []) => {
     const docsList = Array.isArray(docs) ? docs : [];
     const stepOneDone = Boolean(
-      nextForm.name?.trim() && nextForm.mobileNumber?.trim() && nextForm.location?.trim(),
+      nextForm.name?.trim() &&
+        /^\d{10}$/.test(nextForm.mobileNumber || '') &&
+        nextForm.location?.trim(),
     );
     if (!stepOneDone) return 0;
-    const stepTwoDone = Boolean(nextForm.registrationNumber?.trim());
-    if (!stepTwoDone) return 1;
-    const stepThreeDone = Boolean(
-      nextForm.aadhaarNumber?.trim() &&
-        nextForm.panNumber?.trim() &&
-        nextForm.bankAccountNumber?.trim() &&
-        nextForm.bankIfscCode?.trim(),
+    const stepTwoDone = Boolean(
+      nextForm.registrationNumber?.trim() &&
+        VEHICLE_NUMBER_REGEX.test(normalizeRegistration(nextForm.registrationNumber)) &&
+        nextForm.yearOfManufacture,
     );
-    if (!stepThreeDone) return 2;
-    const stepFourDone = docsList.length > 0;
+    if (!stepTwoDone) return 1;
+    const hasDoc1 = docsList.some((doc) =>
+      ['vehicleFront', 'vehicleRight', 'vehicleEngine', 'vehicleLeft', 'vehicleBack', 'vehicleInterior', 'rc'].includes(
+        doc.documentType,
+      ),
+    );
+    if (!hasDoc1) return 2;
+    const stepFourDone = Boolean(
+      nextForm.aadhaarNumber?.trim() || nextForm.panNumber?.trim() || nextForm.bankAccountNumber?.trim(),
+    );
     if (!stepFourDone) return 3;
-    return 3;
+    const hasFinalDocs = docsList.some((doc) =>
+      ['aadhaar', 'pan', 'bankDetail'].includes(doc.documentType),
+    );
+    if (!hasFinalDocs) return 4;
+    return 4;
   };
 
   useImperativeHandle(ref, () => ({
     open: (item) => {
-      setStep(0);
       setErrors({});
       setDocuments(INITIAL_DOCUMENTS);
       setAadhaarPageMode('single');
       setRcPageMode('single');
       if (item) {
-        setEditingId(item._id || item.id || null);
-        setForm({
+        const nextForm = {
           ...INITIAL_FORM,
           name: item.name || '',
           mobileNumber: item.mobileNumber || '',
           location: item.location || '',
           purchaseDate: item.purchaseDate ? item.purchaseDate.slice(0, 10) : '',
+          leadSource: item.leadSource || 'WEBSITE',
           isOwnerSelf: typeof item.isOwnerSelf === 'boolean' ? item.isOwnerSelf : true,
           vehicleWorkingCondition: item.vehicleWorkingCondition || 'WORKING',
-          leadSource: item.leadSource || 'WEBSITE',
+          isInterested:
+            typeof item.isInterested === 'boolean' ? item.isInterested : true,
           ownerName: item.ownerName || '',
           registrationNumber: item.registrationNumber || '',
           vehicleType: item.vehicleType || 'CAR',
@@ -165,21 +242,28 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
           bankName: item.bankName || '',
           assignedTo: item.assignedTo?._id || item.assignedTo || '',
           remarks: item.remarks || '',
+        };
+        setEditingId(item._id || item.id || null);
+        setForm(nextForm);
+        setSavedStepPayloads({
+          0: buildStepPayload(0, nextForm),
+          1: buildStepPayload(1, nextForm),
+          3: buildStepPayload(3, nextForm),
         });
+        setStep(0);
       } else {
         setEditingId(null);
         setForm(INITIAL_FORM);
+        setSavedStepPayloads({ 0: null, 1: null, 3: null });
+        setStep(0);
       }
       setOpen(true);
     },
     openPending: (item) => {
-      setErrors({});
-      setDocuments(INITIAL_DOCUMENTS);
-      setAadhaarPageMode('single');
-      setRcPageMode('single');
       if (!item) {
         setEditingId(null);
         setForm(INITIAL_FORM);
+        setSavedStepPayloads({ 0: null, 1: null });
         setStep(0);
         setOpen(true);
         return;
@@ -190,9 +274,10 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
         mobileNumber: item.mobileNumber || '',
         location: item.location || '',
         purchaseDate: item.purchaseDate ? item.purchaseDate.slice(0, 10) : '',
+        leadSource: item.leadSource || 'WEBSITE',
         isOwnerSelf: typeof item.isOwnerSelf === 'boolean' ? item.isOwnerSelf : true,
         vehicleWorkingCondition: item.vehicleWorkingCondition || 'WORKING',
-        leadSource: item.leadSource || 'WEBSITE',
+        isInterested: typeof item.isInterested === 'boolean' ? item.isInterested : true,
         ownerName: item.ownerName || '',
         registrationNumber: item.registrationNumber || '',
         vehicleType: item.vehicleType || 'CAR',
@@ -215,6 +300,11 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
       };
       setEditingId(item._id || item.id || null);
       setForm(nextForm);
+      setSavedStepPayloads({
+        0: buildStepPayload(0, nextForm),
+        1: buildStepPayload(1, nextForm),
+        3: buildStepPayload(3, nextForm),
+      });
       setStep(getPendingStep(nextForm, item.documents));
       setOpen(true);
     },
@@ -230,90 +320,92 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
-  const validateLeadStep = () => {
+  const validateStep = () => {
     const next = {};
-    if (!form.name.trim()) next.name = 'Lead name is required';
-    if (!form.mobileNumber.trim()) next.mobileNumber = 'Mobile number is required';
-    if (!form.location.trim()) next.location = 'Location is required';
+    if (step === 0) {
+      if (!form.name.trim()) next.name = 'Lead name is required';
+      if (!/^\d{10}$/.test(form.mobileNumber || '')) {
+        next.mobileNumber = 'Mobile number must be exactly 10 digits';
+      }
+      if (!form.location.trim()) next.location = 'Location is required';
+    }
+    if (step === 1 || step === 3) {
+      if (step === 1 && form.registrationNumber) {
+        const normalized = normalizeRegistration(form.registrationNumber);
+        if (!VEHICLE_NUMBER_REGEX.test(normalized)) {
+          next.registrationNumber = 'Enter valid Indian vehicle number';
+        }
+      }
+      if (step === 3 && form.aadhaarLinkedMobileNumber && !/^\d{10}$/.test(form.aadhaarLinkedMobileNumber)) {
+        next.aadhaarLinkedMobileNumber = 'Aadhaar linked mobile must be 10 digits';
+      }
+      if (step === 1 && form.yearOfManufacture) {
+        const year = Number(form.yearOfManufacture);
+        const maxYear = new Date().getFullYear() + 1;
+        if (Number.isNaN(year) || year < 1900 || year > maxYear) {
+          next.yearOfManufacture = `Year must be between 1900 and ${maxYear}`;
+        }
+      }
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
-  const buildLeadPayloadByStep = (currentStep) => {
-    if (currentStep === 0) {
-      return {
-        name: form.name,
-        mobileNumber: form.mobileNumber,
-        location: form.location,
-        isOwnerSelf: form.isOwnerSelf,
-        vehicleWorkingCondition: form.vehicleWorkingCondition,
-        leadSource: form.leadSource,
-        purchaseDate: form.purchaseDate || undefined,
-      };
-    }
-    if (currentStep === 1) {
-      return {
-        ownerName: form.ownerName || undefined,
-        registrationNumber: form.registrationNumber || undefined,
-        vehicleType: form.vehicleType || undefined,
-        vehicleName: form.vehicleName || undefined,
-        variant: form.variant || undefined,
-        yearOfManufacture: form.yearOfManufacture
-          ? Number(form.yearOfManufacture)
-          : undefined,
-        color: form.color || undefined,
-        rtoDistrictBranch: form.rtoDistrictBranch || undefined,
-        last5ChassisNumber: form.last5ChassisNumber || undefined,
-      };
-    }
-    if (currentStep === 2) {
-      return {
-        aadhaarNumber: form.aadhaarNumber || undefined,
-        aadhaarLinkedMobileNumber: form.aadhaarLinkedMobileNumber || undefined,
-        email: form.email || undefined,
-        panNumber: form.panNumber || undefined,
-        bankAccountNumber: form.bankAccountNumber || undefined,
-        bankIfscCode: form.bankIfscCode || undefined,
-        bankBranchName: form.bankBranchName || undefined,
-        bankName: form.bankName || undefined,
-        assignedTo: form.assignedTo || undefined,
-        remarks: form.remarks || undefined,
-      };
-    }
-    return {};
-  };
+  const hasPayloadChanged = (currentStep, payload) =>
+    JSON.stringify(savedStepPayloads[currentStep] || {}) !== JSON.stringify(payload || {});
 
   const handleNext = async () => {
     if (readOnly) return;
-    if (step === 0 && !validateLeadStep()) return;
+    if (!validateStep()) return;
     setSaving(true);
     try {
-      if (step <= 2) {
-        const payload = buildLeadPayloadByStep(step);
-        const saved = await onSubmit(payload, editingId);
-        const savedId = saved?._id || saved?.id || editingId;
-        if (savedId) setEditingId(savedId);
+      if (step === 0 || step === 1 || step === 3) {
+        const payload = buildStepPayload(step, {
+          ...form,
+          registrationNumber: normalizeRegistration(form.registrationNumber),
+        });
+        const shouldCall =
+          !editingId || hasPayloadChanged(step, payload);
+        if (shouldCall) {
+          const saved = await onSubmit(payload, editingId);
+          const savedId = saved?._id || saved?.id || editingId;
+          if (savedId) setEditingId(savedId);
+          setSavedStepPayloads((prev) => ({ ...prev, [step]: payload }));
+        }
       }
 
-      if (step === 3) {
+      if (step === 2) {
+        if (editingId && onUploadDocuments) {
+          const formData = new FormData();
+          formData.append('aadhaarPageMode', 'single');
+          formData.append('rcPageMode', rcPageMode);
+          ['vehicleFront', 'vehicleRight', 'vehicleEngine', 'vehicleLeft', 'vehicleBack', 'vehicleInterior', 'rcFront', 'rcBack'].forEach((key) => {
+            if (documents[key]) formData.append(key, documents[key]);
+          });
+          const hasFiles = ['vehicleFront', 'vehicleRight', 'vehicleEngine', 'vehicleLeft', 'vehicleBack', 'vehicleInterior', 'rcFront', 'rcBack']
+            .some((key) => Boolean(documents[key]));
+          if (hasFiles) await onUploadDocuments(editingId, formData);
+        }
+      }
+
+      if (step === 4) {
         if (editingId && onUploadDocuments) {
           const formData = new FormData();
           formData.append('aadhaarPageMode', aadhaarPageMode);
-          formData.append('rcPageMode', rcPageMode);
-          Object.entries(documents).forEach(([key, file]) => {
-            if (file) formData.append(key, file);
+          formData.append('rcPageMode', 'single');
+          ['aadhaarFront', 'aadhaarBack', 'pan', 'bankDetail'].forEach((key) => {
+            if (documents[key]) formData.append(key, documents[key]);
           });
-          const hasFiles = Object.values(documents).some(Boolean);
-          if (hasFiles) {
-            await onUploadDocuments(editingId, formData);
-          }
+          const hasFiles = ['aadhaarFront', 'aadhaarBack', 'pan', 'bankDetail'].some((key) => Boolean(documents[key]));
+          if (hasFiles) await onUploadDocuments(editingId, formData);
         }
-        toast.success('Lead saved. Remaining empty fields can be filled during invoice creation.');
+        toast.success('Lead saved. Missing fields can be completed later.');
         setOpen(false);
         setStep(0);
         setEditingId(null);
         setForm(INITIAL_FORM);
         setDocuments(INITIAL_DOCUMENTS);
+        setSavedStepPayloads({ 0: null, 1: null, 3: null });
         return;
       }
 
@@ -339,7 +431,7 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
           {step > 0 && !readOnly && <Button onClick={handleBack}>Back</Button>}
           {!readOnly && (
             <Button variant="contained" onClick={handleNext} disabled={saving}>
-              {step === 3 ? 'Finish' : 'Save & Next'}
+              {step === 4 ? 'Finish' : 'Save & Next'}
             </Button>
           )}
         </>
@@ -362,17 +454,49 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
         </Stepper>
 
         <Typography variant="caption" sx={{ color: 'var(--color-grey-600)' }}>
-          You can leave optional fields empty now and complete them later at invoice generation.
+          Optional fields can be completed later before/during invoice conversion.
         </Typography>
 
         {step === 0 && (
           <Box>
             <SectionLabel>Lead Details</SectionLabel>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}><TextField label="Lead Name *" value={form.name} onChange={(e) => handleChange('name', e.target.value)} fullWidth sx={inputSx} error={Boolean(errors.name)} helperText={errors.name} /></Grid>
-              <Grid item xs={12} sm={4}><TextField label="Mobile Number *" value={form.mobileNumber} onChange={(e) => handleChange('mobileNumber', e.target.value)} fullWidth sx={inputSx} error={Boolean(errors.mobileNumber)} helperText={errors.mobileNumber} /></Grid>
-              <Grid item xs={12} sm={4}><TextField label="Location *" value={form.location} onChange={(e) => handleChange('location', e.target.value)} fullWidth sx={inputSx} error={Boolean(errors.location)} helperText={errors.location} /></Grid>
-              <Grid item xs={12} sm={4}><TextField label="Lead Date" type="date" value={form.purchaseDate} onChange={(e) => handleChange('purchaseDate', e.target.value)} fullWidth sx={inputSx} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField label="Lead Name *" value={form.name} onChange={(e) => handleChange('name', e.target.value)} fullWidth sx={inputSx} error={Boolean(errors.name)} helperText={errors.name} />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField label="Mobile Number *" value={form.mobileNumber} onChange={(e) => handleChange('mobileNumber', e.target.value.replace(/\D/g, '').slice(0, 10))} fullWidth sx={inputSx} error={Boolean(errors.mobileNumber)} helperText={errors.mobileNumber} />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField label="Location *" value={form.location} onChange={(e) => handleChange('location', e.target.value)} fullWidth sx={inputSx} error={Boolean(errors.location)} helperText={errors.location} />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField label="Lead Date" type="date" value={form.purchaseDate} onChange={(e) => handleChange('purchaseDate', e.target.value)} fullWidth sx={inputSx} InputLabelProps={{ shrink: true }} />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField select label="Source of Lead" value={form.leadSource} onChange={(e) => handleChange('leadSource', e.target.value)} fullWidth sx={inputSx}>
+                  {LEAD_SOURCES.map((item) => (
+                    <MenuItem key={item} value={item}>{item.replaceAll('_', ' ')}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+
+        {step === 1 && (
+          <Box>
+            <SectionLabel>Vehicle Details</SectionLabel>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <FormControl>
+                  <Typography variant="caption">Interested</Typography>
+                  <RadioGroup row value={form.isInterested ? 'YES' : 'NO'} onChange={(e) => handleChange('isInterested', e.target.value === 'YES')}>
+                    <FormControlLabel value="YES" control={<Radio />} label="Yes" />
+                    <FormControlLabel value="NO" control={<Radio />} label="No" />
+                  </RadioGroup>
+                </FormControl>
+              </Grid>
               <Grid item xs={12} sm={4}>
                 <FormControl>
                   <Typography variant="caption">Vehicle owned by</Typography>
@@ -391,38 +515,117 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                   </RadioGroup>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField select label="Source of Lead" value={form.leadSource} onChange={(e) => handleChange('leadSource', e.target.value)} fullWidth sx={inputSx}>
-                  {LEAD_SOURCES.map((item) => <MenuItem key={item} value={item}>{item.replaceAll('_', ' ')}</MenuItem>)}
-                </TextField>
-              </Grid>
-            </Grid>
-          </Box>
-        )}
 
-        {step === 1 && (
-          <Box>
-            <SectionLabel>Vehicle Details</SectionLabel>
-            <Grid container spacing={2}>
               <Grid item xs={12} sm={4}><TextField label="Owner Name" value={form.ownerName} onChange={(e) => handleChange('ownerName', e.target.value)} fullWidth sx={inputSx} helperText="Name should be as per RC" /></Grid>
-              <Grid item xs={12} sm={4}><TextField label="Vehicle Number" value={form.registrationNumber} onChange={(e) => handleChange('registrationNumber', e.target.value)} fullWidth sx={inputSx} /></Grid>
+              <Grid item xs={12} sm={4}><TextField label="Vehicle Number" value={form.registrationNumber} onChange={(e) => handleChange('registrationNumber', e.target.value.toUpperCase())} fullWidth sx={inputSx} error={Boolean(errors.registrationNumber)} helperText={errors.registrationNumber} /></Grid>
               <Grid item xs={12} sm={4}><TextField select label="Vehicle Type" value={form.vehicleType} onChange={(e) => handleChange('vehicleType', e.target.value)} fullWidth sx={inputSx}>{VEHICLE_TYPES.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField></Grid>
               <Grid item xs={12} sm={4}><TextField label="Make / Manufacturer / Company" value={form.vehicleName} onChange={(e) => handleChange('vehicleName', e.target.value)} fullWidth sx={inputSx} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="Model" value={form.variant} onChange={(e) => handleChange('variant', e.target.value)} fullWidth sx={inputSx} /></Grid>
-              <Grid item xs={12} sm={4}><TextField label="Year of Registration" type="number" value={form.yearOfManufacture} onChange={(e) => handleChange('yearOfManufacture', e.target.value)} fullWidth sx={inputSx} /></Grid>
+              <Grid item xs={12} sm={4}><TextField label="Year of Registration" type="number" value={form.yearOfManufacture} onChange={(e) => handleChange('yearOfManufacture', e.target.value.slice(0, 4))} fullWidth sx={inputSx} error={Boolean(errors.yearOfManufacture)} helperText={errors.yearOfManufacture} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="Colour" value={form.color} onChange={(e) => handleChange('color', e.target.value)} fullWidth sx={inputSx} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="RTO District / Branch" value={form.rtoDistrictBranch} onChange={(e) => handleChange('rtoDistrictBranch', e.target.value)} fullWidth sx={inputSx} /></Grid>
-              <Grid item xs={12} sm={4}><TextField label="Last 5 Chassis Digits" value={form.last5ChassisNumber} onChange={(e) => handleChange('last5ChassisNumber', e.target.value)} fullWidth sx={inputSx} /></Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Last 5 Chassis Digits"
+                  value={form.last5ChassisNumber}
+                  onChange={(e) =>
+                    handleChange(
+                      'last5ChassisNumber',
+                      e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5),
+                    )
+                  }
+                  fullWidth
+                  sx={inputSx}
+                  inputProps={{ maxLength: 5 }}
+                />
+              </Grid>
+
             </Grid>
           </Box>
         )}
 
         {step === 2 && (
           <Box>
+            <SectionLabel>Document 1 (Vehicle Images + RC)</SectionLabel>
+            <Grid container spacing={2}>
+              {[
+                ['vehicleFront', 'Vehicle Front'],
+                ['vehicleRight', 'Vehicle Right'],
+                ['vehicleEngine', 'Vehicle Engine'],
+                ['vehicleLeft', 'Vehicle Left'],
+                ['vehicleBack', 'Vehicle Back'],
+                ['vehicleInterior', 'Vehicle Interior'],
+              ].map(([field, label]) => (
+                <Grid item xs={12} sm={6} key={field}>
+                  <TextField
+                    type="file"
+                    label={label}
+                    fullWidth
+                    sx={inputSx}
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
+                    onChange={(e) =>
+                      setDocuments((prev) => ({ ...prev, [field]: e.target.files?.[0] || null }))
+                    }
+                  />
+                </Grid>
+              ))}
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 1, color: 'var(--color-grey-700)' }}>
+                  RC Upload
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  select
+                  label="RC Page Mode"
+                  value={rcPageMode}
+                  onChange={(e) => setRcPageMode(e.target.value)}
+                  fullWidth
+                  sx={inputSx}
+                >
+                  <MenuItem value="single">Single Page</MenuItem>
+                  <MenuItem value="double">Double Page</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  type="file"
+                  label="RC Front / Single"
+                  fullWidth
+                  sx={inputSx}
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
+                  onChange={(e) =>
+                    setDocuments((prev) => ({ ...prev, rcFront: e.target.files?.[0] || null }))
+                  }
+                />
+              </Grid>
+              {rcPageMode === 'double' && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    type="file"
+                    label="RC Back"
+                    fullWidth
+                    sx={inputSx}
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
+                    onChange={(e) =>
+                      setDocuments((prev) => ({ ...prev, rcBack: e.target.files?.[0] || null }))
+                    }
+                  />
+                </Grid>
+              )}
+            </Grid>
+          </Box>
+        )}
+
+        {step === 3 && (
+          <Box>
             <SectionLabel>KYC Details</SectionLabel>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}><TextField label="Aadhaar Number" value={form.aadhaarNumber} onChange={(e) => handleChange('aadhaarNumber', e.target.value)} fullWidth sx={inputSx} /></Grid>
-              <Grid item xs={12} sm={4}><TextField label="Mobile linked with Aadhaar" value={form.aadhaarLinkedMobileNumber} onChange={(e) => handleChange('aadhaarLinkedMobileNumber', e.target.value)} fullWidth sx={inputSx} /></Grid>
+              <Grid item xs={12} sm={4}><TextField label="Mobile linked with Aadhaar" value={form.aadhaarLinkedMobileNumber} onChange={(e) => handleChange('aadhaarLinkedMobileNumber', e.target.value.replace(/\D/g, '').slice(0, 10))} fullWidth sx={inputSx} error={Boolean(errors.aadhaarLinkedMobileNumber)} helperText={errors.aadhaarLinkedMobileNumber} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="Email ID" value={form.email} onChange={(e) => handleChange('email', e.target.value)} fullWidth sx={inputSx} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="PAN Number" value={form.panNumber} onChange={(e) => handleChange('panNumber', e.target.value)} fullWidth sx={inputSx} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="Bank Account Number" value={form.bankAccountNumber} onChange={(e) => handleChange('bankAccountNumber', e.target.value)} fullWidth sx={inputSx} /></Grid>
@@ -444,21 +647,12 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
           </Box>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <Box>
             <SectionLabel>Documents</SectionLabel>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}><TextField select label="Aadhaar Page Mode" value={aadhaarPageMode} onChange={(e) => setAadhaarPageMode(e.target.value)} fullWidth sx={inputSx}><MenuItem value="single">One Page</MenuItem><MenuItem value="double">Two Pages</MenuItem></TextField></Grid>
-              <Grid item xs={12} sm={4}><TextField select label="RC Page Mode" value={rcPageMode} onChange={(e) => setRcPageMode(e.target.value)} fullWidth sx={inputSx}><MenuItem value="single">One Page</MenuItem><MenuItem value="double">Two Pages</MenuItem></TextField></Grid>
               {[
-                ['vehicleFront', 'Vehicle Front'],
-                ['vehicleRight', 'Vehicle Right'],
-                ['vehicleEngine', 'Vehicle Engine'],
-                ['vehicleLeft', 'Vehicle Left'],
-                ['vehicleBack', 'Vehicle Back'],
-                ['vehicleInterior', 'Vehicle Interior'],
-                ['rcFront', 'RC Front / Single'],
-                ...(rcPageMode === 'double' ? [['rcBack', 'RC Back']] : []),
                 ['aadhaarFront', 'Aadhaar Front / Single'],
                 ...(aadhaarPageMode === 'double' ? [['aadhaarBack', 'Aadhaar Back']] : []),
                 ['pan', 'PAN Upload'],
@@ -472,7 +666,9 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                     sx={inputSx}
                     InputLabelProps={{ shrink: true }}
                     inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
-                    onChange={(e) => setDocuments((prev) => ({ ...prev, [field]: e.target.files?.[0] || null }))}
+                    onChange={(e) =>
+                      setDocuments((prev) => ({ ...prev, [field]: e.target.files?.[0] || null }))
+                    }
                   />
                 </Grid>
               ))}
