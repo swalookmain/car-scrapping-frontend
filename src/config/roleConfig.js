@@ -10,6 +10,7 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import GavelIcon from '@mui/icons-material/Gavel';
 
 
 export const ROLES = {
@@ -39,6 +40,10 @@ export const ROUTE_CONFIG = [
   {
     path: '/leads',
     allowedRoles: [ROLES.ADMIN],
+  },
+  {
+    path: '/auctions',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/invoices',
@@ -172,6 +177,17 @@ export const SIDEBAR_CONFIG = [
         label: 'Leads',
         icon: AssignmentIndIcon,
         allowedRoles: [ROLES.ADMIN],
+      },
+    ],
+  },
+  {
+    section: 'Auction Management',
+    items: [
+      {
+        path: '/auctions',
+        label: 'MSTC Auctions',
+        icon: GavelIcon,
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
   },
