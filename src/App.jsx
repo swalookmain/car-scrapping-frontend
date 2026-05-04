@@ -18,6 +18,7 @@ const Dashboard = lazy(() => import('./pages/adminPanel/Dashboard'));
 const Staff = lazy(() => import('./pages/adminPanel/Staff'));
 const Leads = lazy(() => import('./pages/adminPanel/leads/Leads'));
 const Invoice = lazy(() => import('./pages/adminPanel/Invoice'));
+const Auctions = lazy(() => import('./pages/adminPanel/Auctions'));
 const Inventory = lazy(() => import('./pages/adminPanel/Inventory'));
 const AuditLogs = lazy(() => import('./pages/adminPanel/AuditLogs'));
 const VehicleCompliance = lazy(() => import('./pages/adminPanel/VehicleCompliance'));
@@ -110,6 +111,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Leads />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/auctions"
+                    element={
+                      <ProtectedRoute>
+                        <Auctions />
                       </ProtectedRoute>
                     }
                   />

@@ -25,7 +25,7 @@ import {
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
 import { useQuery } from '@tanstack/react-query';
-import { invoicesApi, leadsApi, taxComplianceApi } from '../../services/api';
+import { auctionsApi, invoicesApi, leadsApi, taxComplianceApi } from '../../services/api';
 import { calculateGst, INDIAN_STATE_CODES } from '../../services/taxEngine';
 import InvoiceSellerFields from './InvoiceSellerFields';
 import InvoiceVehicleStep from './InvoiceVehicleStep';
@@ -59,6 +59,9 @@ const INITIAL_INVOICE = {
   source: '',
   lotNumber: '',
   leadId: '',
+  auctionId: '',
+  lotIds: [],
+  vehicleIds: [],
 };
 
 const INITIAL_VEHICLE = {
@@ -91,6 +94,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
   const [editingVehicleId, setEditingVehicleId] = useState(null);
   const [vehicleLoading, setVehicleLoading] = useState(false);
   const [leadOptions, setLeadOptions] = useState([]);
+  const [auctionOptions, setAuctionOptions] = useState([]);
   const [documents, setDocuments] = useState({
     aadhaarFront: null,
     aadhaarBack: null,
@@ -122,6 +126,30 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
         if (active) setLeadOptions([]);
       });
 
+    return () => {
+      active = false;
+    };
+  }, [open, readOnly, invoice.sellerType]);
+
+  useEffect(() => {
+    if (!open || readOnly || invoice.sellerType !== 'MSTC') return;
+    let active = true;
+    auctionsApi
+      .getLookup()
+      .then((res) => {
+        if (!active) return;
+        const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        setAuctionOptions(
+          items.map((item) => ({
+            ...item,
+            id: item._id || item.id,
+            label: `${item.auctionNumber} - ${item.sellerEntityName || 'MSTC'}`,
+          })),
+        );
+      })
+      .catch(() => {
+        if (active) setAuctionOptions([]);
+      });
     return () => {
       active = false;
     };
@@ -183,6 +211,9 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
           auctionDate: item.auctionDate ? item.auctionDate.slice(0, 10) : '',
           source: item.source || '',
           lotNumber: item.lotNumber || '',
+          auctionId: item.auctionId || '',
+          lotIds: Array.isArray(item.lotIds) ? item.lotIds : [],
+          vehicleIds: Array.isArray(item.vehicleIds) ? item.vehicleIds : [],
         };
         setInvoice(loadedInvoice);
         setInitialInvoice(loadedInvoice);
@@ -264,6 +295,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
           bankDetail: null,
         });
         setExistingDocuments([]);
+        setAuctionOptions([]);
       }
       setActiveStep(0);
       setErrors({});
@@ -345,6 +377,40 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     }
   };
 
+  const handleAuctionSelect = async (auctionId) => {
+    if (!auctionId) {
+      handleInvoiceChange('auctionId', '');
+      handleInvoiceChange('lotIds', []);
+      handleInvoiceChange('vehicleIds', []);
+      return;
+    }
+    try {
+      const res = await auctionsApi.getLookupById(auctionId);
+      const auction = res?.data || res;
+      const lots = Array.isArray(auction?.lots) ? auction.lots : [];
+      const vehicles = Array.isArray(auction?.vehicles) ? auction.vehicles : [];
+      setInvoice((prev) => ({
+        ...prev,
+        sellerType: 'MSTC',
+        auctionId: auction._id || auction.id || '',
+        auctionNumber: auction.auctionNumber || prev.auctionNumber,
+        auctionDate: auction.auctionDate ? auction.auctionDate.slice(0, 10) : prev.auctionDate,
+        source: auction.sourcePlatform || prev.source || 'MSTC',
+        lotNumber:
+          lots.map((lot) => lot.lotNumber).filter(Boolean).join(', ') || prev.lotNumber,
+        lotIds: lots.map((lot) => lot._id || lot.id).filter(Boolean),
+        vehicleIds: vehicles.map((vehicle) => vehicle._id || vehicle.id).filter(Boolean),
+        sellerName: auction.sellerEntityName || prev.sellerName,
+        purchaseAmount:
+          typeof auction.totalAwardedAmount === 'number'
+            ? auction.totalAwardedAmount
+            : prev.purchaseAmount,
+      }));
+    } catch {
+      // keep manual entry available
+    }
+  };
+
   // ── Validation ───────────────────────────────────────────────
   const validateInvoice = () => {
     const err = {};
@@ -361,6 +427,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
       if (!invoice.panNumber.trim()) err.panNumber = 'PAN number is required';
     }
     if (invoice.sellerType === 'MSTC') {
+      if (!invoice.auctionId?.trim()) err.auctionId = 'Auction selection is required';
       if (!invoice.auctionNumber.trim()) err.auctionNumber = 'Auction number is required';
       if (!invoice.auctionDate) err.auctionDate = 'Auction date is required';
       if (!invoice.source.trim()) err.source = 'Source is required';
@@ -436,6 +503,9 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
       reverseChargeApplicable: invoice.sellerType === 'DIRECT' ? invoice.reverseChargeApplicable : false,
       status: invoice.status,
       leadId: invoice.leadId || undefined,
+      auctionId: invoice.auctionId || undefined,
+      lotIds: Array.isArray(invoice.lotIds) ? invoice.lotIds : undefined,
+      vehicleIds: Array.isArray(invoice.vehicleIds) ? invoice.vehicleIds : undefined,
     };
 
     if (invoice.sellerType === 'DIRECT') {
@@ -584,6 +654,36 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
                 {leadOptions.map((lead) => (
                   <MenuItem key={lead.id} value={lead.id}>
                     {lead.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
+          <Divider sx={{ my: 2 }} />
+        </Box>
+      )}
+      {invoice.sellerType === 'MSTC' && (
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
+            Auction Selection
+          </Typography>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12}>
+              <TextField
+                select
+                label="Auction"
+                value={invoice.auctionId || ''}
+                onChange={(e) => handleAuctionSelect(e.target.value)}
+                fullWidth
+                sx={inputSx}
+                disabled={readOnly}
+                error={Boolean(errors.auctionId)}
+                helperText={errors.auctionId || 'Select closed auction to auto-fetch lot and vehicle mapping.'}
+              >
+                <MenuItem value="">None</MenuItem>
+                {auctionOptions.map((auction) => (
+                  <MenuItem key={auction.id} value={auction.id}>
+                    {auction.label}
                   </MenuItem>
                 ))}
               </TextField>
