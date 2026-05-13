@@ -185,7 +185,7 @@ export const SIDEBAR_CONFIG = [
     items: [
       {
         path: '/auctions',
-        label: 'MSTC Auctions',
+        label: 'Auctions',
         icon: GavelIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },

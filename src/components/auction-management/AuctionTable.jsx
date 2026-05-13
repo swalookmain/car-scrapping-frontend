@@ -31,7 +31,8 @@ import NormalModal from '../../ui/NormalModal';
 import { auctionsApi } from '../../services/api';
 import inputSx from '../../services/inputStyles';
 
-const STEPS = ['Auction & MSTC officers', 'Lots', 'Vehicles & photos'];
+const STEPS = ['Auction details', 'Lots', 'Vehicles & photos'];
+const AUCTION_STATUS_OPTIONS = ['UPCOMING', 'ONGOING', 'STA', 'DEAL_DONE', 'REJECTED', 'LEFT', 'CANCELLED'];
 
 /** Same options as [LeadForm.jsx](lead-management/LeadForm.jsx) */
 const VEHICLE_TYPES = ['CAR', 'BIKE', 'COMMERCIAL'];
@@ -42,11 +43,19 @@ const VEHICLE_NUMBER_REGEX =
 const normalizeVehiclePlate = (value) => (value || '').toUpperCase().replace(/[\s-]+/g, '');
 
 const INITIAL_AUCTION = {
+  auctionerName: 'MSTC',
   auctionNumber: '',
   auctionDate: '',
   startTime: '',
   endTime: '',
-  auctionLocation: '',
+  inspectionFromDate: '',
+  inspectionToDate: '',
+  vehicleLocation: '',
+  sellerName: '',
+  sellerMobileNumber: '',
+  sellerEmail: '',
+  sellerAccountNumber: '',
+  sellerTaxMode: 'RCM',
 };
 
 const INITIAL_LOT = {
@@ -123,14 +132,14 @@ const AuctionTable = () => {
 
   const [openViewModal, setOpenViewModal] = useState(false);
   const [viewAuction, setViewAuction] = useState(null);
-  /** Server status; lots/vehicles only when DEAL_CLOSED (except addLot wizard) */
-  const [auctionStatus, setAuctionStatus] = useState('');
+  const [initialAuctionStepPayload, setInitialAuctionStepPayload] = useState(null);
+  const [openStatusModal, setOpenStatusModal] = useState(false);
+  const [statusForm, setStatusForm] = useState({ status: 'UPCOMING', dealDoneAt: '' });
 
   const resetWizardState = useCallback(() => {
     setActiveStep(0);
     setWizardMode('create');
     setAuctionId('');
-    setAuctionStatus('');
     setAuctionForm({ ...INITIAL_AUCTION });
     setOfficers(emptyOfficers());
     setLots([{ ...INITIAL_LOT }]);
@@ -138,6 +147,9 @@ const AuctionTable = () => {
     setVehiclesByLotIndex({});
     setImagesByLotIndex({});
     setCopyCommon(false);
+    setInitialAuctionStepPayload(null);
+    setOpenStatusModal(false);
+    setStatusForm({ status: 'UPCOMING', dealDoneAt: '' });
     setCommonVehicle({
       vehicleType: 'CAR',
       make: '',
@@ -182,7 +194,7 @@ const AuctionTable = () => {
     const items = auctionResult?.data ?? [];
     const filtered = query.trim()
       ? items.filter((row) =>
-          [row.auctionNumber, row.status, row.auctionLocation, row.sourcePlatform]
+          [row.auctionNumber, row.status, row.vehicleLocation || row.auctionLocation, row.auctionerName || row.sourcePlatform]
             .filter(Boolean)
             .join(' ')
             .toLowerCase()
@@ -191,6 +203,27 @@ const AuctionTable = () => {
       : items;
     return filtered.map((row) => ({ ...row, id: row._id || row.id }));
   }, [auctionResult, query]);
+
+  const buildAuctionStepPayload = useCallback(
+    (form, officerRows) => ({
+      auctionerName: form.auctionerName || 'MSTC',
+      auctionNumber: form.auctionNumber.trim(),
+      auctionDate: form.auctionDate,
+      startDateTime: toIsoDateTime(form.auctionDate, form.startTime),
+      endDateTime: toIsoDateTime(form.auctionDate, form.endTime),
+      inspectionFromDate: form.inspectionFromDate || undefined,
+      inspectionToDate: form.inspectionToDate || undefined,
+      vehicleLocation: form.vehicleLocation.trim(),
+      sourcePlatform: form.auctionerName || 'MSTC',
+      sellerName: form.sellerName.trim(),
+      sellerMobileNumber: form.sellerMobileNumber.replace(/\D/g, ''),
+      sellerEmail: form.sellerEmail || undefined,
+      sellerAccountNumber: form.sellerAccountNumber || undefined,
+      sellerTaxMode: form.sellerTaxMode || 'RCM',
+      officers: officerRows.filter((x) => x.name?.trim()),
+    }),
+    [],
+  );
 
   const hydrateFromAuction = useCallback((auction, options = {}) => {
     const { startAtStep = 0, mode = 'edit' } = options;
@@ -202,11 +235,25 @@ const AuctionTable = () => {
     const start = auction?.startDateTime ? new Date(auction.startDateTime) : null;
     const end = auction?.endDateTime ? new Date(auction.endDateTime) : null;
     setAuctionForm({
+      auctionerName: auction?.auctionerName || auction?.sourcePlatform || 'MSTC',
       auctionNumber: auction?.auctionNumber || '',
       auctionDate: auction?.auctionDate ? String(auction.auctionDate).slice(0, 10) : '',
       startTime: formatTimeFromDate(start),
       endTime: formatTimeFromDate(end),
-      auctionLocation: auction?.auctionLocation || '',
+      inspectionFromDate: auction?.inspectionFromDate
+        ? String(auction.inspectionFromDate).slice(0, 10)
+        : '',
+      inspectionToDate: auction?.inspectionToDate
+        ? String(auction.inspectionToDate).slice(0, 10)
+        : '',
+      vehicleLocation: auction?.vehicleLocation || auction?.auctionLocation || '',
+      sellerName: auction?.sellerName || '',
+      sellerMobileNumber: auction?.sellerMobileNumber || '',
+      sellerEmail: auction?.sellerEmail || '',
+      sellerAccountNumber: auction?.sellerAccountNumber || '',
+      sellerTaxMode:
+        auction?.sellerTaxMode ||
+        (auction?.sellerAccountNumber ? 'FCM' : 'RCM'),
     });
 
     const o = Array.isArray(auction?.officers) && auction.officers.length > 0
@@ -217,6 +264,34 @@ const AuctionTable = () => {
         }))
       : emptyOfficers();
     setOfficers(o);
+    setStatusForm({
+      status: auction?.status || 'UPCOMING',
+      dealDoneAt: auction?.dealDoneAt
+        ? String(auction.dealDoneAt).slice(0, 16)
+        : '',
+    });
+    const hydratedForm = {
+      auctionerName: auction?.auctionerName || auction?.sourcePlatform || 'MSTC',
+      auctionNumber: auction?.auctionNumber || '',
+      auctionDate: auction?.auctionDate ? String(auction.auctionDate).slice(0, 10) : '',
+      startTime: formatTimeFromDate(start),
+      endTime: formatTimeFromDate(end),
+      inspectionFromDate: auction?.inspectionFromDate
+        ? String(auction.inspectionFromDate).slice(0, 10)
+        : '',
+      inspectionToDate: auction?.inspectionToDate
+        ? String(auction.inspectionToDate).slice(0, 10)
+        : '',
+      vehicleLocation: auction?.vehicleLocation || auction?.auctionLocation || '',
+      sellerName: auction?.sellerName || '',
+      sellerMobileNumber: auction?.sellerMobileNumber || '',
+      sellerEmail: auction?.sellerEmail || '',
+      sellerAccountNumber: auction?.sellerAccountNumber || '',
+      sellerTaxMode:
+        auction?.sellerTaxMode ||
+        (auction?.sellerAccountNumber ? 'FCM' : 'RCM'),
+    };
+    setInitialAuctionStepPayload(buildAuctionStepPayload(hydratedForm, o));
 
     const serverLots = Array.isArray(auction?.lots) ? auction.lots : [];
     let mappedLots =
@@ -232,7 +307,6 @@ const AuctionTable = () => {
         : [{ ...INITIAL_LOT }];
     setLots(mappedLots);
     setSelectedLotIndex(0);
-    setAuctionStatus(auction?.status || '');
 
     const vehiclesMap = {};
     const imagesMap = {};
@@ -262,37 +336,38 @@ const AuctionTable = () => {
     });
     setVehiclesByLotIndex(vehiclesMap);
     setImagesByLotIndex(imagesMap);
-  }, []);
+  }, [buildAuctionStepPayload]);
 
   const saveAuctionStep = async () => {
     if (!auctionForm.auctionNumber?.trim()) throw new Error('Auction number is required');
     if (!auctionForm.auctionDate) throw new Error('Auction date is required');
     if (!auctionForm.startTime || !auctionForm.endTime) throw new Error('Start and end time are required');
-    if (!auctionForm.auctionLocation?.trim()) throw new Error('Auction location is required');
+    if (!auctionForm.vehicleLocation?.trim()) throw new Error('Vehicle location is required');
+    if (!auctionForm.sellerName?.trim()) throw new Error('Seller name is required');
+    if (!/^\d{10}$/.test((auctionForm.sellerMobileNumber || '').replace(/\D/g, ''))) {
+      throw new Error('Seller mobile number must be exactly 10 digits');
+    }
 
-    const payload = {
-      auctionNumber: auctionForm.auctionNumber.trim(),
-      auctionDate: auctionForm.auctionDate,
-      startDateTime: toIsoDateTime(auctionForm.auctionDate, auctionForm.startTime),
-      endDateTime: toIsoDateTime(auctionForm.auctionDate, auctionForm.endTime),
-      auctionLocation: auctionForm.auctionLocation.trim(),
-      sourcePlatform: 'MSTC',
-      officers: officers.filter((x) => x.name?.trim()),
-    };
+    const payload = buildAuctionStepPayload(auctionForm, officers);
 
     let id = auctionId;
     if (id) {
+      const prevJson = JSON.stringify(initialAuctionStepPayload || {});
+      const nextJson = JSON.stringify(payload);
+      if (prevJson === nextJson) {
+        toast.success('No auction changes to save');
+        return;
+      }
       await auctionsApi.update(id, payload);
+      setInitialAuctionStepPayload(payload);
     } else {
       const created = await auctionsApi.create(payload);
       const data = created?.data ?? created;
       id = data?._id || data?.id;
       setAuctionId(id || '');
+      setInitialAuctionStepPayload(payload);
     }
     if (!id) throw new Error('Could not save auction');
-    const fresh = await auctionsApi.getById(id);
-    const doc = fresh?.data ?? fresh;
-    setAuctionStatus(doc?.status || '');
     toast.success('Auction details saved');
   };
 
@@ -412,32 +487,14 @@ const AuctionTable = () => {
     resetWizardState();
   };
 
-  const canUseLotsAndVehicles =
-    wizardMode === 'addLot' || auctionStatus === 'DEAL_CLOSED';
-
   const handlePrimaryAction = async () => {
     try {
       if (activeStep === 0) {
         await saveAuctionStep();
-        if (wizardMode === 'addLot') {
-          setActiveStep(1);
-          return;
-        }
-        if (!canUseLotsAndVehicles) {
-          toast.success(
-            'Auction saved. Use Close deal on this auction in the table, then Add lot to enter lots and vehicles.',
-          );
-          queryClient.invalidateQueries({ queryKey: ['auctions'] });
-          return;
-        }
         setActiveStep(1);
         return;
       }
       if (activeStep === 1) {
-        if (!canUseLotsAndVehicles) {
-          toast.error('Lots can be added only after the deal is closed.');
-          return;
-        }
         await saveLotsStep();
         lots.forEach((lot, idx) => ensureVehicleSlotsForLot(idx, Number(lot.vehicleCount || 1)));
         setActiveStep(2);
@@ -471,7 +528,12 @@ const AuctionTable = () => {
             width: '12%',
             render: (row) => (row.auctionDate ? new Date(row.auctionDate).toLocaleDateString() : '—'),
           },
-          { field: 'auctionLocation', headerName: 'Auction Location', width: '16%' },
+          {
+            field: 'vehicleLocation',
+            headerName: 'Vehicle Location',
+            width: '16%',
+            render: (row) => row.vehicleLocation || row.auctionLocation || '—',
+          },
           { field: 'status', headerName: 'Status', width: '12%' },
           {
             field: 'actions',
@@ -556,47 +618,47 @@ const AuctionTable = () => {
           </ListItemIcon>
           <ListItemText>Edit</ListItemText>
         </MenuItem>
-        {menuRow?.status === 'DEAL_CLOSED' && (
-          <MenuItem
-            onClick={async () => {
-              if (menuRow) {
-                try {
-                  const res = await auctionsApi.getById(menuRow._id || menuRow.id);
-                  hydrateFromAuction(res?.data || res, {
-                    startAtStep: 1,
-                    mode: 'addLot',
-                  });
-                  setOpenAuctionModal(true);
-                } catch {
-                  toast.error('Failed to load auction');
-                }
+        <MenuItem
+          onClick={async () => {
+            if (menuRow) {
+              try {
+                const res = await auctionsApi.getById(menuRow._id || menuRow.id);
+                hydrateFromAuction(res?.data || res, {
+                  startAtStep: 1,
+                  mode: 'addLot',
+                });
+                setOpenAuctionModal(true);
+              } catch {
+                toast.error('Failed to load auction');
               }
-              setMenuAnchorEl(null);
-            }}
-          >
-            <ListItemIcon>
-              <PlaylistAddIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Add Lot</ListItemText>
-          </MenuItem>
-        )}
-        {menuRow?.status !== 'DEAL_CLOSED' && (
-          <MenuItem
-            onClick={async () => {
-              if (menuRow) {
-                await auctionsApi.closeDeal(menuRow._id || menuRow.id);
-                queryClient.invalidateQueries({ queryKey: ['auctions'] });
-                toast.success('Deal closed');
-              }
-              setMenuAnchorEl(null);
-            }}
-          >
-            <ListItemIcon>
-              <PlaylistAddIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Close Deal</ListItemText>
-          </MenuItem>
-        )}
+            }
+            setMenuAnchorEl(null);
+          }}
+        >
+          <ListItemIcon>
+            <PlaylistAddIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Add Lot</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (menuRow) {
+              setStatusForm({
+                status: menuRow.status || 'UPCOMING',
+                dealDoneAt: menuRow.dealDoneAt
+                  ? String(menuRow.dealDoneAt).slice(0, 16)
+                  : '',
+              });
+              setOpenStatusModal(true);
+            }
+            setMenuAnchorEl(null);
+          }}
+        >
+          <ListItemIcon>
+            <PlaylistAddIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Update Status</ListItemText>
+        </MenuItem>
         <MenuItem
           sx={{ color: '#d32f2f' }}
           onClick={async () => {
@@ -616,9 +678,87 @@ const AuctionTable = () => {
       </Menu>
 
       <NormalModal
+        open={openStatusModal}
+        onClose={() => setOpenStatusModal(false)}
+        title="Update auction status"
+        actions={(
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+            <Button onClick={() => setOpenStatusModal(false)} color="inherit">
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={async () => {
+                try {
+                  if (!menuRow) return;
+                  if (statusForm.status === 'DEAL_DONE' && !statusForm.dealDoneAt) {
+                    throw new Error('Closing date/time is required for deal done');
+                  }
+                  await auctionsApi.updateStatus(menuRow._id || menuRow.id, {
+                    status: statusForm.status,
+                    dealDoneAt:
+                      statusForm.status === 'DEAL_DONE'
+                        ? new Date(statusForm.dealDoneAt).toISOString()
+                        : undefined,
+                  });
+                  toast.success('Status updated');
+                  setOpenStatusModal(false);
+                  queryClient.invalidateQueries({ queryKey: ['auctions'] });
+                } catch (error) {
+                  toast.error(
+                    error?.response?.data?.message ||
+                      error?.message ||
+                      'Failed to update status',
+                  );
+                }
+              }}
+            >
+              Save
+            </Button>
+          </Box>
+        )}
+      >
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <TextField
+              select
+              fullWidth
+              label="Status"
+              value={statusForm.status}
+              onChange={(e) =>
+                setStatusForm((p) => ({ ...p, status: e.target.value }))
+              }
+              sx={inputSx}
+            >
+              {AUCTION_STATUS_OPTIONS.map((status) => (
+                <MenuItem key={status} value={status}>
+                  {status}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          {statusForm.status === 'DEAL_DONE' && (
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                type="datetime-local"
+                label="Closing date & time"
+                InputLabelProps={{ shrink: true }}
+                value={statusForm.dealDoneAt}
+                onChange={(e) =>
+                  setStatusForm((p) => ({ ...p, dealDoneAt: e.target.value }))
+                }
+                sx={inputSx}
+              />
+            </Grid>
+          )}
+        </Grid>
+      </NormalModal>
+
+      <NormalModal
         open={openAuctionModal}
         onClose={handleCloseModal}
-        title={wizardMode === 'addLot' ? 'Add lots & vehicles' : 'MSTC auction'}
+        title={wizardMode === 'addLot' ? 'Add lots & vehicles' : 'Auction'}
         maxWidth="lg"
         actions={
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -633,9 +773,7 @@ const AuctionTable = () => {
             <Button variant="contained" onClick={handlePrimaryAction}>
               {activeStep === STEPS.length - 1
                 ? 'Finish'
-                : activeStep === 0 && !canUseLotsAndVehicles && wizardMode !== 'addLot'
-                  ? 'Save'
-                  : 'Save & next'}
+                : 'Save & next'}
             </Button>
           </Box>
         }
@@ -650,19 +788,25 @@ const AuctionTable = () => {
             </Step>
           ))}
         </Stepper>
-        {wizardMode !== 'addLot' && !canUseLotsAndVehicles && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            <strong>Lots</strong> and <strong>vehicles</strong> unlock only after you use <strong>Close deal</strong> on this
-            auction in the table. Then open <strong>Add lot</strong> from the row menu to enter lots and vehicles.
-          </Typography>
-        )}
-
         {activeStep === 0 && wizardMode !== 'addLot' && (
           <>
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
               Auction details
             </Typography>
             <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Auctioner name"
+                  value={auctionForm.auctionerName}
+                  onChange={(e) => setAuctionForm((p) => ({ ...p, auctionerName: e.target.value }))}
+                  sx={inputSx}
+                >
+                  <MenuItem value="MSTC">MSTC</MenuItem>
+                  <MenuItem value="GEM">GEM</MenuItem>
+                </TextField>
+              </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -705,19 +849,107 @@ const AuctionTable = () => {
                   sx={inputSx}
                 />
               </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label="Inspection from date"
+                  InputLabelProps={{ shrink: true }}
+                  value={auctionForm.inspectionFromDate}
+                  onChange={(e) => setAuctionForm((p) => ({ ...p, inspectionFromDate: e.target.value }))}
+                  sx={inputSx}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label="Inspection to date"
+                  InputLabelProps={{ shrink: true }}
+                  value={auctionForm.inspectionToDate}
+                  onChange={(e) => setAuctionForm((p) => ({ ...p, inspectionToDate: e.target.value }))}
+                  sx={inputSx}
+                />
+              </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Auction location"
-                  value={auctionForm.auctionLocation}
-                  onChange={(e) => setAuctionForm((p) => ({ ...p, auctionLocation: e.target.value }))}
+                  label="Vehicle location"
+                  value={auctionForm.vehicleLocation}
+                  onChange={(e) => setAuctionForm((p) => ({ ...p, vehicleLocation: e.target.value }))}
                   sx={inputSx}
                 />
               </Grid>
             </Grid>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-              MSTC officer details
+              Seller details
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Seller name"
+                  value={auctionForm.sellerName}
+                  onChange={(e) => setAuctionForm((p) => ({ ...p, sellerName: e.target.value }))}
+                  sx={inputSx}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Seller mobile number"
+                  value={auctionForm.sellerMobileNumber}
+                  onChange={(e) =>
+                    setAuctionForm((p) => ({
+                      ...p,
+                      sellerMobileNumber: e.target.value.replace(/\D/g, '').slice(0, 10),
+                    }))
+                  }
+                  sx={inputSx}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Seller email (optional)"
+                  value={auctionForm.sellerEmail}
+                  onChange={(e) => setAuctionForm((p) => ({ ...p, sellerEmail: e.target.value }))}
+                  sx={inputSx}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Seller account number (optional)"
+                  value={auctionForm.sellerAccountNumber}
+                  onChange={(e) =>
+                    setAuctionForm((p) => ({
+                      ...p,
+                      sellerAccountNumber: e.target.value,
+                      sellerTaxMode: e.target.value ? 'FCM' : 'RCM',
+                    }))
+                  }
+                  sx={inputSx}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Tax mode"
+                  value={auctionForm.sellerTaxMode}
+                  onChange={(e) => setAuctionForm((p) => ({ ...p, sellerTaxMode: e.target.value }))}
+                  sx={inputSx}
+                >
+                  <MenuItem value="FCM">FCM</MenuItem>
+                  <MenuItem value="RCM">RCM</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+              Officer details
             </Typography>
             {officers.map((officer, idx) => (
               <Grid key={`off-${idx}`} container spacing={2} sx={{ mb: 1 }}>
@@ -1142,7 +1374,9 @@ const AuctionTable = () => {
             <Typography variant="body2">
               Date: {viewAuction.auctionDate ? new Date(viewAuction.auctionDate).toLocaleDateString() : '—'}
             </Typography>
-            <Typography variant="body2">Location: {viewAuction.auctionLocation || '—'}</Typography>
+            <Typography variant="body2">
+              Vehicle Location: {viewAuction.vehicleLocation || viewAuction.auctionLocation || '—'}
+            </Typography>
             <Typography variant="body2">Status: {viewAuction.status || '—'}</Typography>
           </Box>
         )}

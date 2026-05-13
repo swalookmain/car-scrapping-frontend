@@ -21,9 +21,9 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
   const {
     open, loading, editMode,
     invoices, invoiceLoading,
-    selectedInvoiceId, selectedVehicleId, vehicleLabel, vehicleFetching,
+    selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleLabel, vehicleFetching,
     parts, errors, fileInputRefs,
-    handleInvoiceSelect, getInvoiceLabel,
+    handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel,
     handlePartChange, addPart, removePart,
     handleFileSelect, removeDocument,
     handleSubmit, handleClose,
@@ -92,14 +92,30 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  label="Vehicle"
-                  value={vehicleFetching ? 'Loading...' : vehicleLabel || selectedVehicleId}
-                  fullWidth
-                  disabled
-                  sx={inputSx}
-                  error={Boolean(errors.vehicleId)}
-                  helperText={errors.vehicleId}
+                <Autocomplete
+                  sx={{ width: '100%' }}
+                  options={invoiceVehicles}
+                  getOptionLabel={(option) => option.label || ''}
+                  value={invoiceVehicles.find((v) => v.id === selectedVehicleId) || null}
+                  onChange={(_, newVal) => handleVehicleSelect(newVal?.id || '')}
+                  disabled={readOnly || vehicleFetching || !selectedInvoiceId}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Vehicle"
+                      fullWidth
+                      sx={inputSx}
+                      error={Boolean(errors.vehicleId)}
+                      helperText={
+                        errors.vehicleId ||
+                        (vehicleFetching
+                          ? 'Loading vehicles...'
+                          : (selectedInvoiceId && invoiceVehicles.length === 0
+                            ? 'No vehicles available for selected invoice'
+                            : ''))
+                      }
+                    />
+                  )}
                 />
               </Grid>
             </Grid>

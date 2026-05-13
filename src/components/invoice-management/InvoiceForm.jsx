@@ -81,8 +81,42 @@ const INITIAL_VEHICLE = {
   rto_district_branch: '',
 };
 
+const EMPTY_DOCUMENTS = {
+  aadhaarFront: null,
+  aadhaarBack: null,
+  rcFront: null,
+  rcBack: null,
+  pan: null,
+  bankDetail: null,
+};
+
+const mapAuctionVehicleToInvoiceVehicle = (vehicleData = {}, fallbackDate = '') => ({
+  ownerName: vehicleData.ownerName || vehicleData.owner || '',
+  isOwnerSelf:
+    typeof vehicleData.isOwnerSelf === 'boolean' ? vehicleData.isOwnerSelf : true,
+  vehicle_type: vehicleData.vehicleType || vehicleData.vehicle_type || 'CAR',
+  make: vehicleData.make || vehicleData.vehicleName || '',
+  model_name: vehicleData.vehicleModel || vehicleData.model || vehicleData.model_name || '',
+  variant: vehicleData.variant || '',
+  fuel_type: vehicleData.fuelType || vehicleData.fuel_type || 'PETROL',
+  registration_number:
+    vehicleData.registrationNumber ||
+    vehicleData.registration_number ||
+    vehicleData.vehicleNumber ||
+    '',
+  chassis_number: vehicleData.chassisNumber || vehicleData.chassis_number || vehicleData.chassisLast5 || '',
+  engine_number: vehicleData.engineNumber || vehicleData.engine_number || '',
+  color: vehicleData.color || '',
+  year_of_manufacture:
+    vehicleData.yearOfManufacture ??
+    vehicleData.year_of_manufacture ??
+    '',
+  vehicle_purchase_date: fallbackDate || '',
+  rto_district_branch: vehicleData.rtoDistrictBranch || vehicleData.rto_district_branch || '',
+});
+
 // ── Component ──────────────────────────────────────────────────
-const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = false, onClose }, ref) => {
+const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, onSubmitVehiclesBatch, readOnly = false, onClose }, ref) => {
   const [open, setOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [invoice, setInvoice] = useState({ ...INITIAL_INVOICE });
@@ -95,13 +129,13 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
   const [vehicleLoading, setVehicleLoading] = useState(false);
   const [leadOptions, setLeadOptions] = useState([]);
   const [auctionOptions, setAuctionOptions] = useState([]);
+  const [auctionVehicles, setAuctionVehicles] = useState([]);
+  const [selectedAuctionVehicleId, setSelectedAuctionVehicleId] = useState('');
+  const [vehicleFormsByAuctionVehicleId, setVehicleFormsByAuctionVehicleId] = useState({});
+  const [vehicleDocumentsByAuctionVehicleId, setVehicleDocumentsByAuctionVehicleId] = useState({});
+  const [completedAuctionVehicleIds, setCompletedAuctionVehicleIds] = useState([]);
   const [documents, setDocuments] = useState({
-    aadhaarFront: null,
-    aadhaarBack: null,
-    rcFront: null,
-    rcBack: null,
-    pan: null,
-    bankDetail: null,
+    ...EMPTY_DOCUMENTS,
   });
   const [existingDocuments, setExistingDocuments] = useState([]);
   const [leadDocuments, setLeadDocuments] = useState([]);
@@ -143,7 +177,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
           items.map((item) => ({
             ...item,
             id: item._id || item.id,
-            label: `${item.auctionNumber} - ${item.sellerEntityName || 'MSTC'}`,
+            label: `${item.auctionNumber} - ${item.sellerName || item.sellerEntityName || 'MSTC'}`,
           })),
         );
       })
@@ -253,11 +287,13 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
           setVehicle(loadedVehicle);
           setInitialVehicle(loadedVehicle);
           setEditingVehicleId(item.vehicle._id || item.vehicle.id || null);
+          setSelectedAuctionVehicleId(item.vehicle.auctionVehicleId || '');
         } else {
           const emptyVehicle = { ...INITIAL_VEHICLE };
           setVehicle(emptyVehicle);
           setInitialVehicle(emptyVehicle);
           setEditingVehicleId(null);
+          setSelectedAuctionVehicleId('');
         }
         setEditingId(item._id || item.id || null);
         // If opened in readOnly mode, try to fetch linked vehicle immediately
@@ -286,16 +322,14 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
         setInitialVehicle(null);
         setEditingId(null);
         setEditingVehicleId(null);
-        setDocuments({
-          aadhaarFront: null,
-          aadhaarBack: null,
-          rcFront: null,
-          rcBack: null,
-          pan: null,
-          bankDetail: null,
-        });
+        setDocuments({ ...EMPTY_DOCUMENTS });
         setExistingDocuments([]);
         setAuctionOptions([]);
+        setAuctionVehicles([]);
+        setSelectedAuctionVehicleId('');
+        setVehicleFormsByAuctionVehicleId({});
+        setVehicleDocumentsByAuctionVehicleId({});
+        setCompletedAuctionVehicleIds([]);
       }
       setActiveStep(0);
       setErrors({});
@@ -309,6 +343,13 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     },
   }));
 
+  useEffect(() => {
+    if (!open || readOnly || invoice.sellerType !== 'MSTC' || !invoice.auctionId || auctionVehicles.length > 0) {
+      return;
+    }
+    handleAuctionSelect(invoice.auctionId);
+  }, [open, readOnly, invoice.sellerType, invoice.auctionId, auctionVehicles.length]);
+
   // ── Helpers ──────────────────────────────────────────────────
   const handleInvoiceChange = (field, value) => {
     if (readOnly) return;
@@ -318,14 +359,33 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
 
   const handleVehicleChange = (field, value) => {
     if (readOnly) return;
-    setVehicle((p) => ({ ...p, [field]: value }));
+    setVehicle((p) => {
+      const next = { ...p, [field]: value };
+      if (invoice.sellerType === 'MSTC' && selectedAuctionVehicleId) {
+        setVehicleFormsByAuctionVehicleId((prev) => ({
+          ...prev,
+          [selectedAuctionVehicleId]: next,
+        }));
+      }
+      return next;
+    });
     if (errors[field]) setErrors((p) => ({ ...p, [field]: '' }));
   };
 
   const handleDocumentChange = (field, value) => {
-    setDocuments((prev) => ({ ...prev, [field]: value }));
+    setDocuments((prev) => {
+      const next = { ...prev, [field]: value };
+      if (invoice.sellerType === 'MSTC' && selectedAuctionVehicleId) {
+        setVehicleDocumentsByAuctionVehicleId((state) => ({
+          ...state,
+          [selectedAuctionVehicleId]: next,
+        }));
+      }
+      return next;
+    });
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
+
 
   const handleLeadSelect = async (leadId) => {
     if (!leadId) {
@@ -382,6 +442,12 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
       handleInvoiceChange('auctionId', '');
       handleInvoiceChange('lotIds', []);
       handleInvoiceChange('vehicleIds', []);
+      setAuctionVehicles([]);
+      setSelectedAuctionVehicleId('');
+      setVehicleFormsByAuctionVehicleId({});
+      setVehicleDocumentsByAuctionVehicleId({});
+      setCompletedAuctionVehicleIds([]);
+      setDocuments({ ...EMPTY_DOCUMENTS });
       return;
     }
     try {
@@ -389,6 +455,35 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
       const auction = res?.data || res;
       const lots = Array.isArray(auction?.lots) ? auction.lots : [];
       const vehicles = Array.isArray(auction?.vehicles) ? auction.vehicles : [];
+      const lotMap = new Map(
+        lots.map((lot) => [lot._id || lot.id, lot.lotNumber || '—']),
+      );
+      const mappedAuctionVehicles = vehicles.map((v, idx) => {
+        const vehicleId = v._id || v.id;
+        const lotId = v.lotId?._id || v.lotId || '';
+        const lotNumber = lotMap.get(lotId) || v.lotNumber || '—';
+        const reg = v.vehicleNumber || v.registrationNumber || `Vehicle ${idx + 1}`;
+        return {
+          id: vehicleId,
+          lotId,
+          lotNumber,
+          label: `${reg} - Lot ${lotNumber}`,
+          data: v,
+        };
+      });
+      const initialDrafts = mappedAuctionVehicles.reduce((acc, item) => {
+        if (!item.id) return acc;
+        acc[item.id] = mapAuctionVehicleToInvoiceVehicle(
+          item.data,
+          auction.auctionDate ? auction.auctionDate.slice(0, 10) : '',
+        );
+        return acc;
+      }, {});
+      const initialDocsByVehicle = mappedAuctionVehicles.reduce((acc, item) => {
+        if (!item.id) return acc;
+        acc[item.id] = { ...EMPTY_DOCUMENTS };
+        return acc;
+      }, {});
       setInvoice((prev) => ({
         ...prev,
         sellerType: 'MSTC',
@@ -400,12 +495,24 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
           lots.map((lot) => lot.lotNumber).filter(Boolean).join(', ') || prev.lotNumber,
         lotIds: lots.map((lot) => lot._id || lot.id).filter(Boolean),
         vehicleIds: vehicles.map((vehicle) => vehicle._id || vehicle.id).filter(Boolean),
-        sellerName: auction.sellerEntityName || prev.sellerName,
+        sellerName: auction.sellerName || auction.sellerEntityName || prev.sellerName,
         purchaseAmount:
           typeof auction.totalAwardedAmount === 'number'
             ? auction.totalAwardedAmount
             : prev.purchaseAmount,
       }));
+      setAuctionVehicles(mappedAuctionVehicles);
+      setVehicleFormsByAuctionVehicleId(initialDrafts);
+      setVehicleDocumentsByAuctionVehicleId(initialDocsByVehicle);
+      setCompletedAuctionVehicleIds([]);
+      if (mappedAuctionVehicles.length > 0) {
+        const first = mappedAuctionVehicles[0];
+        setSelectedAuctionVehicleId(first.id || '');
+        setVehicle(initialDrafts[first.id] || { ...INITIAL_VEHICLE });
+        setDocuments(initialDocsByVehicle[first.id] || { ...EMPTY_DOCUMENTS });
+      } else {
+        setSelectedAuctionVehicleId('');
+      }
     } catch {
       // keep manual entry available
     }
@@ -438,30 +545,97 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     return Object.keys(err).length === 0;
   };
 
-  const validateVehicle = () => {
+  const validateVehicle = (vehicleData = vehicle, documentData = documents) => {
     const err = {};
     const existingTypes = new Set(
       existingDocuments.map((document) => document.documentType),
     );
-    if (!vehicle.ownerName.trim()) err.ownerName = 'Owner name is required';
-    if (!vehicle.make.trim()) err.make = 'Make is required';
-    if (!vehicle.model_name.trim()) err.model_name = 'Model is required';
-    if (!vehicle.registration_number.trim()) err.registration_number = 'Registration number is required';
-    if (!vehicle.chassis_number.trim()) err.chassis_number = 'Chassis number is required';
-    if (!vehicle.engine_number.trim()) err.engine_number = 'Engine number is required';
-    if (!vehicle.year_of_manufacture) err.year_of_manufacture = 'Year of manufacture is required';
-    if (!vehicle.vehicle_purchase_date) err.vehicle_purchase_date = 'Vehicle purchase date is required';
-    if (!vehicle.rto_district_branch?.trim())
+    if (!vehicleData.ownerName?.trim()) err.ownerName = 'Owner name is required';
+    if (!vehicleData.make?.trim()) err.make = 'Make is required';
+    if (!vehicleData.model_name?.trim()) err.model_name = 'Model is required';
+    if (!vehicleData.registration_number?.trim()) err.registration_number = 'Registration number is required';
+    if (!vehicleData.chassis_number?.trim()) err.chassis_number = 'Chassis number is required';
+    if (!vehicleData.engine_number?.trim()) err.engine_number = 'Engine number is required';
+    if (!vehicleData.year_of_manufacture) err.year_of_manufacture = 'Year of manufacture is required';
+    if (!vehicleData.vehicle_purchase_date) err.vehicle_purchase_date = 'Vehicle purchase date is required';
+    if (!vehicleData.rto_district_branch?.trim())
       err.rto_district_branch = 'RTO district/branch is required';
-    if (!documents.aadhaarFront && !existingTypes.has('aadhaarFront') && !existingTypes.has('ownerId')) {
+    if (invoice.sellerType === 'MSTC' && invoice.vehicleIds?.length > 0 && !selectedAuctionVehicleId) {
+      err.auctionVehicleId = 'Select auction vehicle';
+    }
+    if (!documentData.aadhaarFront && !existingTypes.has('aadhaarFront') && !existingTypes.has('ownerId')) {
       err.aadhaarFront = 'Aadhaar front is required';
     }
-    if (!documents.rcFront && !existingTypes.has('rcFront')) {
+    if (!documentData.rcFront && !existingTypes.has('rcFront')) {
       err.rcFront = 'RC front is required';
     }
 
     setErrors(err);
     return Object.keys(err).length === 0;
+  };
+
+  const buildVehiclePayload = (vehicleData, auctionVehicleId) => ({
+    ownerName: vehicleData.ownerName,
+    isOwnerSelf: Boolean(vehicleData.isOwnerSelf),
+    vehicle_type: vehicleData.vehicle_type,
+    make: vehicleData.make,
+    model: vehicleData.model_name,
+    variant: vehicleData.variant,
+    fuel_type: vehicleData.fuel_type,
+    registration_number: vehicleData.registration_number,
+    chassis_number: vehicleData.chassis_number,
+    engine_number: vehicleData.engine_number,
+    color: vehicleData.color,
+    year_of_manufacture: vehicleData.year_of_manufacture
+      ? Number(vehicleData.year_of_manufacture)
+      : 0,
+    vehicle_purchase_date: vehicleData.vehicle_purchase_date,
+    rto_district_branch: vehicleData.rto_district_branch,
+    ...(invoice.sellerType === 'MSTC' && invoice.auctionId
+      ? {
+          auctionId: invoice.auctionId,
+          lotId:
+            auctionVehicles.find((item) => item.id === auctionVehicleId)?.lotId ||
+            undefined,
+          auctionVehicleId: auctionVehicleId || undefined,
+        }
+      : {}),
+  });
+
+  const handleSaveAndNextVehicle = () => {
+    if (!selectedAuctionVehicleId) {
+      setErrors((prev) => ({ ...prev, auctionVehicleId: 'Select auction vehicle' }));
+      return;
+    }
+    if (!validateVehicle(vehicle, documents)) return;
+    setVehicleFormsByAuctionVehicleId((prev) => ({
+      ...prev,
+      [selectedAuctionVehicleId]: vehicle,
+    }));
+    setVehicleDocumentsByAuctionVehicleId((prev) => ({
+      ...prev,
+      [selectedAuctionVehicleId]: documents,
+    }));
+    setCompletedAuctionVehicleIds((prev) =>
+      prev.includes(selectedAuctionVehicleId)
+        ? prev
+        : [...prev, selectedAuctionVehicleId],
+    );
+    const currentIndex = auctionVehicles.findIndex(
+      (item) => item.id === selectedAuctionVehicleId,
+    );
+    if (currentIndex >= 0 && currentIndex < auctionVehicles.length - 1) {
+      const nextVehicle = auctionVehicles[currentIndex + 1];
+      const nextId = nextVehicle.id;
+      setSelectedAuctionVehicleId(nextId);
+      setVehicle(
+        vehicleFormsByAuctionVehicleId[nextId] ||
+          mapAuctionVehicleToInvoiceVehicle(nextVehicle.data, invoice.auctionDate || ''),
+      );
+      setDocuments(
+        vehicleDocumentsByAuctionVehicleId[nextId] || { ...EMPTY_DOCUMENTS },
+      );
+    }
   };
 
   // ── Populate vehicle from API response ────────────────────────
@@ -558,24 +732,77 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
 
   // ── Submit ───────────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!validateVehicle()) return;
+    if (invoice.sellerType === 'MSTC') {
+      const allAuctionVehicleIds = auctionVehicles.map((item) => item.id).filter(Boolean);
+      if (allAuctionVehicleIds.length === 0) {
+        setErrors((prev) => ({
+          ...prev,
+          auctionVehicleId: 'No auction vehicles available',
+        }));
+        return;
+      }
+      const pendingIds = allAuctionVehicleIds.filter(
+        (id) => !completedAuctionVehicleIds.includes(id),
+      );
+      if (pendingIds.length > 0) {
+        setErrors((prev) => ({
+          ...prev,
+          auctionVehicleId: 'Complete and save required fields/docs for all vehicles first',
+        }));
+        return;
+      }
 
-    const vehiclePayload = {
-      ownerName: vehicle.ownerName,
-      isOwnerSelf: Boolean(vehicle.isOwnerSelf),
-      vehicle_type: vehicle.vehicle_type,
-      make: vehicle.make,
-      model: vehicle.model_name,
-      variant: vehicle.variant,
-      fuel_type: vehicle.fuel_type,
-      registration_number: vehicle.registration_number,
-      chassis_number: vehicle.chassis_number,
-      engine_number: vehicle.engine_number,
-      color: vehicle.color,
-      year_of_manufacture: vehicle.year_of_manufacture ? Number(vehicle.year_of_manufacture) : 0,
-      vehicle_purchase_date: vehicle.vehicle_purchase_date,
-      rto_district_branch: vehicle.rto_district_branch,
-    };
+      const vehiclesPayload = [];
+      for (const auctionVehicleId of allAuctionVehicleIds) {
+        const vehicleData = vehicleFormsByAuctionVehicleId[auctionVehicleId];
+        const documentData =
+          vehicleDocumentsByAuctionVehicleId[auctionVehicleId] ||
+          { ...EMPTY_DOCUMENTS };
+        if (!vehicleData || !validateVehicle(vehicleData, documentData)) {
+          return;
+        }
+        vehiclesPayload.push(buildVehiclePayload(vehicleData, auctionVehicleId));
+      }
+      setVehicleLoading(true);
+      const batchRes =
+        typeof onSubmitVehiclesBatch === 'function'
+          ? await onSubmitVehiclesBatch(editingId, vehiclesPayload)
+          : { success: false, error: 'Batch vehicle submit is unavailable' };
+      setVehicleLoading(false);
+
+      if (!batchRes?.success) {
+        setErrors((prev) => ({
+          ...prev,
+          auctionVehicleId:
+            typeof batchRes?.error === 'string'
+              ? batchRes.error
+              : 'Failed to save all vehicle details.',
+        }));
+        return;
+      }
+
+      setInvoice({ ...INITIAL_INVOICE });
+      setVehicle({ ...INITIAL_VEHICLE });
+      setInitialInvoice(null);
+      setInitialVehicle(null);
+      setErrors({});
+      setEditingId(null);
+      setEditingVehicleId(null);
+      setDocuments({ ...EMPTY_DOCUMENTS });
+      setExistingDocuments([]);
+      setLeadDocuments([]);
+      setAuctionVehicles([]);
+      setSelectedAuctionVehicleId('');
+      setVehicleFormsByAuctionVehicleId({});
+      setVehicleDocumentsByAuctionVehicleId({});
+      setCompletedAuctionVehicleIds([]);
+      setActiveStep(0);
+      setOpen(false);
+      return;
+    }
+
+    if (!validateVehicle()) return;
+    const vehiclePayload = buildVehiclePayload(vehicle, selectedAuctionVehicleId);
 
     setVehicleLoading(true);
     const res = await onSubmitVehicle(
@@ -595,16 +822,14 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
       setErrors({});
       setEditingId(null);
       setEditingVehicleId(null);
-      setDocuments({
-        aadhaarFront: null,
-        aadhaarBack: null,
-        rcFront: null,
-        rcBack: null,
-        pan: null,
-        bankDetail: null,
-      });
+      setDocuments({ ...EMPTY_DOCUMENTS });
       setExistingDocuments([]);
       setLeadDocuments([]);
+      setAuctionVehicles([]);
+      setSelectedAuctionVehicleId('');
+      setVehicleFormsByAuctionVehicleId({});
+      setVehicleDocumentsByAuctionVehicleId({});
+      setCompletedAuctionVehicleIds([]);
       setActiveStep(0);
       setOpen(false);
     }
@@ -617,16 +842,14 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
     setInitialInvoice(null);
     setInitialVehicle(null);
     setErrors({});
-    setDocuments({
-      aadhaarFront: null,
-      aadhaarBack: null,
-      rcFront: null,
-      rcBack: null,
-      pan: null,
-      bankDetail: null,
-    });
+    setDocuments({ ...EMPTY_DOCUMENTS });
     setExistingDocuments([]);
     setLeadDocuments([]);
+    setAuctionVehicles([]);
+    setSelectedAuctionVehicleId('');
+    setVehicleFormsByAuctionVehicleId({});
+    setVehicleDocumentsByAuctionVehicleId({});
+    setCompletedAuctionVehicleIds([]);
     setActiveStep(0);
   };
 
@@ -909,6 +1132,13 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
   );
 
   // ── Render ───────────────────────────────────────────────────
+  const allAuctionVehicleIds = auctionVehicles.map((item) => item.id).filter(Boolean);
+  const allVehiclesCompleted =
+    allAuctionVehicleIds.length > 0 &&
+    allAuctionVehicleIds.every((id) => completedAuctionVehicleIds.includes(id));
+  const isMstcVehicleStep =
+    !readOnly && activeStep === 1 && invoice.sellerType === 'MSTC';
+
   return (
     <NormalModal
       open={open}
@@ -941,21 +1171,54 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
                 Back
               </Button>
             )}
-            <Button
-              onClick={handleNext}
-              variant="contained"
-              disabled={vehicleLoading || (!!editingId && activeStep === STEPS.length - 1 && !(
-                !initialInvoice ||
-                JSON.stringify(invoice) !== JSON.stringify(initialInvoice) ||
-                JSON.stringify(vehicle) !== JSON.stringify(initialVehicle)
-              ))}
-              sx={{
-                backgroundColor: 'var(--color-secondary-main)',
-                '&:hover': { backgroundColor: 'var(--color-secondary-dark)' },
-              }}
-            >
-              {activeStep === STEPS.length - 1 ? 'Save Vehicle' : (editingId ? 'Save & Next' : 'Save & Next')}
-            </Button>
+            {isMstcVehicleStep ? (
+              <>
+                <Button
+                  onClick={handleSaveAndNextVehicle}
+                  variant="outlined"
+                  disabled={vehicleLoading || !selectedAuctionVehicleId}
+                  sx={{
+                    borderColor: 'var(--color-secondary-main)',
+                    color: 'var(--color-secondary-main)',
+                  }}
+                >
+                  Save & Next Vehicle
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  variant="contained"
+                  disabled={vehicleLoading || !allVehiclesCompleted}
+                  sx={{
+                    backgroundColor: allVehiclesCompleted
+                      ? 'var(--color-secondary-main)'
+                      : 'var(--color-grey-300)',
+                    '&:hover': {
+                      backgroundColor: allVehiclesCompleted
+                        ? 'var(--color-secondary-dark)'
+                        : 'var(--color-grey-300)',
+                    },
+                  }}
+                >
+                  Final Save Vehicle Invoice
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={handleNext}
+                variant="contained"
+                disabled={vehicleLoading || (!!editingId && activeStep === STEPS.length - 1 && !(
+                  !initialInvoice ||
+                  JSON.stringify(invoice) !== JSON.stringify(initialInvoice) ||
+                  JSON.stringify(vehicle) !== JSON.stringify(initialVehicle)
+                ))}
+                sx={{
+                  backgroundColor: 'var(--color-secondary-main)',
+                  '&:hover': { backgroundColor: 'var(--color-secondary-dark)' },
+                }}
+              >
+                {activeStep === STEPS.length - 1 ? 'Save Vehicle' : (editingId ? 'Save & Next' : 'Save & Next')}
+              </Button>
+            )}
           </>
         )
       }
@@ -989,14 +1252,74 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
             <CircularProgress sx={{ color: 'var(--color-secondary-main)' }} />
           </Box>
         ) : (
-          <InvoiceVehicleStep
-            vehicle={vehicle}
-            errors={errors}
-            onChange={handleVehicleChange}
-            readOnly={readOnly}
-            documents={documents}
-            onDocumentChange={handleDocumentChange}
-          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {invoice.sellerType === 'MSTC' && (
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    select
+                    label="Auction Vehicle"
+                    value={selectedAuctionVehicleId}
+                    onChange={(e) => {
+                      const nextId = e.target.value;
+                      if (selectedAuctionVehicleId) {
+                        setVehicleFormsByAuctionVehicleId((prev) => ({
+                          ...prev,
+                          [selectedAuctionVehicleId]: vehicle,
+                        }));
+                        setVehicleDocumentsByAuctionVehicleId((prev) => ({
+                          ...prev,
+                          [selectedAuctionVehicleId]: documents,
+                        }));
+                      }
+                      setSelectedAuctionVehicleId(nextId);
+                      const selectedForm = vehicleFormsByAuctionVehicleId[nextId];
+                      const selectedDocs = vehicleDocumentsByAuctionVehicleId[nextId];
+                      if (selectedForm) {
+                        setVehicle(selectedForm);
+                        setDocuments(selectedDocs || { ...EMPTY_DOCUMENTS });
+                        return;
+                      }
+                      const selected = auctionVehicles.find((item) => item.id === nextId);
+                      if (selected?.data) {
+                        const fallback = mapAuctionVehicleToInvoiceVehicle(
+                          selected.data,
+                          invoice.auctionDate || '',
+                        );
+                        setVehicle(fallback);
+                        setDocuments(selectedDocs || { ...EMPTY_DOCUMENTS });
+                      }
+                    }}
+                    fullWidth
+                    disabled={readOnly}
+                    sx={inputSx}
+                    error={Boolean(errors.auctionVehicleId)}
+                    helperText={
+                      errors.auctionVehicleId ||
+                      `Total auction vehicles: ${auctionVehicles.length}`
+                    }
+                  >
+                    {auctionVehicles.map((item) => (
+                      <MenuItem key={item.id} value={item.id}>
+                        {item.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <Typography variant="caption" sx={{ color: 'var(--color-grey-500)' }}>
+                    Completed vehicles: {completedAuctionVehicleIds.length}/{auctionVehicles.length}
+                  </Typography>
+                </Grid>
+              </Grid>
+            )}
+            <InvoiceVehicleStep
+              vehicle={vehicle}
+              errors={errors}
+              onChange={handleVehicleChange}
+              readOnly={readOnly}
+              documents={documents}
+              onDocumentChange={handleDocumentChange}
+            />
+          </Box>
         )
       )}
     </NormalModal>
@@ -1006,6 +1329,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, readOnly = fal
 InvoiceForm.propTypes = {
   onSaveInvoice: PropTypes.func,
   onSubmitVehicle: PropTypes.func,
+  onSubmitVehiclesBatch: PropTypes.func,
   readOnly: PropTypes.bool,
   onClose: PropTypes.func,
 };

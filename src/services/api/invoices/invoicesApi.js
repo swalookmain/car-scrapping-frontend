@@ -64,6 +64,14 @@ export const invoicesApi = {
     return response.data;
   },
 
+  createVehiclesBatch: async (payload) => {
+    const response = await axiosInstance.post(
+      ENDPOINTS.INVOICES.VEHICLE.CREATE_BATCH,
+      payload,
+    );
+    return response.data;
+  },
+
   getVehicleById: async (invoiceId) => {
     const response = await axiosInstance.get(ENDPOINTS.INVOICES.VEHICLE.GET_BY_ID, { params: { invoiceId } });
     return response.data;
