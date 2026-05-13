@@ -26,6 +26,10 @@ const auctionsApi = {
     const response = await axiosInstance.post(ENDPOINTS.AUCTIONS.CLOSE_DEAL(id));
     return response.data;
   },
+  updateStatus: async (id, payload) => {
+    const response = await axiosInstance.patch(ENDPOINTS.AUCTIONS.UPDATE_STATUS(id), payload);
+    return response.data;
+  },
   cancel: async (id, payload) => {
     const response = await axiosInstance.post(ENDPOINTS.AUCTIONS.CANCEL(id), payload);
     return response.data;

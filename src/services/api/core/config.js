@@ -39,6 +39,7 @@ export const ENDPOINTS = {
     VEHICLE: {
       GET_ALL: '/invoice/vechile',
       CREATE: '/invoice/vechile',
+      CREATE_BATCH: '/invoice/vechile/batch',
       GET_BY_ID: '/invoice/vechile',
       UPDATE: (id) => `/invoice/vechile/${id}`,
       DELETE: (id) => `/invoice/vechile/${id}`,
@@ -72,6 +73,7 @@ export const ENDPOINTS = {
     LOOKUP: '/auctions/lookup',
     LOOKUP_BY_ID: (id) => `/auctions/lookup/${id}`,
     CLOSE_DEAL: (id) => `/auctions/${id}/close-deal`,
+    UPDATE_STATUS: (id) => `/auctions/${id}/status`,
     CANCEL: (id) => `/auctions/${id}/cancel`,
     LOTS: (id) => `/auctions/${id}/lots`,
     UPDATE_LOT: (id) => `/auctions/lots/${id}`,

@@ -52,6 +52,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   // Invoice & Vehicle selection
   const [invoices,         setInvoices]         = useState([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
+  const [invoiceVehicles, setInvoiceVehicles] = useState([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [vehicleLabel,     setVehicleLabel]     = useState('');
   // vehicleFetching now comes from useApiCall above
@@ -92,6 +93,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   };
 
   const fetchVehicleForInvoice = async (invoiceId) => {
+    setInvoiceVehicles([]);
     setSelectedVehicleId('');
     setVehicleLabel('');
     try {
@@ -100,18 +102,25 @@ export function useInventoryForm({ onSubmit, readOnly }) {
         const vehicles = Array.isArray(vehRes?.data)
           ? vehRes.data
           : vehRes?.data ? [vehRes.data] : [];
-        if (vehicles.length > 0) {
-          const v   = vehicles[0];
-          const vid = v._id || v.id || '';
-          const label =
-            [v.make, v.model_name || v.model, v.registration_number]
-              .filter(Boolean)
-              .join(' • ') || vid;
-          setSelectedVehicleId(vid);
-          setVehicleLabel(label);
+        const mappedVehicles = vehicles
+          .map((v) => {
+            const id = v._id || v.id || '';
+            const label =
+              [v.make, v.model_name || v.model, v.registration_number]
+                .filter(Boolean)
+                .join(' • ') || id;
+            return { ...v, id, label };
+          })
+          .filter((v) => Boolean(v.id));
+        setInvoiceVehicles(mappedVehicles);
+        if (mappedVehicles.length > 0) {
+          const first = mappedVehicles[0];
+          setSelectedVehicleId(first.id);
+          setVehicleLabel(first.label);
         }
       });
     } catch {
+      setInvoiceVehicles([]);
       setSelectedVehicleId('');
       setVehicleLabel('No vehicle found');
     }
@@ -124,9 +133,17 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     if (invoiceId) {
       fetchVehicleForInvoice(invoiceId);
     } else {
+      setInvoiceVehicles([]);
       setSelectedVehicleId('');
       setVehicleLabel('');
     }
+  };
+
+  const handleVehicleSelect = (vehicleId) => {
+    setSelectedVehicleId(vehicleId);
+    if (errors.vehicleId) setErrors((p) => ({ ...p, vehicleId: '' }));
+    const selected = invoiceVehicles.find((v) => v.id === vehicleId);
+    setVehicleLabel(selected?.label || '');
   };
 
   const handlePartChange = (index, field, value) => {
@@ -253,6 +270,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     setEditMode(false);
     setEditingId(null);
     setSelectedInvoiceId('');
+    setInvoiceVehicles([]);
     setSelectedVehicleId('');
     setVehicleLabel('');
     setParts([createInitialPart()]);
@@ -264,6 +282,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
       setEditMode(true);
       setEditingId(item._id || item.id);
       setSelectedInvoiceId(item.invoiceId || '');
+      setInvoiceVehicles([]);
       setSelectedVehicleId(item.vechileId || item.vehicleId || '');
       setVehicleLabel(() => {
         const veh = item.vehicle;
@@ -290,6 +309,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
       setEditMode(false);
       setEditingId(null);
       setSelectedInvoiceId('');
+      setInvoiceVehicles([]);
       setSelectedVehicleId('');
       setVehicleLabel('');
       setParts([createInitialPart()]);
@@ -303,11 +323,11 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     // state
     open, loading, editMode,
     invoices, invoiceLoading,
-    selectedInvoiceId, selectedVehicleId, vehicleLabel, vehicleFetching,
+    selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleLabel, vehicleFetching,
     parts, errors,
     fileInputRefs,
     // handlers
-    handleInvoiceSelect, getInvoiceLabel,
+    handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel,
     handlePartChange, addPart, removePart,
     handleFileSelect, removeDocument,
     handleSubmit, handleClose,

@@ -1,12 +1,13 @@
 import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropTypes from 'prop-types';
-import { Typography, Box, Divider, Button } from '@mui/material';
+import { Typography, Box, Divider, Button, Grid, MenuItem, TextField } from '@mui/material';
 import ConfirmDialog from '../../ui/ConfirmDialog';
 import NormalTable from '../../ui/NormalTable';
 import NormalModal from '../../ui/NormalModal';
 import DocumentPreview from '../../ui/DocumentPreview';
 import TableToolbar from '../../ui/TableToolbar';
+import inputSx from '../../services/inputStyles';
 import InvoiceForm from './InvoiceForm';
 import InvoicePayments from '../accounting/InvoicePayments';
 import { getInvoiceColumns, invoiceStatusColor } from './invoiceColumns';
@@ -28,22 +29,28 @@ const InvoiceTable = ({ isLoading }) => {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewItem, setViewItem] = useState(null);
   const [viewStep, setViewStep] = useState(0); // 0: invoice, 1: vehicle
+  const [viewVehicles, setViewVehicles] = useState([]);
+  const [viewVehicleIndex, setViewVehicleIndex] = useState(0);
 
   const handleView = async (row) => {
     try {
       const invoiceRes = await invoicesApi.getById(row._id || row.id);
       const invoiceData = invoiceRes?.data || invoiceRes || row;
-      // try to fetch linked vehicle(s) for this invoice and attach first vehicle
+      // try to fetch linked vehicle(s) for this invoice and attach list
       try {
         const id = invoiceData._id || invoiceData.id;
         if (id) {
           const vehRes = await invoicesApi.getVehicleById(id);
           const vehicles = Array.isArray(vehRes?.data) ? vehRes.data : (vehRes?.data ? [vehRes.data] : []);
+          setViewVehicles(vehicles);
+          setViewVehicleIndex(0);
           const vData = vehicles.length > 0 ? vehicles[0] : null;
-          if (vData) invoiceData.vehicle = vData;
+          if (vData) invoiceData.vehicle = vData; // backward compatible for existing UI rows
         }
       } catch (vehErr) {
         // ignore vehicle fetch errors — still show invoice
+        setViewVehicles([]);
+        setViewVehicleIndex(0);
       }
       setViewItem(invoiceData);
       setViewStep(0);
@@ -55,15 +62,21 @@ const InvoiceTable = ({ isLoading }) => {
         if (id) {
           const vehRes = await invoicesApi.getVehicleById(id);
           const vehicles = Array.isArray(vehRes?.data) ? vehRes.data : (vehRes?.data ? [vehRes.data] : []);
+          setViewVehicles(vehicles);
+          setViewVehicleIndex(0);
           const vData = vehicles.length > 0 ? vehicles[0] : null;
           const fallback = { ...row };
           if (vData) fallback.vehicle = vData;
           setViewItem(fallback);
         } else {
           setViewItem(row);
+          setViewVehicles([]);
+          setViewVehicleIndex(0);
         }
       } catch (vehErr) {
         setViewItem(row);
+        setViewVehicles([]);
+        setViewVehicleIndex(0);
       }
       setViewStep(0);
       setViewOpen(true);
@@ -153,8 +166,38 @@ const InvoiceTable = ({ isLoading }) => {
       return { success: true };
     } catch (err) {
       console.error('Vehicle save error:', err);
-      toast.error('Failed to save vehicle details. Please try again.');
-      return { success: false };
+      const backendMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message;
+      toast.error(
+        typeof backendMessage === 'string'
+          ? backendMessage
+          : 'Failed to save vehicle details. Please try again.',
+      );
+      return { success: false, error: backendMessage };
+    }
+  };
+
+  const handleSubmitVehiclesBatch = async (invoiceId, vehicles) => {
+    try {
+      if (!invoiceId) throw new Error('Missing invoice ID');
+      await invoicesApi.createVehiclesBatch({ invoiceId, vehicles });
+      toast.success('Vehicle details added');
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      return { success: true };
+    } catch (err) {
+      console.error('Vehicle batch save error:', err);
+      const backendMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message;
+      toast.error(
+        typeof backendMessage === 'string'
+          ? backendMessage
+          : 'Failed to save vehicle details. Please try again.',
+      );
+      return { success: false, error: backendMessage };
     }
   };
 
@@ -167,6 +210,8 @@ const InvoiceTable = ({ isLoading }) => {
     setViewOpen(false);
     setViewItem(null);
     setViewStep(0);
+    setViewVehicles([]);
+    setViewVehicleIndex(0);
   }, []);
 
   const [preview, setPreview] = useState({ open: false, src: null, name: null, mime: null });
@@ -253,7 +298,12 @@ const InvoiceTable = ({ isLoading }) => {
         onRowsPerPageChange={(r) => { setRowsPerPage(r); setPage(0); }}
       />
 
-      <InvoiceForm ref={formRef} onSaveInvoice={handleSaveInvoice} onSubmitVehicle={handleSubmitVehicle} />
+      <InvoiceForm
+        ref={formRef}
+        onSaveInvoice={handleSaveInvoice}
+        onSubmitVehicle={handleSubmitVehicle}
+        onSubmitVehiclesBatch={handleSubmitVehiclesBatch}
+      />
 
       <NormalModal
         open={viewOpen}
@@ -279,7 +329,11 @@ const InvoiceTable = ({ isLoading }) => {
       >
         {viewItem && (() => {
           const inv = viewItem;
-          const veh = inv.vehicle || {};
+          const selectedVehicle =
+            (Array.isArray(viewVehicles) && viewVehicles[viewVehicleIndex])
+              ? viewVehicles[viewVehicleIndex]
+              : inv.vehicle;
+          const veh = selectedVehicle || {};
           const make = veh.make || inv.vehicleMake || '';
           const model = veh.model_name || veh.model || inv.vehicleModel || '';
           const st = invoiceStatusColor[inv.status] || invoiceStatusColor.DRAFT;
@@ -346,6 +400,38 @@ const InvoiceTable = ({ isLoading }) => {
 
           return (
             <>
+              {viewStep === 1 && viewVehicles.length > 1 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
+                    Vehicle Selection
+                  </Typography>
+                  <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                    <Grid item xs={12}>
+                      <TextField
+                        select
+                        label="Vehicle"
+                        value={viewVehicleIndex}
+                        onChange={(e) => setViewVehicleIndex(Number(e.target.value))}
+                        fullWidth
+                        sx={inputSx}
+                        helperText={`Total vehicles: ${viewVehicles.length}`}
+                      >
+                        {viewVehicles.map((v, idx) => {
+                          const label = [v.make, v.model_name || v.model, v.registration_number || v.registrationNumber]
+                            .filter(Boolean)
+                            .join(' • ') || (v._id || v.id || `Vehicle ${idx + 1}`);
+                          return (
+                            <MenuItem key={v._id || v.id || idx} value={idx}>
+                              {label}
+                            </MenuItem>
+                          );
+                        })}
+                      </TextField>
+                    </Grid>
+                  </Grid>
+                  <Divider sx={{ mt: 2 }} />
+                </Box>
+              )}
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                 {rows.map(({ label, value }) => (
                   <Box key={label}>
