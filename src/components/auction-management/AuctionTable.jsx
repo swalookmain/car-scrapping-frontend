@@ -37,10 +37,7 @@ const AUCTION_STATUS_OPTIONS = ['UPCOMING', 'ONGOING', 'STA', 'DEAL_DONE', 'REJE
 /** Same options as [LeadForm.jsx](lead-management/LeadForm.jsx) */
 const VEHICLE_TYPES = ['CAR', 'BIKE', 'COMMERCIAL'];
 
-const VEHICLE_NUMBER_REGEX =
-  /^(?:[A-Z]{2}[- ]?\d{1,2}[- ]?[A-Z]{1,3}[- ]?\d{4}|[0-9]{2}[- ]?BH[- ]?[0-9]{4}[- ]?[A-Z]{2})$/;
-
-const normalizeVehiclePlate = (value) => (value || '').toUpperCase().replace(/[\s-]+/g, '');
+const OFFICER_TYPE_SELLER = 'SELLER';
 
 const INITIAL_AUCTION = {
   auctionerName: 'MSTC',
@@ -97,7 +94,9 @@ const formatTimeFromDate = (d) =>
 const toIsoDateTime = (dateValue, timeValue) =>
   dateValue && timeValue ? new Date(`${dateValue}T${timeValue}:00`).toISOString() : '';
 
-const emptyOfficers = () => [{ name: '', email: '', phoneNumber: '' }];
+const emptyOfficers = (auctionerName = 'MSTC') => [
+  { name: '', email: '', phoneNumber: '', officerType: auctionerName },
+];
 
 const AuctionTable = () => {
   const queryClient = useQueryClient();
@@ -141,7 +140,7 @@ const AuctionTable = () => {
     setWizardMode('create');
     setAuctionId('');
     setAuctionForm({ ...INITIAL_AUCTION });
-    setOfficers(emptyOfficers());
+    setOfficers(emptyOfficers(INITIAL_AUCTION.auctionerName));
     setLots([{ ...INITIAL_LOT }]);
     setSelectedLotIndex(0);
     setVehiclesByLotIndex({});
@@ -220,7 +219,14 @@ const AuctionTable = () => {
       sellerEmail: form.sellerEmail || undefined,
       sellerAccountNumber: form.sellerAccountNumber || undefined,
       sellerTaxMode: form.sellerTaxMode || 'RCM',
-      officers: officerRows.filter((x) => x.name?.trim()),
+      officers: officerRows
+        .filter((x) => x.name?.trim())
+        .map((x) => ({
+          name: x.name.trim(),
+          email: x.email?.trim() || undefined,
+          phoneNumber: x.phoneNumber?.trim() || undefined,
+          officerType: x.officerType || form.auctionerName || 'MSTC',
+        })),
     }),
     [],
   );
@@ -261,8 +267,13 @@ const AuctionTable = () => {
           name: x.name || '',
           email: x.email || '',
           phoneNumber: x.phoneNumber || '',
+          officerType:
+            x.officerType ||
+            auction?.auctionerName ||
+            auction?.sourcePlatform ||
+            'MSTC',
         }))
-      : emptyOfficers();
+      : emptyOfficers(auction?.auctionerName || auction?.sourcePlatform || 'MSTC');
     setOfficers(o);
     setStatusForm({
       status: auction?.status || 'UPCOMING',
@@ -440,20 +451,15 @@ const AuctionTable = () => {
         throw new Error(`Lot "${lot.lotNumber}": enter exactly ${count} vehicles`);
       }
       const payload = {
-        vehicles: list.map((v, vi) => {
-          const plate = normalizeVehiclePlate(v.vehicleNumber);
-          if (plate && !VEHICLE_NUMBER_REGEX.test(plate)) {
-            throw new Error(
-              `Vehicle ${vi + 1} (${lot.lotNumber || 'lot'}): enter a valid Indian vehicle number`,
-            );
-          }
+        vehicles: list.map((v) => {
+          const plate = (v.vehicleNumber || '').trim() || undefined;
           return {
             vehicleType: v.vehicleType,
             make: v.make,
             model: v.model,
             variant: v.variant,
-            vehicleNumber: plate || undefined,
-            registrationNumber: plate || undefined,
+            vehicleNumber: plate,
+            registrationNumber: plate,
             color: v.color,
             chassisLast5: v.chassisLast5?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5),
             yearOfManufacture: v.yearOfManufacture ? Number(v.yearOfManufacture) : undefined,
@@ -800,11 +806,21 @@ const AuctionTable = () => {
                   fullWidth
                   label="Auctioner name"
                   value={auctionForm.auctionerName}
-                  onChange={(e) => setAuctionForm((p) => ({ ...p, auctionerName: e.target.value }))}
+                  onChange={(e) => {
+                    const nextAuctioner = e.target.value;
+                    setAuctionForm((p) => ({ ...p, auctionerName: nextAuctioner }));
+                    setOfficers((prev) =>
+                      prev.map((officer) => {
+                        if (officer.officerType === OFFICER_TYPE_SELLER) return officer;
+                        return { ...officer, officerType: nextAuctioner };
+                      }),
+                    );
+                  }}
                   sx={inputSx}
                 >
                   <MenuItem value="MSTC">MSTC</MenuItem>
                   <MenuItem value="GEM">GEM</MenuItem>
+                  <MenuItem value="OTHERS">Others</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -952,49 +968,99 @@ const AuctionTable = () => {
               Officer details
             </Typography>
             {officers.map((officer, idx) => (
-              <Grid key={`off-${idx}`} container spacing={2} sx={{ mb: 1 }}>
-                <Grid item xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    label="Name"
-                    value={officer.name}
-                    onChange={(e) =>
-                      setOfficers((prev) =>
-                        prev.map((item, i) => (i === idx ? { ...item, name: e.target.value } : item)),
-                      )
-                    }
-                    sx={inputSx}
-                  />
+              <Box key={`off-${idx}`} sx={{ mb: 2 }}>
+                {idx > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 0.5 }}>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      aria-label="Remove officer"
+                      onClick={() => setOfficers((prev) => prev.filter((_, i) => i !== idx))}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                )}
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      select
+                      fullWidth
+                      label="Officer type"
+                      value={officer.officerType || auctionForm.auctionerName}
+                      onChange={(e) =>
+                        setOfficers((prev) =>
+                          prev.map((item, i) =>
+                            i === idx ? { ...item, officerType: e.target.value } : item,
+                          ),
+                        )
+                      }
+                      sx={inputSx}
+                    >
+                      <MenuItem value={auctionForm.auctionerName}>
+                        {auctionForm.auctionerName}
+                      </MenuItem>
+                      <MenuItem value={OFFICER_TYPE_SELLER}>Seller type</MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Name"
+                      value={officer.name}
+                      onChange={(e) =>
+                        setOfficers((prev) =>
+                          prev.map((item, i) => (i === idx ? { ...item, name: e.target.value } : item)),
+                        )
+                      }
+                      sx={inputSx}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Email (optional)"
+                      value={officer.email}
+                      onChange={(e) =>
+                        setOfficers((prev) =>
+                          prev.map((item, i) => (i === idx ? { ...item, email: e.target.value } : item)),
+                        )
+                      }
+                      sx={inputSx}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Phone (optional)"
+                      value={officer.phoneNumber}
+                      onChange={(e) =>
+                        setOfficers((prev) =>
+                          prev.map((item, i) =>
+                            i === idx ? { ...item, phoneNumber: e.target.value } : item,
+                          ),
+                        )
+                      }
+                      sx={inputSx}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    label="Email (optional)"
-                    value={officer.email}
-                    onChange={(e) =>
-                      setOfficers((prev) =>
-                        prev.map((item, i) => (i === idx ? { ...item, email: e.target.value } : item)),
-                      )
-                    }
-                    sx={inputSx}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    label="Phone (optional)"
-                    value={officer.phoneNumber}
-                    onChange={(e) =>
-                      setOfficers((prev) =>
-                        prev.map((item, i) => (i === idx ? { ...item, phoneNumber: e.target.value } : item)),
-                      )
-                    }
-                    sx={inputSx}
-                  />
-                </Grid>
-              </Grid>
+              </Box>
             ))}
-            <Button variant="outlined" onClick={() => setOfficers((prev) => [...prev, { name: '', email: '', phoneNumber: '' }])}>
+            <Button
+              variant="outlined"
+              onClick={() =>
+                setOfficers((prev) => [
+                  ...prev,
+                  {
+                    name: '',
+                    email: '',
+                    phoneNumber: '',
+                    officerType: auctionForm.auctionerName,
+                  },
+                ])
+              }
+            >
               Add more officer
             </Button>
           </>
@@ -1251,9 +1317,8 @@ const AuctionTable = () => {
                         fullWidth
                         label="Vehicle number"
                         value={vehicle.vehicleNumber ?? ''}
-                        helperText="As per RC (same as lead module)"
                         onChange={(e) => {
-                          const val = e.target.value.toUpperCase();
+                          const val = e.target.value;
                           setVehiclesByLotIndex((prev) => {
                             const cur = Array.isArray(prev[li])
                               ? [...prev[li]]
