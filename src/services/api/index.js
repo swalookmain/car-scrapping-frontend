@@ -6,6 +6,7 @@ export { default as invoicesApi } from './invoices/invoicesApi';
 export { default as leadsApi } from './leads/leadsApi';
 export { default as auctionsApi } from './auctions/auctionsApi';
 export { default as inventoryApi } from './inventory/inventoryApi';
+export { default as yardApi } from './yard/yardApi';
 export { default as auditLogsApi } from './auditLogs/auditLogsApi';
 export { default as vehicleComplianceApi } from './vehicleCompliance/vehicleComplianceApi';
 export { default as buyersApi } from './salesDispatch/buyersApi';

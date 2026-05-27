@@ -11,6 +11,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import GavelIcon from '@mui/icons-material/Gavel';
+import LocalParkingIcon from '@mui/icons-material/LocalParking';
 
 
 export const ROLES = {
@@ -47,6 +48,10 @@ export const ROUTE_CONFIG = [
   },
   {
     path: '/invoices',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/yard',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
@@ -198,6 +203,17 @@ export const SIDEBAR_CONFIG = [
         path: '/invoices',
         label: 'Purchase Invoices',
         icon: ReceiptIcon,
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
+    ],
+  },
+  {
+    section: 'Yard Operations',
+    items: [
+      {
+        path: '/yard',
+        label: 'Yard Management',
+        icon: LocalParkingIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
