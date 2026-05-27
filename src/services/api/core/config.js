@@ -92,6 +92,20 @@ export const ENDPOINTS = {
     UPDATE: (id) => `/inventory/${id}`,
     DELETE: (id) => `/inventory/${id}`,
   },
+  YARD: {
+    VEHICLES: '/yard/vehicles',
+    VEHICLE_BY_ID: (id) => `/yard/vehicles/${id}`,
+    BY_VEHICLE_INVOICE: (vehicleInvoiceId) =>
+      `/yard/vehicles/by-vehicle-invoice/${vehicleInvoiceId}`,
+    MOVEMENTS: (id) => `/yard/vehicles/${id}/movements`,
+    UPDATE_STATUS: (id) => `/yard/vehicles/${id}/status`,
+    START_DISMANTLING: (vehicleInvoiceId) =>
+      `/yard/vehicles/${vehicleInvoiceId}/start-dismantling`,
+    DASHBOARD: '/yard/dashboard/summary',
+    ZONES: '/yard/zones',
+    CREATE_ZONE: '/yard/zones',
+    BACKFILL: '/yard/backfill',
+  },
   AUDIT_LOGS: {
     GET_ALL: '/audit-logs',
     GET_STAFF: '/audit-logs/staff',

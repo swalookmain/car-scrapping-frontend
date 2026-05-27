@@ -22,8 +22,9 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     open, loading, editMode,
     invoices, invoiceLoading,
     selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleLabel, vehicleFetching,
+    yardStatus, yardLoading, hasYardRecord, canAddParts,
     parts, errors, fileInputRefs,
-    handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel,
+    handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel, handleStartDismantling,
     handlePartChange, addPart, removePart,
     handleFileSelect, removeDocument,
     handleSubmit, handleClose,
@@ -51,7 +52,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
             <Button
               variant="contained"
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || (!editMode && hasYardRecord && !canAddParts)}
               sx={{
                 backgroundColor: 'var(--color-secondary-main)',
                 '&:hover': { backgroundColor: 'var(--color-secondary-dark)' },
@@ -118,6 +119,50 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
                   )}
                 />
               </Grid>
+              {selectedVehicleId && hasYardRecord && (
+                <Grid item xs={12}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(106, 75, 255, 0.06)',
+                      border: '1px solid rgba(106, 75, 255, 0.15)',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      Yard status:{' '}
+                      <strong>{yardStatus?.replace(/_/g, ' ') || '—'}</strong>
+                      {yardLoading ? ' (checking…)' : ''}
+                    </Typography>
+                    {yardStatus === 'PARKED' && (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        disabled={yardLoading}
+                        onClick={handleStartDismantling}
+                        sx={{ mr: 1 }}
+                      >
+                        Start dismantling
+                      </Button>
+                    )}
+                    {yardStatus === 'AWAITING_ARRIVAL' && (
+                      <Typography variant="caption" color="error">
+                        Park this vehicle in Yard Management before dismantling.
+                      </Typography>
+                    )}
+                    {errors.yard && (
+                      <Typography variant="caption" color="error" display="block" sx={{ mt: 0.5 }}>
+                        {errors.yard}
+                      </Typography>
+                    )}
+                    {canAddParts && yardStatus === 'DISMANTLING_IN_PROGRESS' && (
+                      <Typography variant="caption" color="success.main">
+                        Ready to add dismantled parts.
+                      </Typography>
+                    )}
+                  </Box>
+                </Grid>
+              )}
             </Grid>
             <Divider />
           </>
@@ -128,7 +173,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
             Parts {parts.length > 1 ? `(${parts.length})` : ''}
           </Typography>
-          {!editMode && !readOnly && (
+          {!editMode && !readOnly && canAddParts && (
             <Button
               startIcon={<AddIcon />}
               onClick={addPart}
@@ -146,7 +191,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
             part={part}
             index={index}
             errors={errors}
-            readOnly={readOnly}
+            readOnly={readOnly || (!editMode && hasYardRecord && !canAddParts)}
             showRemove={parts.length > 1}
             onPartChange={handlePartChange}
             onRemovePart={removePart}

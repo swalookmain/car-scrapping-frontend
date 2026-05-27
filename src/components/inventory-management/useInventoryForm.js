@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
-import { invoicesApi } from '../../services/api';
+import { invoicesApi, yardApi } from '../../services/api';
 import useApiCall from '../../hooks/useApiCall';
+import toast from 'react-hot-toast';
 
 // ── Helpers ───────────────────────────────────────────────────
 export const fileToBase64 = (file) =>
@@ -48,6 +49,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   const { execute: executeForm, loading: loading } = useApiCall();
   const { execute: executeInvoice, loading: invoiceLoading } = useApiCall();
   const { execute: executeVehicle, loading: vehicleFetching } = useApiCall();
+  const { execute: executeYard, loading: yardLoading } = useApiCall();
 
   // Invoice & Vehicle selection
   const [invoices,         setInvoices]         = useState([]);
@@ -55,7 +57,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   const [invoiceVehicles, setInvoiceVehicles] = useState([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [vehicleLabel,     setVehicleLabel]     = useState('');
-  // vehicleFetching now comes from useApiCall above
+  const [yardRecord, setYardRecord] = useState(null);
 
   // Parts & validation
   const [parts,    setParts]  = useState([createInitialPart()]);
@@ -92,10 +94,26 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     }
   };
 
+  const fetchYardForVehicle = async (vehicleInvoiceId) => {
+    if (!vehicleInvoiceId) {
+      setYardRecord(null);
+      return;
+    }
+    try {
+      await executeYard(async () => {
+        const res = await yardApi.getByVehicleInvoiceId(vehicleInvoiceId);
+        setYardRecord(res?.data ?? res ?? null);
+      });
+    } catch {
+      setYardRecord(null);
+    }
+  };
+
   const fetchVehicleForInvoice = async (invoiceId) => {
     setInvoiceVehicles([]);
     setSelectedVehicleId('');
     setVehicleLabel('');
+    setYardRecord(null);
     try {
       await executeVehicle(async () => {
         const vehRes  = await invoicesApi.getVehicleById(invoiceId);
@@ -117,6 +135,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
           const first = mappedVehicles[0];
           setSelectedVehicleId(first.id);
           setVehicleLabel(first.label);
+          await fetchYardForVehicle(first.id);
         }
       });
     } catch {
@@ -136,6 +155,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
       setInvoiceVehicles([]);
       setSelectedVehicleId('');
       setVehicleLabel('');
+      setYardRecord(null);
     }
   };
 
@@ -144,6 +164,27 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     if (errors.vehicleId) setErrors((p) => ({ ...p, vehicleId: '' }));
     const selected = invoiceVehicles.find((v) => v.id === vehicleId);
     setVehicleLabel(selected?.label || '');
+    fetchYardForVehicle(vehicleId);
+  };
+
+  const yardStatus = yardRecord?.currentStatus || null;
+  const hasYardRecord = Boolean(yardRecord?._id || yardRecord?.id);
+  const canAddParts =
+    editMode ||
+    !hasYardRecord ||
+    yardStatus === 'DISMANTLING_IN_PROGRESS';
+
+  const handleStartDismantling = async () => {
+    if (!selectedVehicleId) return;
+    try {
+      await executeYard(async () => {
+        await yardApi.startDismantling(selectedVehicleId);
+        toast.success('Dismantling started — you can add parts now');
+        await fetchYardForVehicle(selectedVehicleId);
+      });
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e.message || 'Could not start dismantling');
+    }
   };
 
   const handlePartChange = (index, field, value) => {
@@ -207,6 +248,17 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     if (!editMode) {
       if (!selectedInvoiceId) err.invoiceId = 'Select an invoice';
       if (!selectedVehicleId) err.vehicleId = 'No vehicle linked to this invoice';
+      if (hasYardRecord && yardStatus === 'PARKED') {
+        err.yard = 'Start dismantling before adding parts';
+      }
+      if (
+        hasYardRecord &&
+        yardStatus &&
+        yardStatus !== 'DISMANTLING_IN_PROGRESS' &&
+        yardStatus !== 'PARKED'
+      ) {
+        err.yard = 'Vehicle must be parked and dismantling started in Yard first';
+      }
     }
     parts.forEach((part, i) => {
       if (!part.partName.trim()) err[`part_${i}_partName`] = 'Part name is required';
@@ -219,6 +271,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
 
   // ── Submit ───────────────────────────────────────────────────
   const handleSubmit = async () => {
+    if (!editMode && hasYardRecord && !canAddParts) return;
     if (!validate()) return;
     try {
       await executeForm(async () => {
@@ -273,6 +326,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     setInvoiceVehicles([]);
     setSelectedVehicleId('');
     setVehicleLabel('');
+    setYardRecord(null);
     setParts([createInitialPart()]);
     setErrors({});
   };
@@ -324,10 +378,11 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     open, loading, editMode,
     invoices, invoiceLoading,
     selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleLabel, vehicleFetching,
+    yardRecord, yardStatus, yardLoading, hasYardRecord, canAddParts,
     parts, errors,
     fileInputRefs,
     // handlers
-    handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel,
+    handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel, handleStartDismantling,
     handlePartChange, addPart, removePart,
     handleFileSelect, removeDocument,
     handleSubmit, handleClose,

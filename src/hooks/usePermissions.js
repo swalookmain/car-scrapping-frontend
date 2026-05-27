@@ -26,6 +26,11 @@ const PERMISSIONS = {
   'invoice:edit': [ROLES.ADMIN, ROLES.STAFF],
   'invoice:delete': [ROLES.ADMIN],
 
+  // Yard management
+  'yard:view': [ROLES.ADMIN, ROLES.STAFF],
+  'yard:update': [ROLES.ADMIN, ROLES.STAFF],
+  'yard:dismantle': [ROLES.ADMIN, ROLES.STAFF],
+
   // Inventory management
   'inventory:view': [ROLES.ADMIN, ROLES.STAFF],
   'inventory:create': [ROLES.ADMIN, ROLES.STAFF],
