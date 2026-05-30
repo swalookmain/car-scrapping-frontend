@@ -50,9 +50,9 @@ describe('Login — rendering', () => {
     expect(screen.getByRole('button', { name: /sign in|login|continue/i })).toBeDefined();
   });
 
-  it('renders the brand name RVSF', () => {
+  it('renders the brand name ScrapNiti', () => {
     renderLogin();
-    expect(screen.getByText(/RVSF/)).toBeDefined();
+    expect(screen.getByText(/ScrapNiti/)).toBeDefined();
   });
 
   it('renders a Forgot Password link', () => {

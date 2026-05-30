@@ -93,37 +93,36 @@ const Login = () => {
         }}
       >
         {/* Logo Section */}
-          <Box className="mb-6 flex flex-col items-center justify-center">
-          <Box className="flex items-center gap-2 mb-4">
+        <Box className="flex flex-col items-center justify-center">
+          <Box className="flex items-center justify-center mb-6">
             <Box
               component="img"
               src="/logo.png"
               alt="Logo"
               sx={{
-                width: '32px',
-                height: '32px',
+                width: '180px',
+                height: 'auto',
                 objectFit: 'contain',
+                marginRight: '12px',
               }}
             />
-            <Typography variant="h3" sx={{ fontWeight: 700, fontSize: '1.4rem', color: '#121926' }}>
-               RVSF
-            </Typography>
           </Box>
           
           <Typography
             variant="h3"
             sx={{
+              fontFamily: "'Montserrat', sans-serif",
               color: "var(--color-secondary-main)",
               fontWeight: "bold",
               fontSize: "1.25rem",
-              marginBottom: "6px",
+              marginBottom: "8px",
             }}
           >
-            Hi, Welcome Back
+            Welcome Back !!
           </Typography>
           <Typography
             variant="body1"
-            sx={{ color: "var(--color-grey-500)", fontSize: "0.875rem" }}
+            sx={{ color: "var(--color-grey-500)", fontSize: "0.875rem", marginBottom: "16px",}}
           >
             Enter your credentials to continue
           </Typography>
