@@ -64,30 +64,59 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
         py: 2,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: drawerOpen ? 'flex-start' : 'center',
-        gap: 1.5,
+        justifyContent: 'center',
         borderBottom: `1px solid ${S.border}`,
-        minHeight: '58px',
+        minHeight: '64px',
         overflowX: 'hidden',
       }}>
-        <Box sx={{
-          width: 36, height: 36, borderRadius: '10px',
-          background: 'linear-gradient(135deg, #A78BFA 0%, #7C4DFF 50%, #5B6CF9 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-          boxShadow: '0 4px 14px rgba(124,77,255,0.4)',
-        }}>
-          <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem', lineHeight: 1 }}>
-            R
-          </Typography>
-        </Box>
-        {drawerOpen && (
-          <Typography sx={{
-            fontWeight: 700, fontSize: '1rem', color: '#fff',
-            letterSpacing: '0.04em', whiteSpace: 'nowrap',
+        {drawerOpen ? (
+          <Box sx={{ 
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+            borderRadius: '12px', 
+            p: 1, 
+            px: 1.5,
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+            border: '1px solid rgba(255,255,255,0.4)',
+            backdropFilter: 'blur(10px)'
           }}>
-            RVSF
-          </Typography>
+            <Box
+              component="img"
+              src="/logo.png"
+              alt="Logo"
+              sx={{
+                width: '140px',
+                height: 'auto',
+                objectFit: 'contain',
+              }}
+            />
+          </Box>
+        ) : (
+          <Box sx={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+            borderRadius: '10px', 
+            width: 40,
+            height: 40,
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+            border: '1px solid rgba(255,255,255,0.4)',
+            flexShrink: 0,
+          }}>
+            <Box
+              component="img"
+              src="/logo1.png"
+              alt="Logo"
+              sx={{
+                width: '28px',
+                height: '28px',
+                objectFit: 'contain',
+              }}
+            />
+          </Box>
         )}
       </Box>
 
