@@ -9,6 +9,7 @@ const API_CONFIG = {
 export const ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
+    SIGNUP: '/auth/signup',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
   },
@@ -28,6 +29,25 @@ export const ENDPOINTS = {
     CREATE: '/organizations',
     UPDATE: (id) => `/organizations/${id}`,
     DELETE: (id) => `/organizations/${id}`,
+    GET_SUBSCRIPTION: (id) => `/organizations/${id}/subscription`,
+    UPDATE_SUBSCRIPTION: (id) => `/organizations/${id}/subscription`,
+  },
+  LETTER_SETTINGS: {
+    GET: '/organizations/letter-settings',
+    UPDATE: '/organizations/letter-settings',
+    UPLOAD: '/organizations/letter-settings/upload',
+  },
+  AUTHORIZATION_LETTERS: {
+    GET_ALL: '/authorization-letters',
+    ELIGIBLE_AUCTIONS: '/authorization-letters/eligible-auctions',
+    AUCTION_ELIGIBILITY: (auctionId) =>
+      `/authorization-letters/auction/${auctionId}/eligibility`,
+    CREATE: '/authorization-letters',
+    GET_BY_ID: (id) => `/authorization-letters/${id}`,
+    UPDATE: (id) => `/authorization-letters/${id}`,
+    DELETE: (id) => `/authorization-letters/${id}`,
+    PREVIEW: (id) => `/authorization-letters/${id}/preview`,
+    PDF: (id) => `/authorization-letters/${id}/pdf`,
   },
   INVOICES: {
     BASE: '/invoice',
@@ -83,6 +103,13 @@ export const ENDPOINTS = {
     UPDATE_VEHICLE: (id) => `/auctions/vehicles/${id}`,
     DELETE_VEHICLE: (id) => `/auctions/vehicles/${id}`,
     VEHICLE_IMAGES: (id) => `/auctions/vehicles/${id}/images`,
+    LIFECYCLE: (id) => `/auctions/${id}/lifecycle`,
+    LOT_OUTCOME: (id) => `/auctions/${id}/lifecycle/outcome`,
+    LOT_PAYMENT: (lotId) => `/auctions/lots/${lotId}/payments`,
+    LOT_ACCEPTANCE: (lotId) => `/auctions/lots/${lotId}/acceptance-letter`,
+    LOT_DELIVERY: (lotId) => `/auctions/lots/${lotId}/delivery`,
+    LOT_GATE_PASS: (lotId) => `/auctions/lots/${lotId}/gate-pass`,
+    LOT_RCM: (lotId) => `/auctions/lots/${lotId}/rcm`,
   },
   INVENTORY: {
     BASE: '/inventory',

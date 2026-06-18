@@ -91,6 +91,36 @@ const auctionsApi = {
     const response = await axiosInstance.get(ENDPOINTS.AUCTIONS.VEHICLE_IMAGES(vehicleId));
     return response.data;
   },
+  getLifecycle: async (auctionId) => {
+    const response = await axiosInstance.get(ENDPOINTS.AUCTIONS.LIFECYCLE(auctionId));
+    return response.data;
+  },
+  updateLotOutcome: async (auctionId, payload) => {
+    const response = await axiosInstance.patch(ENDPOINTS.AUCTIONS.LOT_OUTCOME(auctionId), payload);
+    return response.data;
+  },
+  recordLotPayment: async (lotId, payload) => {
+    const response = await axiosInstance.post(ENDPOINTS.AUCTIONS.LOT_PAYMENT(lotId), payload);
+    return response.data;
+  },
+  updateAcceptanceLetter: async (lotId, payload) => {
+    const response = await axiosInstance.patch(ENDPOINTS.AUCTIONS.LOT_ACCEPTANCE(lotId), payload);
+    return response.data;
+  },
+  updateLotDelivery: async (lotId, payload) => {
+    const response = await axiosInstance.patch(ENDPOINTS.AUCTIONS.LOT_DELIVERY(lotId), payload);
+    return response.data;
+  },
+  uploadGatePass: async (lotId, formData) => {
+    const response = await axiosInstance.post(ENDPOINTS.AUCTIONS.LOT_GATE_PASS(lotId), formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+  updateLotRcm: async (lotId, payload) => {
+    const response = await axiosInstance.patch(ENDPOINTS.AUCTIONS.LOT_RCM(lotId), payload);
+    return response.data;
+  },
 };
 
 export default auctionsApi;

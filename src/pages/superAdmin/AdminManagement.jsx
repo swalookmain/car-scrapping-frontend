@@ -56,6 +56,8 @@ const AdminManagement = () => {
         toast.success('Admin created successfully');
       }
       queryClient.invalidateQueries({ queryKey: ['admins'] });
+      queryClient.invalidateQueries({ queryKey: ['organizations-list'] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     } catch (err) {
       console.error('Admin save error:', err);
       toast.error('Failed to save admin. Please try again.');

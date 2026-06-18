@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Checkbox,
+  CircularProgress,
   Divider,
   FormControlLabel,
   Grid,
@@ -28,11 +29,17 @@ import toast from 'react-hot-toast';
 import NormalTable from '../../ui/NormalTable';
 import TableToolbar from '../../ui/TableToolbar';
 import NormalModal from '../../ui/NormalModal';
+import ConfirmDialog from '../../ui/ConfirmDialog';
 import { auctionsApi } from '../../services/api';
 import inputSx from '../../services/inputStyles';
+import LotLifecycleModal from './lifecycle/LotLifecycleModal';
+import { LIFECYCLE_ACTIONS, ACTION_LABELS, hasAction } from './lifecycle/lotLifecycleConstants';
+import AuthorizationLetterWizard from '../authorization-letters/AuthorizationLetterWizard';
+import AuthorizationLetterStatus from '../authorization-letters/AuthorizationLetterStatus';
+import { authorizationLettersApi } from '../../services/api';
+import tokenStorage from '../../services/tokenStorage';
 
 const STEPS = ['Auction details', 'Lots', 'Vehicles & photos'];
-const AUCTION_STATUS_OPTIONS = ['UPCOMING', 'ONGOING', 'STA', 'DEAL_DONE', 'REJECTED', 'LEFT', 'CANCELLED'];
 
 /** Same options as [LeadForm.jsx](lead-management/LeadForm.jsx) */
 const VEHICLE_TYPES = ['CAR', 'BIKE', 'COMMERCIAL'];
@@ -42,6 +49,7 @@ const OFFICER_TYPE_SELLER = 'SELLER';
 const INITIAL_AUCTION = {
   auctionerName: 'MSTC',
   auctionNumber: '',
+  buyerReferenceNumber: '',
   auctionDate: '',
   startTime: '',
   endTime: '',
@@ -132,8 +140,10 @@ const AuctionTable = () => {
   const [openViewModal, setOpenViewModal] = useState(false);
   const [viewAuction, setViewAuction] = useState(null);
   const [initialAuctionStepPayload, setInitialAuctionStepPayload] = useState(null);
-  const [openStatusModal, setOpenStatusModal] = useState(false);
-  const [statusForm, setStatusForm] = useState({ status: 'UPCOMING', dealDoneAt: '' });
+  const [lifecycleModal, setLifecycleModal] = useState({ open: false, action: null });
+  const [authLetterWizard, setAuthLetterWizard] = useState({ open: false, auctionId: null });
+  const [letterPreview, setLetterPreview] = useState({ open: false, html: '', loading: false });
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const resetWizardState = useCallback(() => {
     setActiveStep(0);
@@ -147,8 +157,7 @@ const AuctionTable = () => {
     setImagesByLotIndex({});
     setCopyCommon(false);
     setInitialAuctionStepPayload(null);
-    setOpenStatusModal(false);
-    setStatusForm({ status: 'UPCOMING', dealDoneAt: '' });
+    setLifecycleModal({ open: false, action: null });
     setCommonVehicle({
       vehicleType: 'CAR',
       make: '',
@@ -193,7 +202,7 @@ const AuctionTable = () => {
     const items = auctionResult?.data ?? [];
     const filtered = query.trim()
       ? items.filter((row) =>
-          [row.auctionNumber, row.status, row.vehicleLocation || row.auctionLocation, row.auctionerName || row.sourcePlatform]
+          [row.auctionNumber, row.auctionSummary, row.status, row.vehicleLocation || row.auctionLocation, row.auctionerName || row.sourcePlatform]
             .filter(Boolean)
             .join(' ')
             .toLowerCase()
@@ -207,6 +216,7 @@ const AuctionTable = () => {
     (form, officerRows) => ({
       auctionerName: form.auctionerName || 'MSTC',
       auctionNumber: form.auctionNumber.trim(),
+      buyerReferenceNumber: form.buyerReferenceNumber?.trim() || undefined,
       auctionDate: form.auctionDate,
       startDateTime: toIsoDateTime(form.auctionDate, form.startTime),
       endDateTime: toIsoDateTime(form.auctionDate, form.endTime),
@@ -243,6 +253,7 @@ const AuctionTable = () => {
     setAuctionForm({
       auctionerName: auction?.auctionerName || auction?.sourcePlatform || 'MSTC',
       auctionNumber: auction?.auctionNumber || '',
+      buyerReferenceNumber: auction?.buyerReferenceNumber || '',
       auctionDate: auction?.auctionDate ? String(auction.auctionDate).slice(0, 10) : '',
       startTime: formatTimeFromDate(start),
       endTime: formatTimeFromDate(end),
@@ -284,6 +295,7 @@ const AuctionTable = () => {
     const hydratedForm = {
       auctionerName: auction?.auctionerName || auction?.sourcePlatform || 'MSTC',
       auctionNumber: auction?.auctionNumber || '',
+      buyerReferenceNumber: auction?.buyerReferenceNumber || '',
       auctionDate: auction?.auctionDate ? String(auction.auctionDate).slice(0, 10) : '',
       startTime: formatTimeFromDate(start),
       endTime: formatTimeFromDate(end),
@@ -540,7 +552,12 @@ const AuctionTable = () => {
             width: '16%',
             render: (row) => row.vehicleLocation || row.auctionLocation || '—',
           },
-          { field: 'status', headerName: 'Status', width: '12%' },
+          {
+            field: 'auctionSummary',
+            headerName: 'Lot status',
+            width: '18%',
+            render: (row) => row.auctionSummary || row.status || 'Pending',
+          },
           {
             field: 'actions',
             headerName: 'Actions',
@@ -649,13 +666,7 @@ const AuctionTable = () => {
         <MenuItem
           onClick={() => {
             if (menuRow) {
-              setStatusForm({
-                status: menuRow.status || 'UPCOMING',
-                dealDoneAt: menuRow.dealDoneAt
-                  ? String(menuRow.dealDoneAt).slice(0, 16)
-                  : '',
-              });
-              setOpenStatusModal(true);
+              setLifecycleModal({ open: true, action: LIFECYCLE_ACTIONS.UPDATE_LOT_STATUS });
             }
             setMenuAnchorEl(null);
           }}
@@ -663,16 +674,52 @@ const AuctionTable = () => {
           <ListItemIcon>
             <PlaylistAddIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Update Status</ListItemText>
+          <ListItemText>{ACTION_LABELS[LIFECYCLE_ACTIONS.UPDATE_LOT_STATUS]}</ListItemText>
         </MenuItem>
+        {hasAction(menuRow?.availableActions, LIFECYCLE_ACTIONS.UPDATE_PAYMENT) && (
+          <MenuItem
+            onClick={() => {
+              setLifecycleModal({ open: true, action: LIFECYCLE_ACTIONS.UPDATE_PAYMENT });
+              setMenuAnchorEl(null);
+            }}
+          >
+            <ListItemText>{ACTION_LABELS[LIFECYCLE_ACTIONS.UPDATE_PAYMENT]}</ListItemText>
+          </MenuItem>
+        )}
+        {hasAction(menuRow?.availableActions, LIFECYCLE_ACTIONS.UPDATE_DELIVERY) && (
+          <MenuItem
+            onClick={() => {
+              setLifecycleModal({ open: true, action: LIFECYCLE_ACTIONS.UPDATE_DELIVERY });
+              setMenuAnchorEl(null);
+            }}
+          >
+            <ListItemText>{ACTION_LABELS[LIFECYCLE_ACTIONS.UPDATE_DELIVERY]}</ListItemText>
+          </MenuItem>
+        )}
+        {hasAction(menuRow?.availableActions, LIFECYCLE_ACTIONS.ADD_GATE_PASS) && (
+          <MenuItem
+            onClick={() => {
+              setLifecycleModal({ open: true, action: LIFECYCLE_ACTIONS.ADD_GATE_PASS });
+              setMenuAnchorEl(null);
+            }}
+          >
+            <ListItemText>{ACTION_LABELS[LIFECYCLE_ACTIONS.ADD_GATE_PASS]}</ListItemText>
+          </MenuItem>
+        )}
+        {hasAction(menuRow?.availableActions, LIFECYCLE_ACTIONS.ADD_RCM) && (
+          <MenuItem
+            onClick={() => {
+              setLifecycleModal({ open: true, action: LIFECYCLE_ACTIONS.ADD_RCM });
+              setMenuAnchorEl(null);
+            }}
+          >
+            <ListItemText>{ACTION_LABELS[LIFECYCLE_ACTIONS.ADD_RCM]}</ListItemText>
+          </MenuItem>
+        )}
         <MenuItem
           sx={{ color: '#d32f2f' }}
-          onClick={async () => {
-            if (menuRow) {
-              await auctionsApi.delete(menuRow._id || menuRow.id);
-              queryClient.invalidateQueries({ queryKey: ['auctions'] });
-              toast.success('Deleted');
-            }
+          onClick={() => {
+            setConfirmDelete(true);
             setMenuAnchorEl(null);
           }}
         >
@@ -683,83 +730,79 @@ const AuctionTable = () => {
         </MenuItem>
       </Menu>
 
+      <LotLifecycleModal
+        open={lifecycleModal.open}
+        onClose={() => setLifecycleModal({ open: false, action: null })}
+        auctionId={menuRow?._id || menuRow?.id}
+        actionType={lifecycleModal.action}
+        onCreateAuthLetter={(auctionId) =>
+          setAuthLetterWizard({ open: true, auctionId })
+        }
+        onViewAuthLetter={async (letterId) => {
+          setLetterPreview({ open: true, html: '', loading: true });
+          try {
+            const token = tokenStorage.getAccessToken();
+            const response = await fetch(authorizationLettersApi.getPreviewUrl(letterId), {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+              credentials: 'include',
+            });
+            setLetterPreview({ open: true, html: await response.text(), loading: false });
+          } catch {
+            setLetterPreview({ open: false, html: '', loading: false });
+            toast.error('Failed to load preview');
+          }
+        }}
+        onDownloadAuthLetter={async (letterId, letterNumber) => {
+          try {
+            await authorizationLettersApi.downloadPdf(
+              letterId,
+              `${letterNumber || 'authorization-letter'}.pdf`,
+            );
+          } catch {
+            toast.error('Download failed');
+          }
+        }}
+      />
+
+      <AuthorizationLetterWizard
+        open={authLetterWizard.open}
+        preselectedAuctionId={authLetterWizard.auctionId}
+        onClose={() => setAuthLetterWizard({ open: false, auctionId: null })}
+      />
+
       <NormalModal
-        open={openStatusModal}
-        onClose={() => setOpenStatusModal(false)}
-        title="Update auction status"
-        actions={(
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-            <Button onClick={() => setOpenStatusModal(false)} color="inherit">
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              onClick={async () => {
-                try {
-                  if (!menuRow) return;
-                  if (statusForm.status === 'DEAL_DONE' && !statusForm.dealDoneAt) {
-                    throw new Error('Closing date/time is required for deal done');
-                  }
-                  await auctionsApi.updateStatus(menuRow._id || menuRow.id, {
-                    status: statusForm.status,
-                    dealDoneAt:
-                      statusForm.status === 'DEAL_DONE'
-                        ? new Date(statusForm.dealDoneAt).toISOString()
-                        : undefined,
-                  });
-                  toast.success('Status updated');
-                  setOpenStatusModal(false);
-                  queryClient.invalidateQueries({ queryKey: ['auctions'] });
-                } catch (error) {
-                  toast.error(
-                    error?.response?.data?.message ||
-                      error?.message ||
-                      'Failed to update status',
-                  );
-                }
-              }}
-            >
-              Save
-            </Button>
-          </Box>
-        )}
+        open={letterPreview.open}
+        onClose={() => setLetterPreview({ open: false, html: '', loading: false })}
+        title="Authorization letter preview"
+        maxWidth="lg"
       >
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <TextField
-              select
-              fullWidth
-              label="Status"
-              value={statusForm.status}
-              onChange={(e) =>
-                setStatusForm((p) => ({ ...p, status: e.target.value }))
-              }
-              sx={inputSx}
-            >
-              {AUCTION_STATUS_OPTIONS.map((status) => (
-                <MenuItem key={status} value={status}>
-                  {status}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          {statusForm.status === 'DEAL_DONE' && (
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                type="datetime-local"
-                label="Closing date & time"
-                InputLabelProps={{ shrink: true }}
-                value={statusForm.dealDoneAt}
-                onChange={(e) =>
-                  setStatusForm((p) => ({ ...p, dealDoneAt: e.target.value }))
-                }
-                sx={inputSx}
-              />
-            </Grid>
-          )}
-        </Grid>
+        {letterPreview.loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress size={28} />
+          </Box>
+        ) : (
+          <Box
+            sx={{ border: '1px solid #ddd', borderRadius: 2, maxHeight: 520, overflow: 'auto' }}
+            dangerouslySetInnerHTML={{ __html: letterPreview.html }}
+          />
+        )}
       </NormalModal>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete auction"
+        description="This will permanently delete the auction and all related lots and vehicles."
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={async () => {
+          if (menuRow) {
+            await auctionsApi.delete(menuRow._id || menuRow.id);
+            queryClient.invalidateQueries({ queryKey: ['auctions'] });
+            toast.success('Deleted');
+          }
+          setConfirmDelete(false);
+        }}
+        confirmText="Delete"
+      />
 
       <NormalModal
         open={openAuctionModal}
@@ -830,6 +873,16 @@ const AuctionTable = () => {
                   value={auctionForm.auctionNumber}
                   onChange={(e) => setAuctionForm((p) => ({ ...p, auctionNumber: e.target.value }))}
                   sx={inputSx}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="MSTC buyer reference number"
+                  value={auctionForm.buyerReferenceNumber}
+                  onChange={(e) => setAuctionForm((p) => ({ ...p, buyerReferenceNumber: e.target.value }))}
+                  sx={inputSx}
+                  placeholder="e.g. 578469"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -1435,7 +1488,40 @@ const AuctionTable = () => {
       <NormalModal open={openViewModal} onClose={() => setOpenViewModal(false)} title="Auction details">
         {viewAuction && (
           <Box>
+            <Box sx={{ mb: 2 }}>
+              <AuthorizationLetterStatus
+                auctionId={viewAuction._id || viewAuction.id}
+                onCreate={(id) => setAuthLetterWizard({ open: true, auctionId: id || viewAuction._id || viewAuction.id })}
+                onView={async (letterId) => {
+                  setLetterPreview({ open: true, html: '', loading: true });
+                  try {
+                    const token = tokenStorage.getAccessToken();
+                    const response = await fetch(authorizationLettersApi.getPreviewUrl(letterId), {
+                      headers: token ? { Authorization: `Bearer ${token}` } : {},
+                      credentials: 'include',
+                    });
+                    setLetterPreview({ open: true, html: await response.text(), loading: false });
+                  } catch {
+                    setLetterPreview({ open: false, html: '', loading: false });
+                    toast.error('Failed to load preview');
+                  }
+                }}
+                onDownload={async (letterId, letterNumber) => {
+                  try {
+                    await authorizationLettersApi.downloadPdf(
+                      letterId,
+                      `${letterNumber || 'authorization-letter'}.pdf`,
+                    );
+                  } catch {
+                    toast.error('Download failed');
+                  }
+                }}
+              />
+            </Box>
             <Typography variant="body2">Auction number: {viewAuction.auctionNumber || '—'}</Typography>
+            <Typography variant="body2">
+              Buyer ref: {viewAuction.buyerReferenceNumber || '—'}
+            </Typography>
             <Typography variant="body2">
               Date: {viewAuction.auctionDate ? new Date(viewAuction.auctionDate).toLocaleDateString() : '—'}
             </Typography>
