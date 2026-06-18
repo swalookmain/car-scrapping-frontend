@@ -12,6 +12,8 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import GavelIcon from '@mui/icons-material/Gavel';
 import LocalParkingIcon from '@mui/icons-material/LocalParking';
+import DescriptionIcon from '@mui/icons-material/Description';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 
 export const ROLES = {
@@ -45,6 +47,14 @@ export const ROUTE_CONFIG = [
   {
     path: '/auctions',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/authorization-letters',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/settings/letter',
+    allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/invoices',
@@ -193,6 +203,23 @@ export const SIDEBAR_CONFIG = [
         label: 'Auctions',
         icon: GavelIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
+      {
+        path: '/authorization-letters',
+        label: 'Authorization Letters',
+        icon: DescriptionIcon,
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
+    ],
+  },
+  {
+    section: 'Settings',
+    items: [
+      {
+        path: '/settings/letter',
+        label: 'Letter Settings',
+        icon: SettingsIcon,
+        allowedRoles: [ROLES.ADMIN],
       },
     ],
   },

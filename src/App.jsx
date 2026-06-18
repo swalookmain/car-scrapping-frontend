@@ -12,7 +12,9 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import ScrollToTop from './components/common/ScrollToTop';
 
 // ── Lazy-loaded pages (code splitting) ────────────────────────
+const AuthFlipLayout = lazy(() => import('./components/auth/AuthFlipLayout'));
 const Login = lazy(() => import('./pages/auth/Login'));
+const Signup = lazy(() => import('./pages/auth/Signup'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
 const Dashboard = lazy(() => import('./pages/adminPanel/Dashboard'));
 const Staff = lazy(() => import('./pages/adminPanel/Staff'));
@@ -33,6 +35,8 @@ const DamageAdjustments = lazy(() => import('./pages/adminPanel/DamageAdjustment
 const AccountingOverview = lazy(() => import('./pages/adminPanel/AccountingOverview'));
 const Ledger = lazy(() => import('./pages/adminPanel/Ledger'));
 const PnlReport = lazy(() => import('./pages/adminPanel/PnlReport'));
+const AuthorizationLetters = lazy(() => import('./pages/adminPanel/AuthorizationLetters'));
+const LetterSettings = lazy(() => import('./pages/adminPanel/LetterSettings'));
 const SuperAdminDashboard = lazy(() => import('./pages/superAdmin/SuperAdminDashboard'));
 const OrganizationManagement = lazy(() => import('./pages/superAdmin/OrganizationManagement'));
 const AdminManagement = lazy(() => import('./pages/superAdmin/AdminManagement'));
@@ -89,7 +93,10 @@ function App() {
               <ScrollToTop />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
-                  <Route path="/" element={<Login />} />
+                  <Route element={<AuthFlipLayout />}>
+                    <Route path="/" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                  </Route>
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route
                     path="/dashboard"
@@ -240,6 +247,22 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <PnlReport />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/authorization-letters"
+                    element={
+                      <ProtectedRoute>
+                        <AuthorizationLetters />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings/letter"
+                    element={
+                      <ProtectedRoute>
+                        <LetterSettings />
                       </ProtectedRoute>
                     }
                   />

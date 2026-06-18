@@ -11,6 +11,11 @@ export const authApi = {
     return response.data;
   },
 
+  signup: async (payload) => {
+    const response = await axiosInstance.post(ENDPOINTS.AUTH.SIGNUP, payload);
+    return response.data;
+  },
+
   logout: async () => {
     const response = await axiosInstance.post(ENDPOINTS.AUTH.LOGOUT);
     return response.data;

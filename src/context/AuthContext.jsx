@@ -104,23 +104,26 @@ export const AuthProvider = ({ children }) => {
     }, timeout);
   };
 
-  const login = async (email, password) => {
-    const response = await authApi.login(email, password);
-
+  const persistSession = (response) => {
     const { accessToken, user: userData } = response;
-
     tokenStorage.setAccessToken(accessToken);
     tokenStorage.setUser(userData);
-
     setUser(userData);
-
-    // schedule refresh based on the returned access token
     if (accessToken) scheduleRefresh(accessToken);
-
     return {
       user: userData,
       redirectPath: getDefaultRoute(userData.role),
     };
+  };
+
+  const login = async (email, password) => {
+    const response = await authApi.login(email, password);
+    return persistSession(response);
+  };
+
+  const signup = async (payload) => {
+    const response = await authApi.signup(payload);
+    return persistSession(response);
   };
 
   const logout = async () => {
@@ -139,6 +142,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     login,
+    signup,
     logout,
     isAuthenticated: !!user,
   };

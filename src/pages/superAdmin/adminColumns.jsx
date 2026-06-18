@@ -8,9 +8,11 @@ export const NameCell = ({ row }) => row.name || '—';
 export const EmailCell = ({ row }) => row.email || '—';
 export const RoleCell = ({ row }) => row.role || '—';
 
-export const OrganizationCell = ({ row, orgs }) => (
-  orgs.find((o) => (o._id || o.id) === row.organizationId)?.name || '—'
-);
+export const OrganizationCell = ({ row, orgs }) => {
+  const org = orgs.find((o) => (o._id || o.id) === row.organizationId);
+  if (!org) return '—';
+  return org.name || '—';
+};
 
 export const ActiveSwitchCell = ({ row, onToggle }) => {
   const handleToggle = useCallback(() => onToggle(row._id || row.id, row.isActive), [onToggle, row]);

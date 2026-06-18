@@ -5,7 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [tailwindcss(), react()],
   server: {
-    port: 3000,
+    // 3000 is often taken by WSL/other services on Windows — ERP dev server uses 3002
+    port: 3002,
+    strictPort: true,
   },
   test: {
     globals: true,

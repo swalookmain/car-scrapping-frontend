@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   TextField,
   Button,
@@ -6,237 +6,160 @@ import {
   IconButton,
   Typography,
   Box,
-  Paper,
   Link,
   CircularProgress,
   Alert,
-} from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
-import inputSx from "../../services/inputStyles";
-import { useAuth } from "../../context/AuthContext";
+} from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import inputSx from '../../services/inputStyles';
+import { useAuth } from '../../context/AuthContext';
 import useApiCall from '../../hooks/useApiCall';
+import AuthCard, { authFieldVariants } from '../../components/auth/AuthCard';
+import { primaryAuthButtonSx, authLinkSx } from '../../components/auth/authButtonSx';
+
+const MotionBox = motion.create(Box);
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [keepLoggedIn, setKeepLoggedIn] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const { execute, loading } = useApiCall();
-  const [error, setError] = useState("");
-
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setError('');
     try {
       const { redirectPath } = await execute(() => login(email, password));
       navigate(redirectPath);
     } catch (err) {
       if (err?.response?.status === 401) {
-        setError("Invalid email or password");
+        setError('Invalid email or password');
       } else if (err?.response?.status === 403) {
-        setError("Account deactivated or not assigned to organization");
+        const msg = err?.response?.data?.message;
+        const text = Array.isArray(msg) ? msg.join(', ') : msg;
+        if (text?.toLowerCase().includes('subscription')) {
+          setError('Your trial or subscription has expired. Contact support to upgrade.');
+        } else {
+          setError('Account deactivated or not assigned to organization');
+        }
       } else {
-        setError("Something went wrong. Please try again.");
+        setError('Something went wrong. Please try again.');
       }
     }
   };
 
   return (
-    <Box
-      className="min-h-screen flex items-center justify-center"
-      sx={{
-        background: 'linear-gradient(135deg, #f5f7fa 0%, #e8e0f0 50%, #ddd6f3 100%)',
-        position: 'relative',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: '10%',
-          left: '5%',
-          width: '300px',
-          height: '300px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(103,58,183,0.08) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        },
-        '&::after': {
-          content: '""',
-          position: 'absolute',
-          bottom: '10%',
-          right: '10%',
-          width: '400px',
-          height: '400px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(33,150,243,0.06) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        },
-      }}
-    >
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '20px',
-          border: '1px solid rgba(255,255,255,0.6)',
-          maxWidth: '475px',
-          width: '100%',
-          p: { xs: 3, sm: 4, md: 5 },
-          backgroundColor: 'rgba(255,255,255,0.85)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.04)',
-          position: 'relative',
-          zIndex: 1,
-        }}
-      >
-        {/* Logo Section */}
-        <Box className="flex flex-col items-center justify-center">
-          <Box className="flex items-center justify-center mb-6">
-            <Box
-              component="img"
-              src="/logo.png"
-              alt="Logo"
-              sx={{
-                width: '180px',
-                height: 'auto',
-                objectFit: 'contain',
-                marginRight: '12px',
-              }}
-            />
-          </Box>
-          
-          <Typography
-            variant="h3"
-            sx={{
-              fontFamily: "'Montserrat', sans-serif",
-              color: "var(--color-secondary-main)",
-              fontWeight: "bold",
-              fontSize: "1.25rem",
-              marginBottom: "8px",
-            }}
-          >
-            Welcome Back !!
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{ color: "var(--color-grey-500)", fontSize: "0.875rem", marginBottom: "16px",}}
-          >
-            Enter your credentials to continue
-          </Typography>
-        </Box>
+    <AuthCard title="Welcome Back !!" subtitle="Enter your credentials to continue" compact>
+      <Box component="form" noValidate autoComplete="off" onSubmit={handleSubmit}>
+        {error && (
+          <MotionBox variants={authFieldVariants} sx={{ mb: 1.5 }}>
+            <Alert severity="error" sx={{ py: 0.5 }}>{error}</Alert>
+          </MotionBox>
+        )}
 
-        {/* Form Section */}
-        <Box component="form" noValidate autoComplete="off" onSubmit={handleSubmit}>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          <Typography
-            variant="subtitle1"
-            sx={{
-              mb: 1,
-              display: "none",
-            }}
-          >
-            Email Address / Username
-          </Typography>
+        <MotionBox variants={authFieldVariants}>
           <TextField
             fullWidth
             label="Email Address / Username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            margin="normal"
             variant="outlined"
-            sx={{ ...inputSx, mb: 2, mt: 0 }}
+            size="small"
+            sx={{ ...inputSx, mb: 1.5, mt: 0 }}
           />
+        </MotionBox>
 
+        <MotionBox variants={authFieldVariants}>
           <TextField
             fullWidth
             label="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            type={showPassword ? "text" : "password"}
+            type={showPassword ? 'text' : 'password'}
             variant="outlined"
-            sx={{ ...inputSx, mb: 1 }}
+            size="small"
+            sx={{ ...inputSx, mb: 0.75 }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                    <IconButton
+                  <IconButton
                     aria-label="toggle password visibility"
-                    onClick={handleClickShowPassword}
+                    onClick={() => setShowPassword((s) => !s)}
                     edge="end"
-                    size="medium"
-                    sx={{ color: "var(--color-grey-500)" }}
+                    size="small"
+                    sx={{ color: 'var(--color-grey-500)' }}
                   >
-                    {showPassword ? <Visibility /> : <VisibilityOff />}
+                    {showPassword ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
                   </IconButton>
                 </InputAdornment>
               ),
             }}
           />
+        </MotionBox>
 
-          {/* Checkbox and Forgot Password */}
-          <Box
+        <MotionBox variants={authFieldVariants} sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1.5 }}>
+          <Link
+            href="#"
+            underline="none"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/forgot-password');
+            }}
             sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
+              color: 'var(--color-secondary-main)',
+              fontWeight: 500,
+              fontSize: '0.8125rem',
+              cursor: 'pointer',
+              '&:hover': { textDecoration: 'underline' },
             }}
           >
-            {/* Keep me logged in checkbox removed */}
-            <Link
-              href="#"
-              underline="none"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/forgot-password");
-              }}
-              sx={{
-                color: "var(--color-secondary-main)",
-                fontWeight: 500,
-                fontSize: "0.875rem",
-                cursor: "pointer",
-                "&:hover": { textDecoration: "underline" },
-              }}
-            >
-              Forgot Password?
-            </Link>
-          </Box>
+            Forgot Password?
+          </Link>
+        </MotionBox>
 
-          {/* Sign In Button */}
+        <MotionBox variants={authFieldVariants}>
           <Button
             fullWidth
             type="submit"
             variant="contained"
-            size="large"
+            size="medium"
             disabled={loading}
-            sx={{
-              backgroundColor: "var(--color-secondary-main)",
-              color: "#fff",
-              py: 1.25,
-              borderRadius: "12px",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              textTransform: "none",
-              boxShadow: "0 4px 14px rgba(103,58,183,0.3)",
-              transition: "all 0.2s ease",
-              "&:hover": {
-                backgroundColor: "var(--color-secondary-dark)",
-                boxShadow: "0 6px 20px rgba(103,58,183,0.4)",
-                transform: "translateY(-1px)",
-              },
-            }}
+            sx={primaryAuthButtonSx}
           >
-            {loading ? <CircularProgress size={24} color="inherit" /> : "Sign In"}
+            {loading ? <CircularProgress size={22} color="inherit" /> : 'Sign In'}
           </Button>
-        </Box>
-      </Paper>
-    </Box>
+        </MotionBox>
+
+        <MotionBox variants={authFieldVariants} sx={{ mt: 2, textAlign: 'center' }}>
+          <Typography variant="body2" sx={{ color: 'var(--color-grey-500)', fontSize: '0.8125rem' }}>
+            Don&apos;t have an account?{' '}
+            <Box
+              component={motion.span}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.94 }}
+              sx={{ display: 'inline-block' }}
+            >
+              <Link
+                href="#"
+                underline="none"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate('/signup');
+                }}
+                sx={authLinkSx}
+              >
+                Sign up
+              </Link>
+            </Box>
+          </Typography>
+        </MotionBox>
+      </Box>
+    </AuthCard>
   );
 };
 
