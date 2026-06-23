@@ -14,6 +14,7 @@ import AddIcon from '@mui/icons-material/Add';
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
 import InventoryPartRow from './InventoryPartRow';
+import InventoryCatalogChecklist from './InventoryCatalogChecklist';
 import { useInventoryForm } from './useInventoryForm';
 
 // ── Component ──────────────────────────────────────────────────
@@ -23,8 +24,10 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     invoices, invoiceLoading,
     selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleLabel, vehicleFetching,
     yardStatus, yardLoading, hasYardRecord, canAddParts,
+    catalogMode, catalogMeta, catalogMmv, catalogLoading,
     parts, errors, fileInputRefs,
     handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel, handleStartDismantling,
+    loadCatalogChecklist, loadCatalogChecklistByMmv, handleCatalogMmvChange, handleAddGlobalPart,
     handlePartChange, addPart, removePart,
     handleFileSelect, removeDocument,
     handleSubmit, handleClose,
@@ -173,7 +176,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
             Parts {parts.length > 1 ? `(${parts.length})` : ''}
           </Typography>
-          {!editMode && !readOnly && canAddParts && (
+          {!editMode && !readOnly && canAddParts && !catalogMode && (
             <Button
               startIcon={<AddIcon />}
               onClick={addPart}
@@ -185,22 +188,42 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
           )}
         </Box>
 
-        {parts.map((part, index) => (
-          <InventoryPartRow
-            key={part._id || part.id || part._uid || index}
-            part={part}
-            index={index}
-            errors={errors}
+        {errors.parts && (
+          <Typography variant="caption" color="error">{errors.parts}</Typography>
+        )}
+
+        {!editMode && canAddParts && (catalogMode || yardStatus === 'DISMANTLING_IN_PROGRESS') ? (
+          <InventoryCatalogChecklist
+            parts={parts}
+            catalogMeta={catalogMeta}
+            catalogMmv={catalogMmv}
+            catalogLoading={catalogLoading}
             readOnly={readOnly || (!editMode && hasYardRecord && !canAddParts)}
-            showRemove={parts.length > 1}
+            errors={errors}
+            onLoadCatalog={() => loadCatalogChecklist()}
+            onLoadCatalogByMmv={() => loadCatalogChecklistByMmv()}
+            onCatalogMmvChange={handleCatalogMmvChange}
             onPartChange={handlePartChange}
-            onRemovePart={removePart}
-            onFileSelect={handleFileSelect}
-            onRemoveDocument={removeDocument}
-            onClickFileInput={() => fileInputRefs.current[index]?.click()}
-            fileInputRefCallback={(el) => { fileInputRefs.current[index] = el; }}
+            onAddGlobalPart={handleAddGlobalPart}
           />
-        ))}
+        ) : (
+          parts.map((part, index) => (
+            <InventoryPartRow
+              key={part._id || part.id || part._uid || index}
+              part={part}
+              index={index}
+              errors={errors}
+              readOnly={readOnly || (!editMode && hasYardRecord && !canAddParts)}
+              showRemove={parts.length > 1}
+              onPartChange={handlePartChange}
+              onRemovePart={removePart}
+              onFileSelect={handleFileSelect}
+              onRemoveDocument={removeDocument}
+              onClickFileInput={() => fileInputRefs.current[index]?.click()}
+              fileInputRefCallback={(el) => { fileInputRefs.current[index] = el; }}
+            />
+          ))
+        )}
       </Box>
     </NormalModal>
   );

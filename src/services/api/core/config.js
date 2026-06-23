@@ -119,6 +119,15 @@ export const ENDPOINTS = {
     UPDATE: (id) => `/inventory/${id}`,
     DELETE: (id) => `/inventory/${id}`,
   },
+  PART_CATALOG: {
+    MAKES: '/part-catalog/makes',
+    MODELS: (makeId) => `/part-catalog/makes/${makeId}/models`,
+    VARIANTS: (modelId) => `/part-catalog/models/${modelId}/variants`,
+    VARIANT_PARTS: (variantId) => `/part-catalog/variants/${variantId}/parts`,
+    CHECKLIST_VEHICLE: (vechileId) => `/part-catalog/checklist/vehicle/${vechileId}`,
+    CHECKLIST_MMV: '/part-catalog/checklist/mmv',
+    ADD_VARIANT_PART: (variantId) => `/part-catalog/variants/${variantId}/parts`,
+  },
   YARD: {
     VEHICLES: '/yard/vehicles',
     VEHICLE_BY_ID: (id) => `/yard/vehicles/${id}`,
