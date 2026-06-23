@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { invoicesApi, yardApi } from '../../services/api';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { invoicesApi, yardApi, partCatalogApi } from '../../services/api';
 import useApiCall from '../../hooks/useApiCall';
 import toast from 'react-hot-toast';
 
@@ -23,12 +23,30 @@ export const buildDocObjects = (docs) =>
     .filter(Boolean);
 
 // ── Constants ──────────────────────────────────────────────────
-export const PART_TYPES  = ['ENGINE', 'TRANSMISSION', 'BODY', 'METAL', 'PLASTIC', 'ELECTRICAL', 'OTHER'];
+export const PART_TYPES  = ['ENGINE', 'TRANSMISSION', 'BRAKES', 'SUSPENSION', 'ELECTRICAL', 'EXHAUST', 'BODY', 'PLASTIC', 'OTHER'];
 export const CONDITIONS  = ['GOOD', 'DAMAGED'];
 export const STATUSES    = ['AVAILABLE', 'PARTIAL_SOLD', 'SOLD_OUT', 'DAMAGE_ONLY'];
+export const VEHICLE_TYPES = ['CAR', 'BIKE', 'COMMERCIAL'];
 
 let _partIdCounter = 0;
 const generatePartId = () => `part_${++_partIdCounter}_${Date.now()}`;
+
+export const createPartFromCatalog = (item) => ({
+  _uid: generatePartId(),
+  catalogPartId: item.catalogPartId,
+  catalogPartCode: item.code,
+  partName: item.partName,
+  partType: item.partType || 'OTHER',
+  category: item.category || 'SALEABLE',
+  openingStock: item.defaultQty ?? 1,
+  quantityReceived: 0,
+  quantityIssued: 0,
+  unitPrice: 0,
+  condition: 'GOOD',
+  status: 'AVAILABLE',
+  documents: [],
+  included: item.category !== 'SCRAP',
+});
 
 export const createInitialPart = () => ({
   _uid: generatePartId(),
@@ -58,6 +76,17 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [vehicleLabel,     setVehicleLabel]     = useState('');
   const [yardRecord, setYardRecord] = useState(null);
+
+  // Catalog checklist
+  const [catalogMode, setCatalogMode] = useState(false);
+  const [catalogMeta, setCatalogMeta] = useState(null);
+  const [catalogMmv, setCatalogMmv] = useState({
+    make: '',
+    model: '',
+    variant: 'Standard',
+    vehicleType: 'CAR',
+  });
+  const [catalogLoading, setCatalogLoading] = useState(false);
 
   // Parts & validation
   const [parts,    setParts]  = useState([createInitialPart()]);
@@ -135,6 +164,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
           const first = mappedVehicles[0];
           setSelectedVehicleId(first.id);
           setVehicleLabel(first.label);
+          syncCatalogMmvFromVehicle(first);
           await fetchYardForVehicle(first.id);
         }
       });
@@ -164,15 +194,114 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     if (errors.vehicleId) setErrors((p) => ({ ...p, vehicleId: '' }));
     const selected = invoiceVehicles.find((v) => v.id === vehicleId);
     setVehicleLabel(selected?.label || '');
+    syncCatalogMmvFromVehicle(selected);
     fetchYardForVehicle(vehicleId);
   };
 
   const yardStatus = yardRecord?.currentStatus || null;
+
+  const syncCatalogMmvFromVehicle = (vehicle) => {
+    if (!vehicle) return;
+    setCatalogMmv({
+      make: vehicle.make || '',
+      model: vehicle.model_name || vehicle.model || '',
+      variant: vehicle.variant || 'Standard',
+      vehicleType: vehicle.vehicle_type || vehicle.vehicleType || 'CAR',
+    });
+  };
+
+  const applyCatalogResponse = (data) => {
+    const items = Array.isArray(data?.parts) ? data.parts : [];
+    if (!items.length) {
+      setCatalogMode(false);
+      setCatalogMeta(null);
+      return false;
+    }
+    setCatalogMeta({
+      variantId: data.catalog?.variantId,
+      make: data.vehicle?.make,
+      model: data.vehicle?.model,
+      variant: data.vehicle?.variant,
+      vehicleType: data.vehicle?.vehicleType || data.catalog?.vehicleType,
+      usesGenericMaster: data.meta?.usesGenericMaster,
+      hasUserAddedParts: data.meta?.hasUserAddedParts,
+    });
+    setCatalogMmv({
+      make: data.vehicle?.make || '',
+      model: data.vehicle?.model || '',
+      variant: data.vehicle?.variant || 'Standard',
+      vehicleType: data.vehicle?.vehicleType || data.catalog?.vehicleType || 'CAR',
+    });
+    setParts(items.map(createPartFromCatalog));
+    setCatalogMode(true);
+    return true;
+  };
   const hasYardRecord = Boolean(yardRecord?._id || yardRecord?.id);
   const canAddParts =
     editMode ||
     !hasYardRecord ||
     yardStatus === 'DISMANTLING_IN_PROGRESS';
+
+  const loadCatalogChecklist = useCallback(async (vehicleId = selectedVehicleId) => {
+    if (!vehicleId || editMode) return;
+    setCatalogLoading(true);
+    try {
+      const res = await partCatalogApi.getChecklistForVehicle(vehicleId);
+      const data = res?.data ?? res;
+      applyCatalogResponse(data);
+    } catch {
+      setCatalogMode(false);
+      setCatalogMeta(null);
+    } finally {
+      setCatalogLoading(false);
+    }
+  }, [selectedVehicleId, editMode]);
+
+  const loadCatalogChecklistByMmv = useCallback(async (mmv = catalogMmv) => {
+    if (editMode) return;
+    if (!mmv.make?.trim() || !mmv.model?.trim()) {
+      toast.error('Enter make and model to load catalog');
+      return;
+    }
+    setCatalogLoading(true);
+    try {
+      const res = await partCatalogApi.getChecklistByMmv(mmv);
+      const data = res?.data ?? res;
+      const ok = applyCatalogResponse(data);
+      if (ok && data.meta?.usesGenericMaster) {
+        toast.success('Loaded master parts for this vehicle type — add any missing parts below');
+      }
+    } catch (e) {
+      setCatalogMode(false);
+      setCatalogMeta(null);
+      toast.error(e?.response?.data?.message || e.message || 'Could not load catalog');
+    } finally {
+      setCatalogLoading(false);
+    }
+  }, [catalogMmv, editMode]);
+
+  const handleCatalogMmvChange = (field, value) => {
+    setCatalogMmv((prev) => ({ ...prev, [field]: value }));
+  };
+
+  useEffect(() => {
+    if (!selectedVehicleId || editMode) return;
+    if (yardStatus === 'DISMANTLING_IN_PROGRESS') {
+      loadCatalogChecklist(selectedVehicleId);
+    }
+  }, [selectedVehicleId, yardStatus, editMode, loadCatalogChecklist]);
+
+  const handleAddGlobalPart = async (variantId, payload) => {
+    const created = await partCatalogApi.addPartToVariant(variantId, {
+      partName: payload.partName,
+      partType: payload.partType,
+      defaultQty: payload.defaultQty || 1,
+    });
+    const item = created?.data ?? created;
+    setParts((prev) => [...prev, createPartFromCatalog(item)]);
+    setCatalogMeta((prev) => (prev ? { ...prev, hasUserAddedParts: true, usesGenericMaster: false } : prev));
+    toast.success('Part saved globally — next time this model is used, it will appear here');
+  };
 
   const handleStartDismantling = async () => {
     if (!selectedVehicleId) return;
@@ -181,6 +310,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
         await yardApi.startDismantling(selectedVehicleId);
         toast.success('Dismantling started — you can add parts now');
         await fetchYardForVehicle(selectedVehicleId);
+        await loadCatalogChecklist(selectedVehicleId);
       });
     } catch (e) {
       toast.error(e?.response?.data?.message || e.message || 'Could not start dismantling');
@@ -260,11 +390,16 @@ export function useInventoryForm({ onSubmit, readOnly }) {
         err.yard = 'Vehicle must be parked and dismantling started in Yard first';
       }
     }
-    parts.forEach((part, i) => {
-      if (!part.partName.trim()) err[`part_${i}_partName`] = 'Part name is required';
+    const activeParts = parts.filter((p) => p.included !== false);
+    activeParts.forEach((part, i) => {
+      const idx = parts.indexOf(part);
+      if (!part.partName.trim()) err[`part_${idx}_partName`] = 'Part name is required';
       if (part.unitPrice === '' || part.unitPrice === null || part.unitPrice === undefined)
-        err[`part_${i}_unitPrice`] = 'Unit price is required';
+        err[`part_${idx}_unitPrice`] = 'Unit price is required';
     });
+    if (!editMode && catalogMode && activeParts.length === 0) {
+      err.parts = 'Select at least one part from the checklist';
+    }
     setErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -297,9 +432,13 @@ export function useInventoryForm({ onSubmit, readOnly }) {
             payload: {
               invoiceId: selectedInvoiceId,
               vechileId: selectedVehicleId,
-              parts: parts.map((part) => ({
+              parts: parts
+                .filter((part) => part.included !== false)
+                .map((part) => ({
                 partName:         part.partName || '',
                 partType:         part.partType || 'ENGINE',
+                catalogPartId:    part.catalogPartId || undefined,
+                catalogPartCode:  part.catalogPartCode || undefined,
                 openingStock:     Number(part.openingStock)     || 0,
                 quantityReceived: Number(part.quantityReceived) || 0,
                 quantityIssued:   Number(part.quantityIssued)   || 0,
@@ -328,6 +467,9 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     setVehicleLabel('');
     setYardRecord(null);
     setParts([createInitialPart()]);
+    setCatalogMode(false);
+    setCatalogMeta(null);
+    setCatalogMmv({ make: '', model: '', variant: 'Standard', vehicleType: 'CAR' });
     setErrors({});
   };
 
@@ -379,10 +521,12 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     invoices, invoiceLoading,
     selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleLabel, vehicleFetching,
     yardRecord, yardStatus, yardLoading, hasYardRecord, canAddParts,
+    catalogMode, catalogMeta, catalogMmv, catalogLoading,
     parts, errors,
     fileInputRefs,
     // handlers
     handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel, handleStartDismantling,
+    loadCatalogChecklist, loadCatalogChecklistByMmv, handleCatalogMmvChange, handleAddGlobalPart,
     handlePartChange, addPart, removePart,
     handleFileSelect, removeDocument,
     handleSubmit, handleClose,

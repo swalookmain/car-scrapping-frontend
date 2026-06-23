@@ -17,4 +17,5 @@ export { default as damageAdjustmentsApi } from './damageAdjustments/damageAdjus
 export { default as accountingApi } from './accounting/accountingApi';
 export { default as letterSettingsApi } from './letterSettings/letterSettingsApi';
 export { default as authorizationLettersApi } from './authorizationLetters/authorizationLettersApi';
+export { default as partCatalogApi } from './partCatalog/partCatalogApi';
 export { default as API_CONFIG, ENDPOINTS } from './core/config';
