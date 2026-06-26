@@ -2,7 +2,7 @@
 //    The localhost fallback is only safe for local development.
 //    Set it in Vercel → Settings → Environment Variables.
 const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5003',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
   TIMEOUT: 30000,
 };
 
@@ -127,6 +127,7 @@ export const ENDPOINTS = {
     CHECKLIST_VEHICLE: (vechileId) => `/part-catalog/checklist/vehicle/${vechileId}`,
     CHECKLIST_MMV: '/part-catalog/checklist/mmv',
     ADD_VARIANT_PART: (variantId) => `/part-catalog/variants/${variantId}/parts`,
+    CATEGORIES: '/part-catalog/categories',
   },
   YARD: {
     VEHICLES: '/yard/vehicles',
@@ -191,6 +192,9 @@ export const ENDPOINTS = {
     LEDGER_ENTRIES: '/accounting/ledger-entries',
     PNL: '/accounting/pnl',
     INVOICE_PAYMENTS: '/accounting/invoice-payments',
+  },
+  DASHBOARD: {
+    OVERVIEW: '/dashboard/overview',
   },
 };
 

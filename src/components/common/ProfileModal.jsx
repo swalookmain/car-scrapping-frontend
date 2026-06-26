@@ -64,7 +64,7 @@ const ProfileModal = memo(({ isOpen, onClose, anchorRef }) => {
       <div className="px-4 py-4 border-b border-grey-100">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-grey-900 font-semibold text-lg">Good Morning, {displayName}</div>
+            <div className="text-grey-900 font-semibold text-lg">{displayName}</div>
             <div className="text-grey-500 text-sm">{displayRole}</div>
           </div>
           <div className="flex items-center gap-2">
@@ -74,17 +74,6 @@ const ProfileModal = memo(({ isOpen, onClose, anchorRef }) => {
                 : (displayName.charAt(0) || '?').toUpperCase()}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="px-4 py-3 border-b border-grey-100">
-        <div className="relative">
-          <input
-            aria-label="Search profile options"
-            placeholder="Search profile options"
-            className="w-full px-4 py-2 border border-grey-200 rounded-lg bg-paper text-sm text-grey-700 focus:outline-none"
-          />
         </div>
       </div>
 

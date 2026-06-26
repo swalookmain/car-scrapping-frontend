@@ -18,4 +18,5 @@ export { default as accountingApi } from './accounting/accountingApi';
 export { default as letterSettingsApi } from './letterSettings/letterSettingsApi';
 export { default as authorizationLettersApi } from './authorizationLetters/authorizationLettersApi';
 export { default as partCatalogApi } from './partCatalog/partCatalogApi';
+export { default as dashboardApi } from './dashboard/dashboardApi';
 export { default as API_CONFIG, ENDPOINTS } from './core/config';

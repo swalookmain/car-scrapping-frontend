@@ -1,19 +1,26 @@
-import DashboardIcon from '@mui/icons-material/Speed';
-import PeopleIcon from '@mui/icons-material/Groups';
-import ReceiptIcon from '@mui/icons-material/Receipt';
-import InventoryIcon from '@mui/icons-material/Inventory2';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import StorefrontIcon from '@mui/icons-material/Storefront';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
+import CorporateFareIcon from '@mui/icons-material/CorporateFare';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import HistoryIcon from '@mui/icons-material/History';
+import PersonSearchIcon from '@mui/icons-material/PersonSearch';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import CategoryIcon from '@mui/icons-material/Category';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
+import PolicyIcon from '@mui/icons-material/Policy';
+import StoreIcon from '@mui/icons-material/Store';
+import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
+import PercentIcon from '@mui/icons-material/Percent';
+import RouteIcon from '@mui/icons-material/Route';
+import SummarizeIcon from '@mui/icons-material/Summarize';
+import FindInPageIcon from '@mui/icons-material/FindInPage';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import ReportProblemIcon from '@mui/icons-material/ReportProblem';
-import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import BuildCircleIcon from '@mui/icons-material/BuildCircle';
+import WarehouseIcon from '@mui/icons-material/Warehouse';
+import ArticleIcon from '@mui/icons-material/Article';
+import DrawIcon from '@mui/icons-material/Draw';
 import GavelIcon from '@mui/icons-material/Gavel';
-import LocalParkingIcon from '@mui/icons-material/LocalParking';
-import DescriptionIcon from '@mui/icons-material/Description';
-import SettingsIcon from '@mui/icons-material/Settings';
 
 
 export const ROLES = {
@@ -134,19 +141,19 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/super-admin/audit-logs',
         label: 'Audit Logs',
-        icon: AssignmentIcon,
+        icon: HistoryIcon,
         allowedRoles: [ROLES.SUPER_ADMIN],
       },
       {
         path: '/super-admin/organizations',
         label: 'Organizations',
-        icon: DashboardIcon,
+        icon: CorporateFareIcon,
         allowedRoles: [ROLES.SUPER_ADMIN],
       },
       {
         path: '/super-admin/admins',
         label: 'Admin Users',
-        icon: PeopleIcon,
+        icon: ManageAccountsIcon,
         allowedRoles: [ROLES.SUPER_ADMIN],
       },
     ],
@@ -157,7 +164,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/dashboard',
         label: 'Dashboard',
-        icon: DashboardIcon,
+        icon: SpaceDashboardIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -168,7 +175,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/audit-logs',
         label: 'Audit Logs',
-        icon: AssignmentIcon,
+        icon: HistoryIcon,
         allowedRoles: [ROLES.ADMIN],
       },
     ],
@@ -179,7 +186,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/staff',
         label: 'Staff',
-        icon: PeopleIcon,
+        icon: ManageAccountsIcon,
         allowedRoles: [ROLES.ADMIN],
       },
     ],
@@ -190,7 +197,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/leads',
         label: 'Leads',
-        icon: AssignmentIndIcon,
+        icon: PersonSearchIcon,
         allowedRoles: [ROLES.ADMIN],
       },
     ],
@@ -207,7 +214,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/authorization-letters',
         label: 'Authorization Letters',
-        icon: DescriptionIcon,
+        icon: ArticleIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -218,7 +225,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/settings/letter',
         label: 'Letter Settings',
-        icon: SettingsIcon,
+        icon: DrawIcon,
         allowedRoles: [ROLES.ADMIN],
       },
     ],
@@ -229,7 +236,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/invoices',
         label: 'Purchase Invoices',
-        icon: ReceiptIcon,
+        icon: ReceiptLongIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -240,7 +247,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/yard',
         label: 'Yard Management',
-        icon: LocalParkingIcon,
+        icon: WarehouseIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -251,13 +258,13 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/inventory',
         label: 'Parts Inventory',
-        icon: InventoryIcon,
+        icon: CategoryIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
       {
         path: '/inventory/damage-adjustments',
         label: 'Damage Adjustments',
-        icon: ReportProblemIcon,
+        icon: BuildCircleIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -268,7 +275,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/vehicle-compliance',
         label: 'COD Tracking',
-        icon: VerifiedUserIcon,
+        icon: PolicyIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -279,13 +286,13 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/sales/buyers',
         label: 'Buyers',
-        icon: StorefrontIcon,
+        icon: StoreIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
       {
         path: '/sales/invoices',
         label: 'Sales Invoices',
-        icon: LocalShippingIcon,
+        icon: PointOfSaleIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -296,25 +303,25 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/tax/config',
         label: 'Tax Configuration',
-        icon: AccountBalanceIcon,
+        icon: PercentIcon,
         allowedRoles: [ROLES.ADMIN],
       },
       {
         path: '/tax/eway-bills',
         label: 'E-Way Bills',
-        icon: LocalShippingIcon,
+        icon: RouteIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
       {
         path: '/tax/summary',
         label: 'GST Summary',
-        icon: ReceiptIcon,
+        icon: SummarizeIcon,
         allowedRoles: [ROLES.ADMIN],
       },
       {
         path: '/tax/audit',
         label: 'GST Audit Trail',
-        icon: AssignmentIcon,
+        icon: FindInPageIcon,
         allowedRoles: [ROLES.ADMIN],
       },
     ],
@@ -325,7 +332,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/accounting',
         label: 'Overview',
-        icon: AccountBalanceIcon,
+        icon: AccountBalanceWalletIcon,
         allowedRoles: [ROLES.ADMIN],
       },
       {
@@ -337,7 +344,7 @@ export const SIDEBAR_CONFIG = [
       {
         path: '/accounting/pnl',
         label: 'Profit & Loss',
-        icon: AssignmentIcon,
+        icon: AnalyticsIcon,
         allowedRoles: [ROLES.ADMIN],
       },
     ],
@@ -369,4 +376,21 @@ export const getFilteredSidebarConfig = (role) => {
     ...section,
     items: section.items.filter((item) => item.allowedRoles.includes(role)),
   })).filter((section) => section.items.length > 0);
+};
+
+/** Resolve current page label for header / breadcrumbs */
+export const getPageLabel = (pathname) => {
+  for (const section of SIDEBAR_CONFIG) {
+    for (const item of section.items) {
+      if (item.path === pathname) return item.label;
+    }
+  }
+  const sorted = SIDEBAR_CONFIG.flatMap((s) => s.items).sort(
+    (a, b) => b.path.length - a.path.length,
+  );
+  const partial = sorted.find(
+    (item) => pathname.startsWith(item.path) && item.path !== '/',
+  );
+  if (partial) return partial.label;
+  return 'Workspace';
 };

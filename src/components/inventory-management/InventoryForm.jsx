@@ -1,34 +1,34 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useImperativeHandle, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
   Box,
-  TextField,
   Button,
+  TextField,
   Typography,
   Grid,
   CircularProgress,
-  Divider,
   Autocomplete,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
 import NormalModal from '../../ui/NormalModal';
-import inputSx from '../../services/inputStyles';
+import { autocompleteSx } from '../../services/inputStyles';
 import InventoryPartRow from './InventoryPartRow';
-import InventoryCatalogChecklist from './InventoryCatalogChecklist';
+import InventoryPartPicker from './InventoryPartPicker';
 import { useInventoryForm } from './useInventoryForm';
 
-// ── Component ──────────────────────────────────────────────────
 const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
   const {
     open, loading, editMode,
     invoices, invoiceLoading,
-    selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleLabel, vehicleFetching,
+    selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleFetching,
     yardStatus, yardLoading, hasYardRecord, canAddParts,
     catalogMode, catalogMeta, catalogMmv, catalogLoading,
+    catalogParts, selectedParts, partCategories,
     parts, errors, fileInputRefs,
     handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel, handleStartDismantling,
-    loadCatalogChecklist, loadCatalogChecklistByMmv, handleCatalogMmvChange, handleAddGlobalPart,
-    handlePartChange, addPart, removePart,
+    loadCatalogChecklist, loadCatalogChecklistByMmv, handleCatalogMmvChange,
+    handleAddGlobalPart, handleAddCategory,
+    handleAddToSelected, handleAddManyToSelected, handleRemoveSelected, handleSelectedPartChange,
+    handlePartChange, removePart,
     handleFileSelect, removeDocument,
     handleSubmit, handleClose,
     openFormWith,
@@ -39,13 +39,47 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     close: handleClose,
   }));
 
-  // ── Render ───────────────────────────────────────────────────
+  const selectedInvoice = useMemo(
+    () => invoices.find((i) => (i._id || i.id) === selectedInvoiceId) || null,
+    [invoices, selectedInvoiceId],
+  );
+
+  const selectedVehicle = useMemo(
+    () => invoiceVehicles.find((v) => v.id === selectedVehicleId) || null,
+    [invoiceVehicles, selectedVehicleId],
+  );
+
+  const invoiceFullLabel = selectedInvoice ? getInvoiceLabel(selectedInvoice) : '';
+  const vehicleFullLabel = selectedVehicle?.label || '';
+
+  const showPicker =
+    !editMode
+    && Boolean(selectedInvoiceId)
+    && Boolean(selectedVehicleId)
+    && canAddParts
+    && yardStatus === 'DISMANTLING_IN_PROGRESS';
+
+  const pickerHint = (() => {
+    if (editMode) return '';
+    if (!selectedInvoiceId) return 'Select an invoice to continue.';
+    if (!selectedVehicleId) return 'Select a vehicle from this invoice.';
+    if (yardStatus === 'PARKED') return 'Start dismantling in Yard to add parts.';
+    if (yardStatus === 'AWAITING_ARRIVAL') return 'Park this vehicle in Yard first.';
+    if (hasYardRecord && yardStatus && yardStatus !== 'DISMANTLING_IN_PROGRESS') {
+      return 'Vehicle must be in dismantling before you can add parts.';
+    }
+    if (!hasYardRecord && selectedVehicleId) {
+      return 'Link this vehicle in Yard management, then start dismantling.';
+    }
+    return '';
+  })();
+
   return (
     <NormalModal
       open={open}
       onClose={handleClose}
       title={editMode ? 'Edit Inventory Part' : 'Add Inventory Parts'}
-      maxWidth="lg"
+      maxWidth={showPicker || editMode ? 'xl' : 'md'}
       actions={
         !readOnly && (
           <>
@@ -67,147 +101,181 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
         )
       }
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {/* ── Invoice & Vehicle Selection ─────────────────────── */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         {!editMode && (
-          <>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
-              Invoice &amp; Vehicle
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: '12px',
+              border: '1px solid var(--color-grey-200)',
+              bgcolor: 'var(--color-grey-50)',
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: 'var(--color-grey-800)' }}>
+              Invoice &amp; vehicle
             </Typography>
+
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <Autocomplete
-                  sx={{ width: '100%' }}
+                  sx={autocompleteSx}
                   options={invoices}
                   getOptionLabel={getInvoiceLabel}
-                  value={invoices.find((i) => (i._id || i.id) === selectedInvoiceId) || null}
+                  value={selectedInvoice}
                   onChange={(_, newVal) => handleInvoiceSelect(newVal ? (newVal._id || newVal.id) : '')}
                   disabled={readOnly || invoiceLoading}
+                  isOptionEqualToValue={(opt, val) => (opt._id || opt.id) === (val._id || val.id)}
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props} sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                      {getInvoiceLabel(option)}
+                    </Box>
+                  )}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Invoice Number"
+                      label="Invoice number"
                       fullWidth
-                      sx={inputSx}
                       error={Boolean(errors.invoiceId)}
-                      helperText={errors.invoiceId || (invoiceLoading ? 'Loading invoices...' : '')}
+                      helperText={
+                        errors.invoiceId
+                        || (invoiceLoading ? 'Loading…' : (invoiceFullLabel || ''))
+                      }
+                      inputProps={{
+                        ...params.inputProps,
+                        title: invoiceFullLabel,
+                      }}
                     />
                   )}
                 />
               </Grid>
+
               <Grid item xs={12}>
                 <Autocomplete
-                  sx={{ width: '100%' }}
+                  sx={autocompleteSx}
                   options={invoiceVehicles}
                   getOptionLabel={(option) => option.label || ''}
-                  value={invoiceVehicles.find((v) => v.id === selectedVehicleId) || null}
+                  value={selectedVehicle}
                   onChange={(_, newVal) => handleVehicleSelect(newVal?.id || '')}
                   disabled={readOnly || vehicleFetching || !selectedInvoiceId}
+                  isOptionEqualToValue={(opt, val) => opt.id === val.id}
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props} sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                      {option.label}
+                    </Box>
+                  )}
                   renderInput={(params) => (
                     <TextField
                       {...params}
                       label="Vehicle"
                       fullWidth
-                      sx={inputSx}
                       error={Boolean(errors.vehicleId)}
                       helperText={
-                        errors.vehicleId ||
-                        (vehicleFetching
-                          ? 'Loading vehicles...'
-                          : (selectedInvoiceId && invoiceVehicles.length === 0
-                            ? 'No vehicles available for selected invoice'
-                            : ''))
+                        errors.vehicleId
+                        || (vehicleFetching
+                          ? 'Loading…'
+                          : (vehicleFullLabel
+                            || (selectedInvoiceId && invoiceVehicles.length === 0
+                              ? 'No vehicles for this invoice'
+                              : '')))
                       }
+                      inputProps={{
+                        ...params.inputProps,
+                        title: vehicleFullLabel,
+                      }}
                     />
                   )}
                 />
               </Grid>
-              {selectedVehicleId && hasYardRecord && (
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(106, 75, 255, 0.06)',
-                      border: '1px solid rgba(106, 75, 255, 0.15)',
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      Yard status:{' '}
-                      <strong>{yardStatus?.replace(/_/g, ' ') || '—'}</strong>
-                      {yardLoading ? ' (checking…)' : ''}
-                    </Typography>
-                    {yardStatus === 'PARKED' && (
-                      <Button
-                        variant="contained"
-                        size="small"
-                        disabled={yardLoading}
-                        onClick={handleStartDismantling}
-                        sx={{ mr: 1 }}
-                      >
-                        Start dismantling
-                      </Button>
-                    )}
-                    {yardStatus === 'AWAITING_ARRIVAL' && (
-                      <Typography variant="caption" color="error">
-                        Park this vehicle in Yard Management before dismantling.
-                      </Typography>
-                    )}
-                    {errors.yard && (
-                      <Typography variant="caption" color="error" display="block" sx={{ mt: 0.5 }}>
-                        {errors.yard}
-                      </Typography>
-                    )}
-                    {canAddParts && yardStatus === 'DISMANTLING_IN_PROGRESS' && (
-                      <Typography variant="caption" color="success.main">
-                        Ready to add dismantled parts.
-                      </Typography>
-                    )}
-                  </Box>
-                </Grid>
-              )}
             </Grid>
-            <Divider />
-          </>
+
+            {selectedVehicleId && hasYardRecord && (
+              <Box
+                sx={{
+                  mt: 1.5,
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: '8px',
+                  bgcolor: '#fff',
+                  border: '1px solid var(--color-grey-200)',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: 1,
+                }}
+              >
+                <Typography variant="body2" sx={{ color: 'var(--color-grey-700)' }}>
+                  Yard: <strong>{yardStatus?.replace(/_/g, ' ') || '—'}</strong>
+                  {yardLoading ? ' …' : ''}
+                </Typography>
+                {yardStatus === 'PARKED' && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    disableElevation
+                    disabled={yardLoading}
+                    onClick={handleStartDismantling}
+                    sx={{ textTransform: 'none', borderRadius: '8px', py: 0.25 }}
+                  >
+                    Start dismantling
+                  </Button>
+                )}
+                {yardStatus === 'AWAITING_ARRIVAL' && (
+                  <Typography variant="caption" color="error">
+                    Park vehicle in Yard first
+                  </Typography>
+                )}
+                {canAddParts && yardStatus === 'DISMANTLING_IN_PROGRESS' && (
+                  <Typography variant="caption" sx={{ color: 'var(--color-success-dark)' }}>
+                    Ready to add parts
+                  </Typography>
+                )}
+                {errors.yard && (
+                  <Typography variant="caption" color="error" sx={{ width: '100%' }}>
+                    {errors.yard}
+                  </Typography>
+                )}
+              </Box>
+            )}
+          </Box>
         )}
 
-        {/* ── Parts ──────────────────────────────────────────────── */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
-            Parts {parts.length > 1 ? `(${parts.length})` : ''}
+        {!editMode && !showPicker && pickerHint && (
+          <Typography
+            variant="body2"
+            sx={{
+              py: 2,
+              px: 1,
+              color: 'var(--color-grey-500)',
+              textAlign: 'center',
+            }}
+          >
+            {pickerHint}
           </Typography>
-          {!editMode && !readOnly && canAddParts && !catalogMode && (
-            <Button
-              startIcon={<AddIcon />}
-              onClick={addPart}
-              size="small"
-              sx={{ color: 'var(--color-secondary-main)', textTransform: 'none' }}
-            >
-              Add Part
-            </Button>
-          )}
-        </Box>
-
-        {errors.parts && (
-          <Typography variant="caption" color="error">{errors.parts}</Typography>
         )}
 
-        {!editMode && canAddParts && (catalogMode || yardStatus === 'DISMANTLING_IN_PROGRESS') ? (
-          <InventoryCatalogChecklist
-            parts={parts}
+        {showPicker && (
+          <InventoryPartPicker
+            catalogParts={catalogParts}
+            selectedParts={selectedParts}
             catalogMeta={catalogMeta}
             catalogMmv={catalogMmv}
             catalogLoading={catalogLoading}
+            partCategories={partCategories}
             readOnly={readOnly || (!editMode && hasYardRecord && !canAddParts)}
             errors={errors}
             onLoadCatalog={() => loadCatalogChecklist()}
             onLoadCatalogByMmv={() => loadCatalogChecklistByMmv()}
             onCatalogMmvChange={handleCatalogMmvChange}
-            onPartChange={handlePartChange}
+            onSelectedPartChange={handleSelectedPartChange}
+            onRemoveSelected={handleRemoveSelected}
+            onAddToSelected={handleAddToSelected}
+            onAddManyToSelected={handleAddManyToSelected}
             onAddGlobalPart={handleAddGlobalPart}
+            onAddCategory={handleAddCategory}
           />
-        ) : (
-          parts.map((part, index) => (
+        )}
+
+        {editMode && parts.map((part, index) => (
             <InventoryPartRow
               key={part._id || part.id || part._uid || index}
               part={part}
@@ -222,8 +290,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
               onClickFileInput={() => fileInputRefs.current[index]?.click()}
               fileInputRefCallback={(el) => { fileInputRefs.current[index] = el; }}
             />
-          ))
-        )}
+        ))}
       </Box>
     </NormalModal>
   );
