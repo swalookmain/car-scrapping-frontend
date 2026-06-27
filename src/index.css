@@ -219,6 +219,95 @@ body {
   animation: fadeIn 0.3s ease-out;
 }
 
+/* ==============================|| PREMIUM DASHBOARD ||============================== */
+@keyframes dashboardMesh {
+  0%, 100% { opacity: 0.55; transform: scale(1) translate(0, 0); }
+  50% { opacity: 0.85; transform: scale(1.05) translate(2%, -1%); }
+}
+
+@keyframes dashboardFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes dashboardPulseRing {
+  0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.45); }
+  70% { box-shadow: 0 0 0 8px rgba(0, 230, 118, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+}
+
+.dashboard-mesh-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  animation: dashboardMesh 12s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.dashboard-kpi-shine {
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.dashboard-live-dot {
+  animation: dashboardPulseRing 2s ease-out infinite;
+}
+
+.dashboard-pipeline-node {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.dashboard-pipeline-node:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(103, 58, 183, 0.18);
+}
+
+.dashboard-stagger > * {
+  animation: fadeInUp 0.45s ease-out both;
+}
+.dashboard-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.dashboard-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.dashboard-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.dashboard-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.dashboard-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.dashboard-stagger > *:nth-child(6) { animation-delay: 250ms; }
+
+.dashboard-ring-track {
+  stroke: rgba(103, 58, 183, 0.12);
+  fill: none;
+  stroke-width: 10;
+}
+.dashboard-ring-fill {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  transition: stroke-dashoffset 1s ease-out;
+}
+
+.dashboard-auction-timeline::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: linear-gradient(180deg, #673ab7 0%, #2196f3 50%, transparent 100%);
+  border-radius: 2px;
+}
+
+.dashboard-insight-glow {
+  background: linear-gradient(135deg, #0f0c29 0%, #1a1040 50%, #1a237e 100%);
+  box-shadow: 0 16px 48px rgba(69, 39, 160, 0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
 /* ==============================|| CHART FIXES ||============================== */
 /* Prevent chart flickering and overlap during resize */
 .apexcharts-canvas {

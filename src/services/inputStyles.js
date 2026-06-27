@@ -27,4 +27,22 @@ const inputSx = {
   },
 };
 
+/** Prevents MUI Autocomplete from truncating long invoice / vehicle labels */
+export const autocompleteSx = {
+  ...inputSx,
+  width: '100%',
+  '& .MuiAutocomplete-inputRoot': {
+    flexWrap: 'nowrap',
+    alignItems: 'center',
+  },
+  '& .MuiAutocomplete-input': {
+    minWidth: '8ch !important',
+    width: '100% !important',
+    flex: '1 1 auto !important',
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+  },
+};
+
 export default inputSx;

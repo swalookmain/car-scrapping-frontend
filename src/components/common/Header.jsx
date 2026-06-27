@@ -1,297 +1,223 @@
-import React, { memo, useCallback, useState, useRef, useEffect } from 'react';
-import { AppBar, Toolbar, IconButton, Box, InputBase, Avatar, LinearProgress, useMediaQuery, useTheme } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+import React, { memo, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Box,
+  LinearProgress,
+  Typography,
+  Avatar,
+  Badge,
+} from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import TuneIcon from '@mui/icons-material/Tune'; 
-import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
-import SettingsIcon from '@mui/icons-material/SettingsOutlined';
-import CloseIcon from '@mui/icons-material/Close';
-import FullscreenIcon from '@mui/icons-material/Fullscreen';
-import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import NotificationModal from './NotificationModal';
 import ProfileModal from './ProfileModal';
+import { useAuth } from '../../context/AuthContext';
+import { getPageLabel } from '../../config/roleConfig';
+
+const roleLabels = {
+  SUPER_ADMIN: 'Super Admin',
+  ADMIN: 'Admin',
+  STAFF: 'Staff',
+};
 
 const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  // Mobile Search State
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  
-  // Notification Modal State
+  const location = useLocation();
+  const { user } = useAuth();
+  const pageLabel = getPageLabel(location.pathname);
+
   const [notificationOpen, setNotificationOpen] = useState(false);
   const notificationButtonRef = useRef(null);
-    // Profile Modal State
-    const [profileOpen, setProfileOpen] = useState(false);
-    const profileButtonRef = useRef(null);
-    // Fullscreen State
-    const [isFullscreen, setIsFullscreen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileButtonRef = useRef(null);
 
-    useEffect(() => {
-      const onFsChange = () => {
-        setIsFullscreen(!!document.fullscreenElement);
-      };
-
-      const onKeyDown = (e) => {
-        if (e.key === 'Escape') {
-          setIsFullscreen(!!document.fullscreenElement);
-        }
-      };
-
-      document.addEventListener('fullscreenchange', onFsChange);
-      window.addEventListener('keydown', onKeyDown);
-
-      return () => {
-        document.removeEventListener('fullscreenchange', onFsChange);
-        window.removeEventListener('keydown', onKeyDown);
-      };
-    }, []);
-
-    const toggleFullscreen = async () => {
-      try {
-        if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen();
-        } else {
-          await document.exitFullscreen();
-        }
-      } catch (err) {
-        // ignore or log
-        // console.error('Fullscreen toggle failed', err);
-      }
-    };
-
-  // Use useCallback for event handlers
-  const handleFullscreenToggle = useCallback(() => {
-    if (isFullscreen) {
-      document.exitFullscreen();
-    } else {
-      document.documentElement.requestFullscreen();
-    }
-  }, [isFullscreen]);
+  const displayName = user?.name || user?.email || 'User';
+  const displayRole = user?.role ? roleLabels[user.role] || user.role : '';
+  const initial = (displayName.charAt(0) || '?').toUpperCase();
 
   return (
     <AppBar
       position="fixed"
       elevation={0}
       sx={{
-        bgcolor: 'rgba(255,255,255,0.72)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        bgcolor: 'rgba(255,255,255,0.88)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
         color: 'text.primary',
         transition: 'width 225ms cubic-bezier(0, 0, 0.2, 1) 0ms',
         width: { md: `calc(100% - ${isSidebarOpen ? drawerWidth : 72}px)` },
         ml: { md: `${isSidebarOpen ? drawerWidth : 72}px` },
-        borderBottom: '1px solid rgba(0,0,0,0.04)',
+        borderBottom: '1px solid rgba(103,58,183,0.08)',
       }}
     >
-      {/* --- LOADER (Only visible when isLoading is true) --- */}
       <Box sx={{ width: '100%', height: '3px' }}>
-         {isLoading && <LinearProgress color="secondary" sx={{ height: '3px', borderRadius: '4px', '& .MuiLinearProgress-bar': { borderRadius: '4px' } }} />}
+        {isLoading && (
+          <LinearProgress
+            color="secondary"
+            sx={{ height: '3px', '& .MuiLinearProgress-bar': { borderRadius: '4px' } }}
+          />
+        )}
       </Box>
 
-      <Toolbar sx={{ paddingY: 1.5, justifyContent: 'space-between' }}>
-        
-        {mobileSearchOpen && isMobile ? (
-             <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', gap: 1 }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    bgcolor: 'var(--color-grey-50)',
-                    border: '1px solid var(--color-grey-200)',
-                    borderRadius: '8px',
-                    padding: '4px 12px',
-                    flex: 1
-                  }}
-                >
-                  <SearchIcon sx={{ color: 'var(--color-grey-500)' }} />
-                  <InputBase
-                    placeholder="Search"
-                    autoFocus
-                    sx={{ ml: 1, flex: 1, color: 'var(--color-grey-900)' }}
-                  />
-                  <IconButton size="small">
-                      <TuneIcon sx={{ color: 'var(--color-grey-500)' }} />
-                  </IconButton>
-                </Box>
-                
-                <Box
-                  onClick={() => setMobileSearchOpen(false)}
-                  sx={{
-                    bgcolor: 'var(--color-orange-light)',
-                    borderRadius: '8px',
-                    width: 32,
-                    height: 32,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <CloseIcon sx={{ color: 'var(--color-orange-dark)', fontSize: '1rem' }} />
-                </Box>
-             </Box>
-        ) : (
-            // --- NORMAL HEADER VIEW ---
-            <>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    {/* Hamburger button – only visible on mobile */}
-                    <IconButton
-                      onClick={handleDrawerToggle}
-                      size="medium"
-                      sx={{
-                        display: { xs: 'flex', md: 'none' },
-                        mr: 0.5,
-                        color: 'var(--color-grey-700)',
-                        borderRadius: '10px',
-                        '&:hover': { backgroundColor: 'var(--color-secondary-light)' },
-                      }}
-                    >
-                      <MenuIcon />
-                    </IconButton>
-                    <Box sx={{ width: { xs: 0, md: 8 } }} />
+      <Toolbar sx={{ minHeight: { xs: 56, sm: 60 }, px: { xs: 1.5, sm: 2.5 }, gap: 2 }}>
+        {/* Left: mobile menu + ERP context */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+          <IconButton
+            onClick={handleDrawerToggle}
+            size="small"
+            sx={{
+              display: { xs: 'flex', md: 'none' },
+              color: 'var(--color-grey-700)',
+              borderRadius: '10px',
+              bgcolor: 'var(--color-secondary-light)',
+              '&:hover': { bgcolor: 'var(--color-secondary-200)' },
+            }}
+          >
+            <MenuIcon fontSize="small" />
+          </IconButton>
 
-                    {/* Desktop Search Bar */}
-                    <Box
-                    sx={{
-                      display: { xs: 'none', sm: 'flex' },
-                      alignItems: 'center',
-                      bgcolor: 'rgba(248,250,252,0.8)',
-                      border: '1px solid var(--color-grey-200)',
-                      borderRadius: '12px',
-                      padding: '6px 16px',
-                        width: '100%',
-                        maxWidth: '420px',
-                        transition: 'all 0.2s ease',
-                        '&:focus-within': {
-                          borderColor: 'var(--color-secondary-200)',
-                          boxShadow: '0 0 0 3px rgba(103,58,183,0.06)',
-                          bgcolor: '#fff',
-                        },
-                    }}
-                    >
-                        <SearchIcon sx={{ color: 'var(--color-grey-500)' }} />
-                        <InputBase
-                            placeholder="Search"
-                            sx={{ ml: 1, flex: 1, color: 'var(--color-grey-900)' }}
-                        />
-                        <IconButton size="small">
-                            <TuneIcon sx={{ color: 'var(--color-grey-500)' }} />
-                        </IconButton>
-                    </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: 'var(--color-success-main)',
+                  boxShadow: '0 0 0 3px rgba(0,230,118,0.2)',
+                  flexShrink: 0,
+                  display: { xs: 'none', sm: 'block' },
+                }}
+              />
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-secondary-main)',
+                  fontSize: '0.65rem',
+                  lineHeight: 1,
+                }}
+              >
+                ScrapNiti ERP
+              </Typography>
+            </Box>
+            <Typography
+              variant="h6"
+              noWrap
+              sx={{
+                fontSize: { xs: '0.95rem', sm: '1.05rem' },
+                fontWeight: 700,
+                color: 'var(--color-grey-900)',
+                letterSpacing: '-0.02em',
+                mt: 0.25,
+              }}
+            >
+              {pageLabel}
+            </Typography>
+          </Box>
+        </Box>
 
-                    {/* Mobile Search Icon Trigger */}
-                    <Box
-                       sx={{
-                         display: { xs: 'flex', sm: 'none' },
-                         bgcolor: 'var(--color-secondary-light)',
-                         borderRadius: '8px',
-                         width: 30,
-                         height: 30,
-                         alignItems: 'center',
-                         justifyContent: 'center',
-                         cursor: 'pointer',
-                         mr: 2
-                       }}
-                       onClick={() => setMobileSearchOpen(true)}
-                    >
-                        <SearchIcon sx={{ color: 'var(--color-secondary-dark)', fontSize: '1rem' }} />
-                    </Box>
-                </Box>
+        {/* Right: notifications + profile */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ position: 'relative' }}>
+            <IconButton
+              ref={notificationButtonRef}
+              onClick={() => setNotificationOpen((o) => !o)}
+              size="small"
+              aria-label="Notifications"
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '12px',
+                bgcolor: 'var(--color-warning-light)',
+                color: 'var(--color-warning-dark)',
+                border: '1px solid rgba(255,193,7,0.25)',
+                '&:hover': {
+                  bgcolor: '#fff8e1',
+                  transform: 'scale(1.04)',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Badge variant="dot" color="error" overlap="circular">
+                <NotificationsNoneOutlinedIcon sx={{ fontSize: 20 }} />
+              </Badge>
+            </IconButton>
+            <NotificationModal
+              isOpen={notificationOpen}
+              onClose={() => setNotificationOpen(false)}
+              anchorRef={notificationButtonRef}
+            />
+          </Box>
 
-                {/* Right Side Icons */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  {/* Fullscreen Toggle */}
-                  <Box
-                    sx={{
-                      width: 34,
-                      height: 34,
-                      bgcolor: 'var(--color-secondary-light)',
-                      borderRadius: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        transform: 'scale(1.05)',
-                        boxShadow: '0 4px 12px rgba(103,58,183,0.15)',
-                      },
-                    }}
-                    onClick={toggleFullscreen}
-                    aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                  >
-                    {isFullscreen ? (
-                      <FullscreenExitIcon sx={{ color: 'var(--color-secondary-dark)', fontSize: '1rem' }} />
-                    ) : (
-                      <FullscreenIcon sx={{ color: 'var(--color-secondary-dark)', fontSize: '1rem' }} />
-                    )}
-                  </Box>
-                    <Box sx={{ position: 'relative' }}>
-                        <Box
-                          ref={notificationButtonRef}
-                          onClick={() => setNotificationOpen(!notificationOpen)}
-                          sx={{
-                          width: 34,
-                          height: 34,
-                          bgcolor: 'var(--color-warning-light)',
-                          borderRadius: '10px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          '&:hover': {
-                            transform: 'scale(1.05)',
-                            boxShadow: '0 4px 12px rgba(255,193,7,0.2)',
-                          },
-                          }}
-                        >
-                          <NotificationsNoneIcon sx={{ color: 'var(--color-warning-dark)', fontSize: '1rem' }} />
-                        </Box>
-                        <NotificationModal 
-                            isOpen={notificationOpen} 
-                            onClose={() => setNotificationOpen(false)}
-                            anchorRef={notificationButtonRef}
-                        />
-                    </Box>
-
-                    <Box
-                    ref={profileButtonRef}
-                    onClick={() => setProfileOpen(!profileOpen)}
-                    sx={{
-                      bgcolor: 'var(--color-primary-light)',
-                      height: '42px',
-                      borderRadius: '22px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '0 10px',
-                      cursor: 'pointer',
-                      gap: 1.5,
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        boxShadow: '0 4px 12px rgba(33,150,243,0.15)',
-                        transform: 'scale(1.02)',
-                      },
-                    }}
-                    >
-                      <Avatar 
-                        src="" 
-                        sx={{ width: 28, height: 28, bgcolor: 'var(--color-warning-main)' }} 
-                      />
-                      <SettingsIcon sx={{ color: 'var(--color-primary-main)', fontSize: '1rem' }} />
-                    </Box>
-                    <ProfileModal
-                      isOpen={profileOpen}
-                      onClose={() => setProfileOpen(false)}
-                      anchorRef={profileButtonRef}
-                    />
-                </Box>
-            </>
-        )}
+          <Box
+            ref={profileButtonRef}
+            onClick={() => setProfileOpen((o) => !o)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') setProfileOpen((o) => !o);
+            }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              pl: 0.5,
+              pr: 1.25,
+              py: 0.5,
+              borderRadius: '14px',
+              cursor: 'pointer',
+              border: '1px solid var(--color-grey-200)',
+              bgcolor: '#fff',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                borderColor: 'var(--color-secondary-200)',
+                boxShadow: '0 4px 16px rgba(103,58,183,0.1)',
+              },
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                bgcolor: 'var(--color-secondary-main)',
+              }}
+            >
+              {initial}
+            </Avatar>
+            <Box sx={{ display: { xs: 'none', sm: 'block' }, minWidth: 0 }}>
+              <Typography
+                noWrap
+                sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-grey-900)', lineHeight: 1.2 }}
+              >
+                {displayName}
+              </Typography>
+              <Typography noWrap sx={{ fontSize: '0.68rem', color: 'var(--color-grey-500)', lineHeight: 1.2 }}>
+                {displayRole}
+              </Typography>
+            </Box>
+            <KeyboardArrowDownIcon
+              sx={{ fontSize: 18, color: 'var(--color-grey-500)', display: { xs: 'none', sm: 'block' } }}
+            />
+          </Box>
+          <ProfileModal
+            isOpen={profileOpen}
+            onClose={() => setProfileOpen(false)}
+            anchorRef={profileButtonRef}
+          />
+        </Box>
       </Toolbar>
     </AppBar>
   );
 });
+
+Header.displayName = 'Header';
 
 export default Header;

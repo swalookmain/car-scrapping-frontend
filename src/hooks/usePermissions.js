@@ -6,7 +6,7 @@ import { ROLES } from '../config/roleConfig';
  * RBAC permissions map.
  * Each permission maps to the roles that have access.
  */
-const PERMISSIONS = {
+export const PERMISSIONS = {
   // Staff management
   'staff:view': [ROLES.ADMIN],
   'staff:create': [ROLES.ADMIN],

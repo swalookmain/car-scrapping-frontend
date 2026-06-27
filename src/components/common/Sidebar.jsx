@@ -8,6 +8,7 @@ import {
   ListItemText,
   Typography,
   Box,
+  Tooltip,
   useMediaQuery,
   useTheme
 } from '@mui/material';
@@ -154,7 +155,8 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
               const Icon = item.icon;
               const active = location.pathname === item.path;
               const isCollapsed = !drawerOpen;
-              return (
+
+              const navButton = (
                 <ListItemButton
                   key={item.path}
                   ref={active ? activeItemRef : null}
@@ -162,6 +164,7 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
                   onClick={handleNavigate}
                   className={isCollapsed && active ? 'collapsedActive' : undefined}
                   aria-current={active ? 'page' : undefined}
+                  aria-label={isCollapsed ? item.label : undefined}
                   sx={{
                     borderRadius: isCollapsed ? '10px' : '8px',
                     mb: 0.5,
@@ -169,7 +172,6 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
                     px: isCollapsed ? 0 : 1.25,
                     justifyContent: isCollapsed ? 'center' : 'initial',
                     minHeight: isCollapsed ? 44 : 36,
-                    // collapsed: we show a subtle purple-tinted chip behind icon + small left bar when active; expanded: pill highlight
                     position: 'relative',
                     borderLeft: isCollapsed ? '4px solid transparent' : (active ? `4px solid ${S.collapsedActiveBar}` : '4px solid transparent'),
                     backgroundColor: !isCollapsed && active ? S.activeBg : 'transparent',
@@ -190,7 +192,6 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
                     transition: 'background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease',
                   }}
                 >
-                  {/* Icon */}
                   <ListItemIcon sx={{
                     minWidth: 0,
                     mr: isCollapsed ? 0 : 1.25,
@@ -206,10 +207,9 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
                     } : {}),
                     ...( !isCollapsed && active ? { boxShadow: '0 4px 12px rgba(103,58,183,0.08)' } : {}),
                   }}>
-                    <Icon sx={{ fontSize: isCollapsed ? '1.2rem' : '1.1rem', color: 'inherit' }} />
+                    <Icon sx={{ fontSize: isCollapsed ? '1.25rem' : '1.15rem', color: 'inherit' }} />
                   </ListItemIcon>
 
-                  {/* Label (hidden when collapsed) */}
                   {!isCollapsed && (
                     <ListItemText
                       primary={item.label}
@@ -224,11 +224,38 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
                     />
                   )}
 
-                  {/* Active dot — expanded mode only */}
                   {active && !isCollapsed && (
                     <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: S.activeDot, flexShrink: 0, ml: 1 }} />
                   )}
                 </ListItemButton>
+              );
+
+              return isCollapsed ? (
+                <Tooltip
+                  key={item.path}
+                  title={item.label}
+                  placement="right"
+                  arrow
+                  enterDelay={200}
+                  slotProps={{
+                    tooltip: {
+                      sx: {
+                        bgcolor: '#2B1450',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        px: 1.5,
+                        py: 0.75,
+                        borderRadius: '8px',
+                        boxShadow: '0 8px 24px rgba(43,20,80,0.35)',
+                      },
+                    },
+                    arrow: { sx: { color: '#2B1450' } },
+                  }}
+                >
+                  {navButton}
+                </Tooltip>
+              ) : (
+                navButton
               );
             })}
           </React.Fragment>
@@ -238,19 +265,36 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
       {/* ── Collapse toggle ── */}
       {matchUpMd && (
         <Box sx={{ px: 1, py: 1, borderTop: `1px solid ${S.border}` }}>
-          <ListItemButton
-            onClick={drawerToggle}
-            sx={{
-              borderRadius: '8px',
-              py: 0.75,
-              px: drawerOpen ? 1.25 : 0,
-              minHeight: 36,
-              justifyContent: drawerOpen ? 'initial' : 'center',
-              color: S.muted,
-              '&:hover': { backgroundColor: S.hoverBg, color: S.text },
-              transition: 'all 0.15s ease',
+          <Tooltip
+            title={drawerOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            placement="right"
+            arrow
+            disableHoverListener={drawerOpen}
+            slotProps={{
+              tooltip: {
+                sx: {
+                  bgcolor: '#2B1450',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                },
+              },
+              arrow: { sx: { color: '#2B1450' } },
             }}
           >
+            <ListItemButton
+              onClick={drawerToggle}
+              sx={{
+                borderRadius: '8px',
+                py: 0.75,
+                px: drawerOpen ? 1.25 : 0,
+                minHeight: 36,
+                justifyContent: drawerOpen ? 'initial' : 'center',
+                color: S.muted,
+                '&:hover': { backgroundColor: S.hoverBg, color: S.text },
+                transition: 'all 0.15s ease',
+              }}
+            >
             <ListItemIcon sx={{ minWidth: 0, mr: drawerOpen ? 1.25 : 0, justifyContent: 'center', color: 'inherit' }}>
               {drawerOpen ? (
                 <ChevronLeftIcon sx={{ fontSize: '1.1rem', transition: 'transform 0.2s ease' }} />
@@ -274,6 +318,7 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
               />
             )}
           </ListItemButton>
+          </Tooltip>
         </Box>
       )}
     </Box>

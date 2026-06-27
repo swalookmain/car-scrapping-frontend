@@ -11,6 +11,17 @@ export const inventoryConditionColor = {
 };
 
 export const inventoryCategoryColor = {
+  engine: { bg: '#e3f2fd', color: '#1565c0' },
+  transmission: { bg: '#f3e5f5', color: '#6a1b9a' },
+  brakes: { bg: '#ede7f6', color: '#4527a0' },
+  suspension: { bg: '#e8eaf6', color: '#3949ab' },
+  body: { bg: '#fff3e0', color: '#e65100' },
+  metal: { bg: '#e0f2f1', color: '#00695c' },
+  plastic: { bg: '#fce4ec', color: '#ad1457' },
+  electrical: { bg: '#fff9c4', color: '#f57f17' },
+  exhaust: { bg: '#efebe9', color: '#5d4037' },
+  other: { bg: '#f5f5f5', color: '#616161' },
+  // legacy uppercase keys
   ENGINE: { bg: '#e3f2fd', color: '#1565c0' },
   TRANSMISSION: { bg: '#f3e5f5', color: '#6a1b9a' },
   BODY: { bg: '#fff3e0', color: '#e65100' },

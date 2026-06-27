@@ -10,6 +10,7 @@ import {
   inventoryConditionColor,
   inventoryStatusColor,
 } from './inventoryColumnHelpers';
+import { formatCategoryLabel, normalizeCategory } from './inventoryPickerUtils';
 
 // ── Named cell components (canonical pattern) ────────────────
 export const ItemCodeCell = ({ row }) => (
@@ -48,8 +49,15 @@ export const InvoiceRefCell = ({ row }) => {
 };
 
 export const CategoryChip = ({ row }) => {
-  const cc = inventoryCategoryColor[row.partType] || inventoryCategoryColor.OTHER;
-  return <Chip label={row.partType || 'OTHER'} size="small" sx={{ fontWeight: 600, fontSize: '0.7rem', backgroundColor: cc.bg, color: cc.color }} />;
+  const key = normalizeCategory(row.partType);
+  const cc = inventoryCategoryColor[key] || inventoryCategoryColor.other || inventoryCategoryColor.OTHER;
+  return (
+    <Chip
+      label={formatCategoryLabel(row.partType) || 'Other'}
+      size="small"
+      sx={{ fontWeight: 600, fontSize: '0.7rem', backgroundColor: cc.bg, color: cc.color }}
+    />
+  );
 };
 
 export const OpeningCell   = ({ row }) => <Typography variant="body2" sx={{ color: 'var(--color-grey-700)', textAlign: 'center' }}>{row.openingStock ?? 0}</Typography>;

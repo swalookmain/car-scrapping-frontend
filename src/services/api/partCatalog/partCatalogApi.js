@@ -42,6 +42,14 @@ const partCatalogApi = {
     );
     return response.data;
   },
+  getCategories: async () => {
+    const response = await axiosInstance.get(ENDPOINTS.PART_CATALOG.CATEGORIES);
+    return response.data;
+  },
+  createCategory: async (name) => {
+    const response = await axiosInstance.post(ENDPOINTS.PART_CATALOG.CATEGORIES, { name });
+    return response.data;
+  },
 };
 
 export default partCatalogApi;
