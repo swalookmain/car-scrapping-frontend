@@ -116,6 +116,7 @@ const SalesInvoiceDetailView = ({ item }) => {
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Vehicle</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Invoice No.</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Qty</TableCell>
+                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Sold KG</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Unit Price</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Line Total</TableCell>
               </TableRow>
@@ -124,8 +125,7 @@ const SalesInvoiceDetailView = ({ item }) => {
               {items.map((it, idx) => (
                 <TableRow key={it._id || it.id || idx}>
                   <TableCell sx={{ fontSize: '0.8rem' }}>{idx + 1}</TableCell>
-                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{it.itemCode || '—'}</TableCell>
-                  <TableCell sx={{ fontSize: '0.8rem' }}>{it.partName || it.part?.partName || '—'}</TableCell>
+                  <TableCell sx={{ fontSize: '0.8rem' }}>{it.partName || it.part?.partName || it.itemCode || '—'}</TableCell>
                   <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
                     {(() => {
                       const enriched = enrichRow({ vehicleId: it.vehicleId || it.vechileId, invoiceId: it.invoiceId }, invoiceMap, vehicleMap, vehicleByInvoiceMap);
@@ -146,6 +146,11 @@ const SalesInvoiceDetailView = ({ item }) => {
                     })()}
                   </TableCell>
                   <TableCell align="right" sx={{ fontSize: '0.8rem' }}>{it.quantity || 0}</TableCell>
+                  <TableCell align="right" sx={{ fontSize: '0.8rem' }}>
+                    {it.soldWeightKg != null && it.soldWeightKg !== ''
+                      ? Number(it.soldWeightKg).toLocaleString('en-IN')
+                      : '—'}
+                  </TableCell>
                   <TableCell align="right" sx={{ fontSize: '0.8rem' }}>
                     {it.unitPrice != null ? `₹${Number(it.unitPrice).toLocaleString('en-IN')}` : '—'}
                   </TableCell>

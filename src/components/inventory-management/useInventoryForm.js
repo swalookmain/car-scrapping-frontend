@@ -50,6 +50,11 @@ export const createPartFromCatalog = (item) => ({
   unitPrice: '',
   condition: 'GOOD',
   status: 'AVAILABLE',
+  weightKg: '',
+  weightUnit: item.defaultWeightUnit || 'KG',
+  stateOfMatter: item.defaultStateOfMatter || item.stateOfMatter || 'SOLID',
+  materialCode: item.defaultMaterialCode || item.materialCode || '',
+  matterClass: item.matterClass || 'OTHER',
   documents: [],
   included: true,
 });
@@ -64,6 +69,11 @@ export const createInitialPart = () => ({
   unitPrice: '',
   condition: 'GOOD',
   status: 'AVAILABLE',
+  weightKg: '',
+  weightUnit: 'KG',
+  stateOfMatter: 'SOLID',
+  materialCode: '',
+  matterClass: 'OTHER',
   documents: [],
 });
 
@@ -82,6 +92,8 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [vehicleLabel,     setVehicleLabel]     = useState('');
   const [yardRecord, setYardRecord] = useState(null);
+  const [grossWeightKg, setGrossWeightKg] = useState('');
+  const [savingWeight, setSavingWeight] = useState(false);
 
   // Catalog checklist
   const [catalogMode, setCatalogMode] = useState(false);
@@ -142,26 +154,44 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     }
   };
 
-  const fetchYardForVehicle = async (vehicleInvoiceId) => {
+  const syncWeightFromSources = (vehicle, yard) => {
+    const fromYard = yard?.grossWeightKg;
+    const fromVehicle = vehicle?.grossWeightKg;
+    const value =
+      fromYard != null && fromYard !== ''
+        ? fromYard
+        : fromVehicle != null && fromVehicle !== ''
+          ? fromVehicle
+          : '';
+    setGrossWeightKg(value === '' || value == null ? '' : String(value));
+  };
+
+  const fetchYardForVehicle = async (vehicleInvoiceId, vehicleHint = null) => {
     if (!vehicleInvoiceId) {
       setYardRecord(null);
+      setGrossWeightKg('');
       return;
     }
     try {
       await executeYard(async () => {
         const res = await yardApi.getByVehicleInvoiceId(vehicleInvoiceId);
-        setYardRecord(res?.data ?? res ?? null);
+        const yard = res?.data ?? res ?? null;
+        setYardRecord(yard);
+        syncWeightFromSources(vehicleHint, yard);
       });
     } catch {
       setYardRecord(null);
+      syncWeightFromSources(vehicleHint, null);
     }
   };
 
-  const fetchVehicleForInvoice = async (invoiceId) => {
+  const fetchVehicleForInvoice = async (invoiceId, preserveVehicleId = null) => {
     setInvoiceVehicles([]);
-    setSelectedVehicleId('');
-    setVehicleLabel('');
-    setYardRecord(null);
+    if (!preserveVehicleId) {
+      setSelectedVehicleId('');
+      setVehicleLabel('');
+      setYardRecord(null);
+    }
     try {
       await executeVehicle(async () => {
         const vehRes  = await invoicesApi.getVehicleById(invoiceId);
@@ -179,12 +209,22 @@ export function useInventoryForm({ onSubmit, readOnly }) {
           })
           .filter((v) => Boolean(v.id));
         setInvoiceVehicles(mappedVehicles);
-        // User must explicitly pick a vehicle — no auto-select
+        if (preserveVehicleId) {
+          const selected = mappedVehicles.find((v) => v.id === preserveVehicleId);
+          if (selected) {
+            setSelectedVehicleId(preserveVehicleId);
+            setVehicleLabel(selected.label);
+            syncCatalogMmvFromVehicle(selected);
+            fetchYardForVehicle(preserveVehicleId, selected);
+          }
+        }
       });
     } catch {
       setInvoiceVehicles([]);
-      setSelectedVehicleId('');
-      setVehicleLabel('No vehicle found');
+      if (!preserveVehicleId) {
+        setSelectedVehicleId('');
+        setVehicleLabel('No vehicle found');
+      }
     }
   };
 
@@ -211,13 +251,15 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     if (!vehicleId) {
       setVehicleLabel('');
       setYardRecord(null);
+      setGrossWeightKg('');
       setCatalogMmv({ make: '', model: '', variant: 'Standard', vehicleType: 'CAR' });
       return;
     }
     const selected = invoiceVehicles.find((v) => v.id === vehicleId);
     setVehicleLabel(selected?.label || '');
     syncCatalogMmvFromVehicle(selected);
-    fetchYardForVehicle(vehicleId);
+    syncWeightFromSources(selected, null);
+    fetchYardForVehicle(vehicleId, selected);
   };
 
   const yardStatus = yardRecord?.currentStatus || null;
@@ -276,7 +318,8 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   const canAddParts =
     editMode ||
     !hasYardRecord ||
-    yardStatus === 'DISMANTLING_IN_PROGRESS';
+    yardStatus === 'DISMANTLING_IN_PROGRESS' ||
+    yardStatus === 'DISMANTLED';
 
   const loadCatalogChecklist = useCallback(async (vehicleId = selectedVehicleId) => {
     if (!vehicleId || editMode) return;
@@ -322,7 +365,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
 
   useEffect(() => {
     if (!selectedVehicleId || editMode) return;
-    if (yardStatus === 'DISMANTLING_IN_PROGRESS') {
+    if (yardStatus === 'DISMANTLING_IN_PROGRESS' || yardStatus === 'DISMANTLED') {
       loadCatalogChecklist(selectedVehicleId);
     }
   }, [selectedVehicleId, yardStatus, editMode, loadCatalogChecklist]);
@@ -392,15 +435,49 @@ export function useInventoryForm({ onSubmit, readOnly }) {
 
   const handleStartDismantling = async () => {
     if (!selectedVehicleId) return;
+    const selected = invoiceVehicles.find((v) => v.id === selectedVehicleId);
     try {
       await executeYard(async () => {
         await yardApi.startDismantling(selectedVehicleId);
         toast.success('Dismantling started — you can add parts now');
-        await fetchYardForVehicle(selectedVehicleId);
+        await fetchYardForVehicle(selectedVehicleId, selected);
         await loadCatalogChecklist(selectedVehicleId);
       });
     } catch (e) {
       toast.error(e?.response?.data?.message || e.message || 'Could not start dismantling');
+    }
+  };
+
+  const handleSaveGrossWeight = async () => {
+    if (!yardRecord?._id && !yardRecord?.id) {
+      toast.error('Park this vehicle in Yard first to save weight');
+      return;
+    }
+    if (grossWeightKg === '' || Number(grossWeightKg) < 0) {
+      toast.error('Enter a valid vehicle weight in KG');
+      return;
+    }
+    setSavingWeight(true);
+    try {
+      const yardId = yardRecord._id || yardRecord.id;
+      const status = yardRecord.currentStatus;
+      const updated = await yardApi.updateStatus(yardId, {
+        status,
+        grossWeightKg: Number(grossWeightKg),
+      });
+      setYardRecord(updated?.data ?? updated ?? yardRecord);
+      setInvoiceVehicles((prev) =>
+        prev.map((v) =>
+          v.id === selectedVehicleId
+            ? { ...v, grossWeightKg: Number(grossWeightKg) }
+            : v,
+        ),
+      );
+      toast.success('Vehicle weight saved');
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e.message || 'Could not save weight');
+    } finally {
+      setSavingWeight(false);
     }
   };
 
@@ -472,6 +549,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
         hasYardRecord &&
         yardStatus &&
         yardStatus !== 'DISMANTLING_IN_PROGRESS' &&
+        yardStatus !== 'DISMANTLED' &&
         yardStatus !== 'PARKED'
       ) {
         err.yard = 'Vehicle must be parked and dismantling started in Yard first';
@@ -510,6 +588,11 @@ export function useInventoryForm({ onSubmit, readOnly }) {
               quantityIssued:   Number(part.quantityIssued)   || 0,
               unitPrice:        Number(part.unitPrice)        || 0,
               condition:        part.condition || 'GOOD',
+              weightKg:         part.weightKg === '' || part.weightKg == null ? undefined : Number(part.weightKg),
+              weightUnit:       part.weightUnit || 'KG',
+              stateOfMatter:    part.stateOfMatter || undefined,
+              materialCode:     part.materialCode || undefined,
+              matterClass:      part.matterClass || undefined,
               documents:        buildDocObjects(part.documents),
             },
           });
@@ -529,6 +612,11 @@ export function useInventoryForm({ onSubmit, readOnly }) {
                 quantityIssued:   Number(part.quantityIssued)   || 0,
                 unitPrice:        Number(part.unitPrice)        || 0,
                 condition:        part.condition || 'GOOD',
+                weightKg:         part.weightKg === '' || part.weightKg == null ? undefined : Number(part.weightKg),
+                weightUnit:       part.weightUnit || 'KG',
+                stateOfMatter:    part.stateOfMatter || undefined,
+                materialCode:     part.materialCode || undefined,
+                matterClass:      part.matterClass || undefined,
                 documents:        buildDocObjects(part.documents),
               })),
             },
@@ -561,6 +649,44 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     setErrors({});
   };
 
+  const buildVehicleLabel = (item) => {
+    const veh = item.vehicle || item.vehicleData;
+    if (veh) {
+      return [veh.make, veh.model_name || veh.model, veh.registration_number || veh.registrationNumber]
+        .filter(Boolean)
+        .join(' • ') || item.vehicleCode || item.vechileId || '';
+    }
+    return item.registrationNumber || item.vehicleCode || item.vechileId || '';
+  };
+
+  const openFormWithAddMore = async (item) => {
+    if (!item) {
+      openFormWith(null);
+      return;
+    }
+    const invoiceId = item.invoiceId || item.invoice?._id || item.invoice?.id || '';
+    const vehicleId = item.vechileId || item.vehicleId || item.vehicle?._id || item.vehicle?.id || '';
+
+    setEditMode(false);
+    setEditingId(null);
+    setSelectedInvoiceId(invoiceId);
+    setSelectedVehicleId(vehicleId);
+    setVehicleLabel(buildVehicleLabel(item));
+    setParts([]);
+    resetCatalogState();
+    setCatalogMmv({ make: '', model: '', variant: 'Standard', vehicleType: 'CAR' });
+    setErrors({});
+    setOpen(true);
+
+    fetchInvoices();
+    fetchCategories();
+    if (invoiceId) {
+      await fetchVehicleForInvoice(invoiceId, vehicleId || null);
+    } else if (vehicleId) {
+      fetchYardForVehicle(vehicleId);
+    }
+  };
+
   const openFormWith = (item) => {
     if (item) {
       setEditMode(true);
@@ -568,15 +694,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
       setSelectedInvoiceId(item.invoiceId || '');
       setInvoiceVehicles([]);
       setSelectedVehicleId(item.vechileId || item.vehicleId || '');
-      setVehicleLabel(() => {
-        const veh = item.vehicle;
-        if (veh) {
-          return [veh.make, veh.model_name || veh.model, veh.registration_number || veh.registrationNumber]
-            .filter(Boolean)
-            .join(' • ') || item.vehicleCode || item.vechileId || '';
-        }
-        return item.registrationNumber || item.vehicleCode || item.vechileId || '';
-      });
+      setVehicleLabel(buildVehicleLabel(item));
       setParts([{
         _uid:             generatePartId(),
         partName:         item.partName || '',
@@ -587,6 +705,11 @@ export function useInventoryForm({ onSubmit, readOnly }) {
         unitPrice:        item.unitPrice        ?? '',
         condition:        item.condition || 'GOOD',
         status:           item.status || 'AVAILABLE',
+        weightKg:         item.weightKg ?? '',
+        weightUnit:       item.weightUnit || 'KG',
+        stateOfMatter:    item.stateOfMatter || 'SOLID',
+        materialCode:     item.materialCode || '',
+        matterClass:      item.matterClass || 'OTHER',
         documents:        item.documents || [],
       }]);
     } else {
@@ -612,6 +735,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     invoices, invoiceLoading,
     selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleLabel, vehicleFetching,
     yardRecord, yardStatus, yardLoading, hasYardRecord, canAddParts,
+    grossWeightKg, setGrossWeightKg, savingWeight, handleSaveGrossWeight,
     catalogMode, catalogMeta, catalogMmv, catalogLoading,
     catalogParts, selectedParts, partCategories,
     parts, errors,
@@ -626,5 +750,6 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     handleSubmit, handleClose,
     // imperative
     openFormWith,
+    openFormWithAddMore,
   };
 }

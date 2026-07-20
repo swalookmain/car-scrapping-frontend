@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../../ui/ConfirmDialog';
@@ -7,11 +7,30 @@ import Breadcrumb from '../../ui/Breadcrumb';
 import TableToolbar from '../../ui/TableToolbar';
 import NormalTable from '../../ui/NormalTable';
 import NormalModal from '../../ui/NormalModal';
-import { Box, TextField, Button, MenuItem } from '@mui/material';
+import { Box, TextField, Button, MenuItem, Chip, Stack } from '@mui/material';
 import OrganizationForm from './OrganizationForm';
 import SuperAdminLayout from '../../layout/SuperAdminLayout';
 import getOrganizationColumns from './organizationColumns';
 import OrgDetails from './OrgDetails';
+import { daysRemaining } from '../../utils/subscriptionDates';
+
+const SUB_FILTERS = [
+  { key: 'ALL', label: 'All' },
+  { key: 'TRIAL', label: 'Trial' },
+  { key: 'PAID', label: 'Paid' },
+  { key: 'EXPIRED', label: 'Expired' },
+];
+
+const getSubBucket = (org) => {
+  const type = org.subscriptionType;
+  const status = org.subscriptionStatus;
+  const remaining = daysRemaining(org.subscriptionEndDate);
+  if (!type) return null;
+  if (status === 'EXPIRED' || (remaining != null && remaining < 0)) return 'EXPIRED';
+  if (type === 'TRIAL') return 'TRIAL';
+  if (type === 'PAID') return 'PAID';
+  return null;
+};
 
 const OrganizationManagement = () => {
   const queryClient = useQueryClient();
@@ -21,6 +40,7 @@ const OrganizationManagement = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState({ name: '', status: '', createdFrom: '', createdTo: '' });
   const [appliedFilters, setAppliedFilters] = useState({});
+  const [subFilter, setSubFilter] = useState('ALL');
 
   const formRef = useRef(null);
 
@@ -55,7 +75,6 @@ const OrganizationManagement = () => {
 
   const handleToggleActive = async (id, current) => {
     const qKey = ['organizations', page, rowsPerPage, appliedFilters];
-    // Optimistic cache update
     queryClient.setQueryData(qKey, (old) =>
       old ? { ...old, data: old.data.map((o) => (o._id === id || o.id === id ? { ...o, isActive: !current } : o)) } : old
     );
@@ -63,7 +82,7 @@ const OrganizationManagement = () => {
       await organizationsApi.update(id, { isActive: !current });
       toast.success(`Organization ${!current ? 'activated' : 'deactivated'}`);
     } catch {
-      queryClient.invalidateQueries({ queryKey: ['organizations', page, rowsPerPage, appliedFilters] }); // revert
+      queryClient.invalidateQueries({ queryKey: ['organizations', page, rowsPerPage, appliedFilters] });
       toast.error('Failed to update status.');
     }
   };
@@ -106,8 +125,6 @@ const OrganizationManagement = () => {
     setQuery(val);
   };
 
-  const handleOpenFilters = () => setFilterOpen(true);
-
   const handleApplyFilters = () => {
     const payload = {};
     if (filters.name && filters.name.trim()) payload.name = filters.name.trim();
@@ -126,21 +143,45 @@ const OrganizationManagement = () => {
     setFilterOpen(false);
   };
 
-  const filtered = organizations.filter((o) => [o.name].join(' ').toLowerCase().includes(query.toLowerCase()));
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase();
+    return organizations.filter((o) => {
+      const nameOk = [o.name].join(' ').toLowerCase().includes(q);
+      if (!nameOk) return false;
+      if (subFilter === 'ALL') return true;
+      return getSubBucket(o) === subFilter;
+    });
+  }, [organizations, query, subFilter]);
+
   const tableData = filtered.map((item) => ({ ...item, id: item._id || item.id }));
 
   const columns = getOrganizationColumns({ handleToggleActive, handleView, handleEdit, openDeleteConfirm });
 
   const toolbar = (
-    <TableToolbar
-      searchPlaceholder="Search organizations..."
-      searchValue={query}
-      onSearchChange={handleSearchChange}
-      onCopy={() => {}}
-      onPrint={() => window.print()}
-      showFilter={false}
-      onAdd={() => formRef.current && formRef.current.open()}
-    />
+    <Box>
+      <TableToolbar
+        searchPlaceholder="Search organizations..."
+        searchValue={query}
+        onSearchChange={handleSearchChange}
+        onCopy={() => {}}
+        onPrint={() => window.print()}
+        showFilter={false}
+        onAdd={() => formRef.current && formRef.current.open()}
+      />
+      <Stack direction="row" spacing={1} sx={{ px: 1, pb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+        {SUB_FILTERS.map((f) => (
+          <Chip
+            key={f.key}
+            label={f.label}
+            size="small"
+            onClick={() => { setSubFilter(f.key); setPage(0); }}
+            color={subFilter === f.key ? 'primary' : 'default'}
+            variant={subFilter === f.key ? 'filled' : 'outlined'}
+            sx={{ fontWeight: subFilter === f.key ? 700 : 500 }}
+          />
+        ))}
+      </Stack>
+    </Box>
   );
 
   return (
@@ -156,7 +197,7 @@ const OrganizationManagement = () => {
           showCheckbox={false}
           page={page}
           rowsPerPage={rowsPerPage}
-          totalCount={total}
+          totalCount={subFilter === 'ALL' && !query ? total : tableData.length}
           onPageChange={(p) => setPage(p)}
           onRowsPerPageChange={(r) => { setRowsPerPage(r); setPage(0); }}
         />

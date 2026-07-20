@@ -142,6 +142,60 @@ const InventoryPartRow = ({
         />
       </Grid>
 
+      <Grid item xs={12} sm={4}>
+        <TextField
+          label="Weight (KG)"
+          type="number"
+          value={part.weightKg ?? ''}
+          onChange={(e) => onPartChange(index, 'weightKg', e.target.value)}
+          fullWidth
+          disabled={readOnly}
+          sx={inputSx}
+          inputProps={{ min: 0, step: 'any' }}
+        />
+      </Grid>
+      <Grid item xs={12} sm={4}>
+        <TextField
+          select
+          label="State of Matter"
+          value={part.stateOfMatter || 'SOLID'}
+          onChange={(e) => onPartChange(index, 'stateOfMatter', e.target.value)}
+          fullWidth
+          disabled={readOnly}
+          sx={inputSx}
+        >
+          {['SOLID', 'LIQUID', 'GAS'].map((s) => (
+            <MenuItem key={s} value={s}>{s}</MenuItem>
+          ))}
+        </TextField>
+      </Grid>
+      <Grid item xs={12} sm={4}>
+        <TextField
+          select
+          label="Matter Class"
+          value={part.matterClass || 'OTHER'}
+          onChange={(e) => onPartChange(index, 'matterClass', e.target.value)}
+          fullWidth
+          disabled={readOnly}
+          sx={inputSx}
+        >
+          {['METAL', 'NON_METAL', 'OTHER'].map((s) => (
+            <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>
+          ))}
+        </TextField>
+      </Grid>
+      <Grid item xs={12} sm={4}>
+        <TextField
+          label="Material Code"
+          value={part.materialCode || ''}
+          onChange={(e) => onPartChange(index, 'materialCode', e.target.value.toUpperCase())}
+          fullWidth
+          disabled={readOnly}
+          sx={inputSx}
+          placeholder="e.g. FERROUS"
+        />
+      </Grid>
+
       {/* Qty Received */}
       <Grid item xs={12} sm={4}>
         <TextField

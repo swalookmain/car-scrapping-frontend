@@ -2,6 +2,7 @@ import React from 'react';
 import { Typography, Chip, IconButton, Tooltip, Box } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import {
@@ -89,11 +90,16 @@ export const InventoryCreatedByCell = ({ row }) => (
   </Typography>
 );
 
-export const InventoryActionsCell = ({ row, canPerform, handleView, handleEdit, openDeleteConfirm, handleMarkDamaged }) => (
+export const InventoryActionsCell = ({ row, canPerform, handleView, handleEdit, handleAddMore, openDeleteConfirm, handleMarkDamaged }) => (
   <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
     <Tooltip title="View">
       <IconButton size="small" onClick={() => handleView(row)} sx={{ color: '#1565c0', p: 0.5, minWidth: 'auto' }}><VisibilityIcon fontSize="small" /></IconButton>
     </Tooltip>
+    {canPerform('inventory:create') && handleAddMore && (
+      <Tooltip title="Add more parts for this vehicle">
+        <IconButton size="small" onClick={() => handleAddMore(row)} sx={{ color: '#2e7d32', p: 0.5, minWidth: 'auto' }}><AddCircleOutlineIcon fontSize="small" /></IconButton>
+      </Tooltip>
+    )}
     {canPerform('inventory:edit') && row.condition !== 'DAMAGED' && calcAvailable(row) > 0 && (
       <Tooltip title="Mark as Damaged">
         <IconButton size="small" onClick={() => handleMarkDamaged(row)} sx={{ color: '#e65100', p: 0.5, minWidth: 'auto' }}><ReportProblemIcon fontSize="small" /></IconButton>

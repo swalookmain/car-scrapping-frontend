@@ -1,353 +1,407 @@
-import React, { useMemo, useState, useRef, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
-  Typography,
   Box,
-  Divider,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
   MenuItem,
   TextField,
-  Grid,
-  Autocomplete,
-  CircularProgress,
+  Typography,
 } from '@mui/material';
-import ConfirmDialog from '../../ui/ConfirmDialog';
-import NormalTable from '../../ui/NormalTable';
-import NormalModal from '../../ui/NormalModal';
-import TableToolbar from '../../ui/TableToolbar';
-import InventoryForm from './InventoryForm';
-import { inventoryApi, invoicesApi, damageAdjustmentsApi } from '../../services/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import CloseIcon from '@mui/icons-material/Close';
 import toast from 'react-hot-toast';
+import NormalModal from '../../ui/NormalModal';
+import NormalTable from '../../ui/NormalTable';
+import TableToolbar from '../../ui/TableToolbar';
+import ConfirmDialog from '../../ui/ConfirmDialog';
+import InventoryForm from './InventoryForm';
+import { inventoryApi, materialMasterApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
-import InventoryFilters from './InventoryFilters';
-import InventoryDetailView from './InventoryDetailView';
-import MarkDamagedModal from './MarkDamagedModal';
-import { getInventoryColumns } from './getInventoryColumns.jsx';
-import { useLookupMaps, enrichRow } from '../../hooks/useLookupMaps';
-
-// ── Filter Options ─────────────────────────────────────────────
-const FILTER_CONDITIONS = ['', 'GOOD', 'DAMAGED'];
-const FILTER_STATUSES = ['', 'AVAILABLE', 'PARTIAL_SOLD', 'SOLD_OUT', 'DAMAGE_ONLY'];
+import inputSx from '../../services/inputStyles';
 
 const InventoryTable = ({ isLoading }) => {
   const { canPerform } = usePermissions();
   const queryClient = useQueryClient();
+  const formRef = useRef(null);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-
-  // Filters
-  const [filterCondition, setFilterCondition] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterVechileId, setFilterVechileId] = useState('');
-  const [filterInvoiceId, setFilterInvoiceId] = useState('');
-  const [vehicleFetching, setVehicleFetching] = useState(false);
-  const [selectedVehicleLabel, setSelectedVehicleLabel] = useState('');
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-
-  const formRef = useRef(null);
-  const tableRef = useRef(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState(null);
-  const [viewOpen, setViewOpen] = useState(false);
-  const [viewItem, setViewItem] = useState(null);
-  const [damagedModalOpen, setDamagedModalOpen] = useState(false);
-  const [damagedTarget, setDamagedTarget] = useState(null);
-  const [damagedLoading, setDamagedLoading] = useState(false);
+  const [matDialogOpen, setMatDialogOpen] = useState(false);
+  const [newMat, setNewMat] = useState({
+    code: '',
+    label: '',
+    matterClass: 'OTHER',
+    formSection: 'OUTWARDS',
+  });
 
-  // ── Fetch Inventory via React Query ────────────────────────────
-  const { data: inventoryResult, isLoading: loadingData, refetch: refetchInventory } = useQuery({
-    queryKey: ['inventory', page, rowsPerPage, filterCondition, filterStatus, filterVechileId, filterInvoiceId],
+  const { data: vehicleResult, isLoading: loadingData, refetch } = useQuery({
+    queryKey: ['inventory-vehicles', page, rowsPerPage, query],
     queryFn: async () => {
-      const params = {
-        ...(filterCondition ? { condition: filterCondition } : {}),
-        ...(filterStatus   ? { status:    filterStatus   } : {}),
-        ...(filterVechileId ? { vechileId: filterVechileId } : {}),
-        ...(filterInvoiceId ? { invoiceId: filterInvoiceId } : {}),
+      const res = await inventoryApi.getVehicles({
         page: page + 1,
         limit: rowsPerPage,
+        search: query.trim() || undefined,
+      });
+      const items = Array.isArray(res?.data) ? res.data : [];
+      return {
+        data: items.map((r) => ({
+          ...r,
+          id: r.vechileId || r._id,
+        })),
+        total: res?.meta?.total ?? items.length,
       };
-      const res = await inventoryApi.getAll(params, { useCache: false });
-      const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-      return { data: items, total: res?.meta?.total ?? items.length };
     },
     placeholderData: (prev) => prev,
   });
 
-  const inventory = inventoryResult?.data  ?? [];
-  const total     = inventoryResult?.total ?? 0;
+  const vehicles = vehicleResult?.data ?? [];
+  const total = vehicleResult?.total ?? 0;
 
-  // ── Lookup maps for resolving vehicleId/invoiceId ────────────
-  const { invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap } = useLookupMaps(true);
-
-  // ── Fetch Invoices for filter dropdown ────────────────────────
-  const { data: invoicesForFilter = [] } = useQuery({
-    queryKey: ['invoices-all-for-filter'],
+  const { data: materials = [], refetch: refetchMaterials } = useQuery({
+    queryKey: ['material-master'],
     queryFn: async () => {
-      let allInvoices = [];
-      let pg = 1;
-      const limit = 100;
-      const res = await invoicesApi.getAll(pg, limit, { useCache: false });
-      const items = Array.isArray(res?.data) ? res.data : [];
-      allInvoices = items;
-      const totalPages = res?.meta?.totalPages || 1;
-      while (pg < totalPages) {
-        pg++;
-        const nextRes = await invoicesApi.getAll(pg, limit, { useCache: false });
-        const nextItems = Array.isArray(nextRes?.data) ? nextRes.data : [];
-        allInvoices = [...allInvoices, ...nextItems];
-      }
-      return allInvoices;
+      const res = await materialMasterApi.list();
+      return Array.isArray(res) ? res : res?.data ?? [];
     },
-    enabled: showFilters,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60_000,
   });
 
-    // ── Handlers ─────────────────────────────────────────────────
+  const {
+    data: vehicleDetail,
+    isLoading: detailLoading,
+    refetch: refetchDetail,
+  } = useQuery({
+    queryKey: ['inventory-by-vehicle', selectedVehicle?.vechileId],
+    queryFn: () => inventoryApi.getByVehicle(selectedVehicle.vechileId),
+    enabled: Boolean(selectedVehicle?.vechileId) && drawerOpen,
+  });
+
+  const parts = useMemo(
+    () =>
+      (vehicleDetail?.parts ?? []).map((p) => ({
+        ...p,
+        id: p._id || p.id,
+      })),
+    [vehicleDetail],
+  );
+
   const handleAdd = useCallback(() => {
-    if (formRef.current?.open) formRef.current.open();
+    formRef.current?.open?.();
   }, []);
 
-  const handleEdit = useCallback((row) => {
-    if (formRef.current?.open) formRef.current.open(row);
-  }, []);
-
-  const handleView = async (row) => {
+  const handleCreateOrUpdate = async (result) => {
     try {
-      const res = await inventoryApi.getById(row._id || row.id);
-      const data = res?.data || res || row;
-      setViewItem(enrichRow(data, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap));
-    } catch {
-      setViewItem(enrichRow(row, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap));
-    }
-    setViewOpen(true);
-  };
-
-  const handleCreateOrUpdate = async ({ type, id, payload }) => {
-    try {
-      if (type === 'update') {
-        await inventoryApi.update(id, payload);
-        toast.success('Inventory updated successfully');
+      if (result.type === 'update') {
+        await inventoryApi.update(result.id, result.payload);
+        toast.success('Part updated');
       } else {
-        await inventoryApi.create(payload);
-        toast.success('Inventory created successfully');
+        await inventoryApi.create(result.payload);
+        toast.success('Parts added');
       }
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      inventoryApi.invalidateCache();
+      queryClient.invalidateQueries({ queryKey: ['inventory-vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-by-vehicle'] });
+      refetchDetail();
+      formRef.current?.close?.();
     } catch (err) {
-      console.error('Inventory save error:', err);
-      toast.error(err?.response?.data?.message || 'Failed to save inventory. Please try again.');
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      toast.error(err?.response?.data?.message || err.message || 'Save failed');
+      throw err;
     }
   };
 
-  const openDeleteConfirm = useCallback((item) => {
-    setConfirmTarget(item);
-    setConfirmOpen(true);
+  const openVehicle = useCallback((row) => {
+    setSelectedVehicle(row);
+    setDrawerOpen(true);
   }, []);
 
-  const handleDelete = async (id) => {
+  const handleDeletePart = async () => {
+    if (!confirmTarget) return;
     try {
-      await inventoryApi.delete(id);
-      toast.success('Inventory item deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      await inventoryApi.delete(confirmTarget._id || confirmTarget.id);
+      toast.success('Part deleted');
+      inventoryApi.invalidateCache();
+      queryClient.invalidateQueries({ queryKey: ['inventory-vehicles'] });
+      refetchDetail();
     } catch (err) {
-      console.error('Delete error:', err);
-      toast.error('Failed to delete inventory item.');
+      toast.error(err?.response?.data?.message || 'Delete failed');
     } finally {
       setConfirmOpen(false);
       setConfirmTarget(null);
     }
   };
 
-  const handleApplyFilters = () => {
-    setPage(0);
-  };
-
-  const handleClearFilters = () => {
-    setFilterCondition('');
-    setFilterStatus('');
-    setFilterVechileId('');
-    setFilterInvoiceId('');
-    setSelectedInvoiceId('');
-    setSelectedVehicleLabel('');
-    setPage(0);
-  };
-
-  const handleCloseView = useCallback(() => {
-    setViewOpen(false);
-    setViewItem(null);
-  }, []);
-
-  // ── Mark as Damaged ─────────────────────────────────────────
-  const handleMarkDamaged = useCallback((row) => {
-    setDamagedTarget(row);
-    setDamagedModalOpen(true);
-  }, []);
-
-  const handleDamageSubmit = async (payload) => {
-    setDamagedLoading(true);
+  const handleAddMaterial = async () => {
     try {
-      await damageAdjustmentsApi.create(payload);
-      toast.success('Part marked as damaged successfully');
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['damage-adjustments'] });
-      setDamagedModalOpen(false);
-      setDamagedTarget(null);
+      await materialMasterApi.create(newMat);
+      toast.success('Material added');
+      await refetchMaterials();
+      setMatDialogOpen(false);
+      setNewMat({
+        code: '',
+        label: '',
+        matterClass: 'OTHER',
+        formSection: 'OUTWARDS',
+      });
     } catch (err) {
-      console.error('Damage adjustment error:', err);
-      toast.error(err?.response?.data?.message || 'Failed to mark part as damaged.');
-    } finally {
-      setDamagedLoading(false);
+      toast.error(err?.response?.data?.message || 'Failed to add material');
     }
   };
 
-  // ── Search Filter ────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    if (!query.trim()) return inventory;
-    const q = query.toLowerCase();
-    return inventory.filter((item) =>
-      [item.partName, item.partType, item.invoiceId, item.vechileId, item.vehicleId, item.condition, item.status, item._id, item.id, item.itemCode]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [query, inventory]);
-
-  const tableData = filtered.map((item) => ({
-    ...enrichRow(item, invoiceMap, vehicleMap, vehicleByInvoiceMap, partMap),
-    id: item._id || item.id,
-  }));
-
-  // ── Columns ────────────────────────────────────────────
-  const columns = useMemo(
-    () => getInventoryColumns({ canPerform, handleView, handleEdit, openDeleteConfirm, handleMarkDamaged }),
-    [canPerform, handleView, handleEdit, openDeleteConfirm, handleMarkDamaged],
+  const vehicleColumns = useMemo(
+    () => [
+      {
+        field: 'registrationNumber',
+        headerName: 'Registration',
+        width: '16%',
+        render: (row) => row.registrationNumber || '—',
+      },
+      {
+        field: 'vehicle',
+        headerName: 'Vehicle',
+        width: '22%',
+        render: (row) =>
+          `${row.make || ''} ${row.modelName || row.vechileModel || ''}`.trim() ||
+          '—',
+      },
+      {
+        field: 'purchaseInvoiceNumber',
+        headerName: 'Invoice',
+        width: '14%',
+      },
+      {
+        field: 'formVehicleClass',
+        headerName: 'Class',
+        width: '8%',
+        render: (row) => row.formVehicleClass || '—',
+      },
+      { field: 'partCount', headerName: 'Parts', width: '8%' },
+      {
+        field: 'grossWeightKg',
+        headerName: 'In (KG)',
+        width: '10%',
+        render: (row) => row.grossWeightKg ?? '—',
+      },
+      {
+        field: 'totalWeightKg',
+        headerName: 'Out (KG)',
+        width: '10%',
+        render: (row) => Number(row.totalWeightKg || 0).toFixed(2),
+      },
+      {
+        field: 'actions',
+        headerName: 'Actions',
+        width: '12%',
+        render: (row) => (
+          <Button size="small" onClick={() => openVehicle(row)}>
+            View parts
+          </Button>
+        ),
+      },
+    ],
+    [openVehicle],
   );
 
-  // ── Toolbar ──────────────────────────────────────────────────
-  const toolbar = (
+  const partColumns = useMemo(
+    () => [
+      { field: 'partName', headerName: 'Part', width: '22%' },
+      {
+        field: 'materialCode',
+        headerName: 'Material',
+        width: '12%',
+        render: (r) => r.materialCode || '—',
+      },
+      {
+        field: 'stateOfMatter',
+        headerName: 'State',
+        width: '10%',
+        render: (r) => r.stateOfMatter || '—',
+      },
+      {
+        field: 'weightKg',
+        headerName: 'KG',
+        width: '8%',
+        render: (r) => r.weightKg ?? '—',
+      },
+      { field: 'openingStock', headerName: 'Qty', width: '8%' },
+      { field: 'condition', headerName: 'Cond.', width: '10%' },
+      {
+        field: 'actions',
+        headerName: '',
+        width: '18%',
+        render: (row) => (
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {canPerform('inventory:edit') && (
+              <IconButton size="small" onClick={() => formRef.current?.open?.(row)}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+            )}
+            {canPerform('inventory:delete') && (
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => {
+                  setConfirmTarget(row);
+                  setConfirmOpen(true);
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+        ),
+      },
+    ],
+    [canPerform],
+  );
+
+  return (
     <Box>
       <TableToolbar
-        searchPlaceholder="Search inventory..."
+        searchPlaceholder="Search registration / make / invoice..."
         searchValue={query}
-        onSearchChange={(val) => {
-          setQuery(val);
+        onSearchChange={(v) => {
+          setQuery(v);
           setPage(0);
         }}
-        onCopy={() => {}}
-        onPrint={() => window.print()}
-        onFilter={() => setShowFilters((p) => !p)}
-        onRefresh={refetchInventory}
-        onAdd={handleAdd}
-        showFilter={true}
-        showRefresh={true}
-        showExportCsv={true}
-        onExportCsv={() => tableRef.current?.exportCsv()}
-        showColumnToggle={true}
-        onToggleColumns={(e) => tableRef.current?.openColumnToggle(e)}
+        onAdd={canPerform('inventory:create') ? handleAdd : undefined}
+        showAdd={canPerform('inventory:create')}
+        showFilter={false}
+        showRefresh
+        onRefresh={refetch}
       />
-      {showFilters && (
-        <InventoryFilters
-          filterCondition={filterCondition}
-          onConditionChange={setFilterCondition}
-          filterStatus={filterStatus}
-          onStatusChange={setFilterStatus}
-          invoices={invoicesForFilter}
-          invoiceLoading={false}
-          selectedInvoiceId={selectedInvoiceId}
-          setSelectedInvoiceId={setSelectedInvoiceId}
-          selectedVehicleLabel={selectedVehicleLabel}
-          setSelectedVehicleLabel={setSelectedVehicleLabel}
-          filterVechileId={filterVechileId}
-          setFilterVechileId={setFilterVechileId}
-          filterInvoiceId={filterInvoiceId}
-          setFilterInvoiceId={setFilterInvoiceId}
-          vehicleFetching={vehicleFetching}
-          setVehicleFetching={setVehicleFetching}
-          onClearFilters={handleClearFilters}
-        />
-      )}
-    </Box>
-  );
 
-  // ── Render ───────────────────────────────────────────────────
-  return (
-    <>
       <NormalTable
-        ref={tableRef}
-        csvFilename="inventory"
-        columns={columns}
-        data={tableData}
+        columns={vehicleColumns}
+        data={vehicles}
         isLoading={isLoading || loadingData}
-        toolbar={toolbar}
-        showCheckbox={false}
         page={page}
         rowsPerPage={rowsPerPage}
         totalCount={total}
-        onPageChange={(p) => setPage(p)}
-        onRowsPerPageChange={(r) => {
-          setRowsPerPage(r);
+        onPageChange={setPage}
+        onRowsPerPageChange={(n) => {
+          setRowsPerPage(n);
           setPage(0);
         }}
       />
 
-      <InventoryForm ref={formRef} onSubmit={handleCreateOrUpdate} />
-
-      {/* Detail View Modal */}
       <NormalModal
-        open={viewOpen}
-        onClose={handleCloseView}
-        title="Inventory Detail"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title={
+          selectedVehicle
+            ? `${selectedVehicle.registrationNumber || 'Vehicle'} · parts`
+            : 'Parts'
+        }
         maxWidth="lg"
         actions={
-          <Button
-            variant="contained"
-            onClick={handleCloseView}
-            sx={{
-              backgroundColor: 'var(--color-secondary-main)',
-              '&:hover': { backgroundColor: 'var(--color-secondary-dark)' },
-            }}
-          >
-            Close
-          </Button>
+          <>
+            <Button onClick={() => setDrawerOpen(false)} startIcon={<CloseIcon />}>
+              Close
+            </Button>
+            {canPerform('inventory:create') && selectedVehicle && (
+              <Button
+                variant="contained"
+                onClick={() =>
+                  formRef.current?.openAddMore?.({
+                    vechileId: selectedVehicle.vechileId,
+                    invoiceId: selectedVehicle.invoiceId,
+                    registration_number: selectedVehicle.registrationNumber,
+                    make: selectedVehicle.make,
+                    model_name: selectedVehicle.modelName,
+                  })
+                }
+              >
+                Add more parts
+              </Button>
+            )}
+          </>
         }
       >
-        <InventoryDetailView item={viewItem} />
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Inwards: {selectedVehicle?.grossWeightKg ?? '—'} KG · Parts out:{' '}
+          {Number(
+            vehicleDetail?.totalWeightKg || selectedVehicle?.totalWeightKg || 0,
+          ).toFixed(2)}{' '}
+          KG
+        </Typography>
+        <NormalTable
+          columns={partColumns}
+          data={parts}
+          isLoading={detailLoading}
+        />
       </NormalModal>
 
-      {/* Delete Confirmation */}
+      <InventoryForm
+        ref={formRef}
+        onSubmit={handleCreateOrUpdate}
+        materials={materials}
+        onRequestAddMaterial={() => setMatDialogOpen(true)}
+      />
+
+      <Dialog open={matDialogOpen} onClose={() => setMatDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Add material</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Code"
+            value={newMat.code}
+            onChange={(e) =>
+              setNewMat((p) => ({ ...p, code: e.target.value.toUpperCase() }))
+            }
+            sx={{ ...inputSx, mt: 1 }}
+          />
+          <TextField
+            fullWidth
+            label="Label"
+            value={newMat.label}
+            onChange={(e) => setNewMat((p) => ({ ...p, label: e.target.value }))}
+            sx={{ ...inputSx, mt: 2 }}
+          />
+          <TextField
+            select
+            fullWidth
+            label="Matter class"
+            value={newMat.matterClass}
+            onChange={(e) => setNewMat((p) => ({ ...p, matterClass: e.target.value }))}
+            sx={{ ...inputSx, mt: 2 }}
+          >
+            {['METAL', 'NON_METAL', 'OTHER'].map((v) => (
+              <MenuItem key={v} value={v}>
+                {v}
+              </MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMatDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAddMaterial}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <ConfirmDialog
         open={confirmOpen}
-        title="Delete Inventory Item"
-        description={
-          confirmTarget
-            ? `Delete "${confirmTarget.partName || 'this item'}"? This cannot be undone.`
-            : 'Delete item?'
-        }
+        title="Delete part"
+        description="Delete this inventory part? This cannot be undone."
+        onConfirm={handleDeletePart}
         onClose={() => {
           setConfirmOpen(false);
           setConfirmTarget(null);
         }}
-        onConfirm={() => handleDelete(confirmTarget?._id || confirmTarget?.id)}
-        confirmText="Delete"
-        cancelText="Cancel"
       />
-
-      {/* Mark as Damaged Modal */}
-      <MarkDamagedModal
-        open={damagedModalOpen}
-        onClose={() => {
-          setDamagedModalOpen(false);
-          setDamagedTarget(null);
-        }}
-        item={damagedTarget}
-        onSubmit={handleDamageSubmit}
-        loading={damagedLoading}
-      />
-    </>
+    </Box>
   );
 };
 

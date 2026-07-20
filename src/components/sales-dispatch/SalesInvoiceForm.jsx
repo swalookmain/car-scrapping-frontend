@@ -47,12 +47,22 @@ const INITIAL_ITEM = {
   itemCode: '',
   quantity: '',
   unitPrice: '',
+  soldWeightKg: '',
   // snapshot fields populated from selected part
   partName: '',
   vehicleCode: '',
   purchaseInvoiceNumber: '',
   availableQuantity: 0,
+  availableWeightKg: 0,
   category: '',
+};
+
+const prefillSoldWeight = (qty, availQty, availKg) => {
+  const q = Number(qty) || 0;
+  const a = Number(availQty) || 0;
+  const w = Number(availKg) || 0;
+  if (!(w > 0) || !(a > 0) || !(q > 0)) return '';
+  return String(Math.round((q / a) * w * 1000) / 1000);
 };
 
 // ── Component ──────────────────────────────────────────────────
@@ -190,10 +200,12 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
               itemCode: it.itemCode || '',
               quantity: it.quantity ?? '',
               unitPrice: it.unitPrice ?? '',
+              soldWeightKg: it.soldWeightKg ?? '',
               partName: it.partName || it.part?.partName || '',
               vehicleCode: it.vehicleCode || '',
               purchaseInvoiceNumber: it.purchaseInvoiceNumber || '',
               availableQuantity: it.availableQuantity ?? 0,
+              availableWeightKg: it.availableWeightKg ?? it.part?.weightKg ?? 0,
               category: it.category || it.part?.partType || '',
             }))
           );
@@ -228,49 +240,69 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     if (readOnly) return;
     setItems((prev) => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
+      const next = { ...updated[index], [field]: value };
+      if (field === 'quantity') {
+        const availKg = Number(next.availableWeightKg) || 0;
+        if (availKg > 0) {
+          next.soldWeightKg = prefillSoldWeight(
+            value,
+            next.availableQuantity,
+            availKg,
+          );
+        }
+      }
+      updated[index] = next;
       return updated;
     });
     const errKey = `items[${index}].${field}`;
     if (errors[errKey]) setErrors((p) => ({ ...p, [errKey]: '' }));
+    if (field === 'quantity' && errors[`items[${index}].soldWeightKg`]) {
+      setErrors((p) => ({ ...p, [`items[${index}].soldWeightKg`]: '' }));
+    }
   };
 
   const handlePartSelect = (index, part) => {
     if (!part) {
-      handleItemChange(index, 'partId', '');
-      handleItemChange(index, 'itemCode', '');
-      handleItemChange(index, 'partName', '');
-      handleItemChange(index, 'vehicleCode', '');
-      handleItemChange(index, 'purchaseInvoiceNumber', '');
-      handleItemChange(index, 'availableQuantity', 0);
-      handleItemChange(index, 'category', '');
+      setItems((prev) => {
+        const updated = [...prev];
+        updated[index] = { ...INITIAL_ITEM };
+        return updated;
+      });
       return;
     }
     const opening = Number(part.openingStock) || 0;
     const received = Number(part.quantityReceived) || 0;
     const issued = Number(part.quantityIssued) || 0;
     const avail = opening + received - issued;
+    const availKg = Number(part.weightKg) || 0;
 
     setItems((prev) => {
       const updated = [...prev];
 
-      // Resolve part details if needed
       const pId = part._id || part.id;
       const fullPart = (pId && partMap[pId]) ? partMap[pId] : part;
 
-      // Resolve vehicle from lookup maps
       const vehId = fullPart.vechileId || fullPart.vehicleId || '';
-      const veh = (vehId && vehicleMap[vehId]) ? vehicleMap[vehId] : (fullPart.invoiceId && vehicleByInvoiceMap[fullPart.invoiceId]) ? vehicleByInvoiceMap[fullPart.invoiceId] : null;
+      const veh = (vehId && vehicleMap[vehId])
+        ? vehicleMap[vehId]
+        : (fullPart.invoiceId && vehicleByInvoiceMap[fullPart.invoiceId])
+          ? vehicleByInvoiceMap[fullPart.invoiceId]
+          : null;
       const vehRegNo = veh?.registration_number || veh?.registrationNumber || '';
       const vehMake = veh?.make || '';
       const vehModel = veh?.model_name || veh?.model || '';
-      const vehDisplay = vehRegNo || (vehMake || vehModel ? `${vehMake} ${vehModel}`.trim() : '') || vehId?.toString()?.slice(-8)?.toUpperCase() || '';
+      const vehDisplay = vehRegNo
+        || (vehMake || vehModel ? `${vehMake} ${vehModel}`.trim() : '')
+        || vehId?.toString()?.slice(-8)?.toUpperCase()
+        || '';
 
-      // Resolve invoice from lookup maps
       const invId = fullPart.invoiceId || '';
       const inv = (invId && invoiceMap[invId]) ? invoiceMap[invId] : null;
-      const invDisplay = inv?.invoiceNumber || invId?.toString()?.slice(-8)?.toUpperCase() || '';
+      const invDisplay = inv?.invoiceNumber
+        || invId?.toString()?.slice(-8)?.toUpperCase()
+        || '';
 
+      const qty = updated[index].quantity || (avail > 0 ? 1 : '');
       updated[index] = {
         ...updated[index],
         partId: part._id || part.id,
@@ -279,7 +311,11 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
         vehicleCode: vehDisplay,
         purchaseInvoiceNumber: invDisplay,
         availableQuantity: avail,
+        availableWeightKg: availKg,
         category: part.partType || '',
+        quantity: qty,
+        soldWeightKg: prefillSoldWeight(qty, avail, availKg),
+        unitPrice: updated[index].unitPrice || part.unitPrice || '',
       };
       return updated;
     });
@@ -336,6 +372,15 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
         err[`items[${idx}].quantity`] = `Max available: ${it.availableQuantity}`;
       }
       if (!it.unitPrice || Number(it.unitPrice) <= 0) err[`items[${idx}].unitPrice`] = 'Unit price must be > 0';
+      const availKg = Number(it.availableWeightKg) || 0;
+      const soldKg = Number(it.soldWeightKg);
+      if (availKg > 0) {
+        if (!(soldKg > 0)) {
+          err[`items[${idx}].soldWeightKg`] = 'Sold KG required';
+        } else if (soldKg > availKg) {
+          err[`items[${idx}].soldWeightKg`] = `Max ${availKg} KG`;
+        }
+      }
     });
 
     setErrors(err);
@@ -363,6 +408,9 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
           itemCode: it.itemCode,
           quantity: Number(it.quantity),
           unitPrice: Number(it.unitPrice),
+          ...(Number(it.soldWeightKg) > 0
+            ? { soldWeightKg: Number(it.soldWeightKg) }
+            : {}),
         })),
       };
 
@@ -419,7 +467,7 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
       open={open}
       onClose={handleClose}
       title={readOnly ? 'View Sales Invoice' : editMode ? 'Edit Sales Invoice' : 'Create Sales Invoice'}
-      maxWidth="lg"
+      maxWidth="xl"
       actions={
         !readOnly && (
           <>
@@ -441,192 +489,256 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
         )
       }
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         {/* ── Invoice Header ─────────────────────────────────── */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
-          Invoice Details
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <Autocomplete
-              options={purchaseInvoicesData}
-              getOptionLabel={getInvoiceLabel}
-              value={purchaseInvoicesData.find((i) => i.invoiceNumber === invoice.invoiceNumber) || null}
-              onChange={(_, newVal) => handleInvoiceChange('invoiceNumber', newVal ? (newVal.invoiceNumber || '') : '')}
-              disabled={readOnly}
-              fullWidth
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Invoice Number *"
-                  fullWidth
-                  sx={inputSx}
-                  error={Boolean(errors.invoiceNumber)}
-                  helperText={errors.invoiceNumber}
-                />
-              )}
-            />
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            border: '1px solid var(--color-grey-200)',
+            bgcolor: 'var(--color-grey-50)',
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)', mb: 1.5 }}>
+            Invoice Details
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={4}>
+              <Autocomplete
+                options={purchaseInvoicesData}
+                getOptionLabel={getInvoiceLabel}
+                value={purchaseInvoicesData.find((i) => i.invoiceNumber === invoice.invoiceNumber) || null}
+                onChange={(_, newVal) => handleInvoiceChange('invoiceNumber', newVal ? (newVal.invoiceNumber || '') : '')}
+                disabled={readOnly}
+                fullWidth
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Invoice Number *"
+                    fullWidth
+                    sx={inputSx}
+                    error={Boolean(errors.invoiceNumber)}
+                    helperText={errors.invoiceNumber}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <Autocomplete
+                options={buyersData}
+                getOptionLabel={getBuyerLabel}
+                value={buyersData.find((b) => (b._id || b.id) === invoice.buyerId) || null}
+                onChange={(_, newVal) => handleInvoiceChange('buyerId', newVal ? (newVal._id || newVal.id) : '')}
+                disabled={readOnly}
+                fullWidth
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Buyer *"
+                    fullWidth
+                    sx={inputSx}
+                    error={Boolean(errors.buyerId)}
+                    helperText={errors.buyerId}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField
+                label="Invoice Date *"
+                type="date"
+                value={invoice.invoiceDate}
+                onChange={(e) => handleInvoiceChange('invoiceDate', e.target.value)}
+                fullWidth
+                disabled={readOnly}
+                sx={inputSx}
+                InputLabelProps={{ shrink: true }}
+                error={Boolean(errors.invoiceDate)}
+                helperText={errors.invoiceDate}
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={3}>
-            <TextField
-              label="Invoice Date *"
-              type="date"
-              value={invoice.invoiceDate}
-              onChange={(e) => handleInvoiceChange('invoiceDate', e.target.value)}
-              fullWidth
-              disabled={readOnly}
-              sx={inputSx}
-              InputLabelProps={{ shrink: true }}
-              error={Boolean(errors.invoiceDate)}
-              helperText={errors.invoiceDate}
-            />
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <Autocomplete
-              options={buyersData}
-              getOptionLabel={getBuyerLabel}
-              value={buyersData.find((b) => (b._id || b.id) === invoice.buyerId) || null}
-              onChange={(_, newVal) => handleInvoiceChange('buyerId', newVal ? (newVal._id || newVal.id) : '')}
-              disabled={readOnly}
-              fullWidth
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Buyer *"
-                  fullWidth
-                  sx={inputSx}
-                  error={Boolean(errors.buyerId)}
-                  helperText={errors.buyerId}
-                />
-              )}
-            />
-          </Grid>
-        </Grid>
-
-        <Divider />
+        </Box>
 
         {/* ── Items Section ──────────────────────────────────── */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
-            Invoice Items ({items.length})
-          </Typography>
-          {!readOnly && (
-            <Button
-              startIcon={<AddIcon />}
-              onClick={addItem}
-              size="small"
-              sx={{ color: 'var(--color-secondary-main)', textTransform: 'none' }}
-            >
-              Add Item
-            </Button>
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            border: '1px solid var(--color-grey-200)',
+            bgcolor: '#fff',
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
+              Parts to sell ({items.length})
+            </Typography>
+            {!readOnly && (
+              <Button
+                startIcon={<AddIcon />}
+                onClick={addItem}
+                size="small"
+                variant="outlined"
+                sx={{ textTransform: 'none', borderRadius: '8px' }}
+              >
+                Add Item
+              </Button>
+            )}
+          </Box>
+
+          {errors.items && (
+            <Typography variant="caption" color="error">{errors.items}</Typography>
           )}
-        </Box>
 
-        {errors.items && (
-          <Typography variant="caption" color="error">{errors.items}</Typography>
-        )}
-
-        <Box sx={{ overflowX: 'auto' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ backgroundColor: 'var(--color-grey-50)' }}>
-                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 220 }}>Part</TableCell>
-                {/* <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 80 }}>Item Code</TableCell> */}
-                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 80 }}>Vehicle</TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 60 }} align="center">Avail.</TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 90 }} align="right">Quantity *</TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 110 }} align="right">Unit Price *</TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 100 }} align="right">Line Total</TableCell>
-                {!readOnly && <TableCell sx={{ width: 40 }} />}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {items.map((item, idx) => {
-                const lineTotal = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
-                return (
-                  <TableRow key={idx}>
-                    <TableCell>
-                      <Autocomplete
-                        size="small"
-                        options={availableParts}
-                        getOptionLabel={getPartLabel}
-                        value={availableParts.find((p) => (p._id || p.id) === item.partId) || null}
-                        onChange={(_, newVal) => handlePartSelect(idx, newVal)}
-                        disabled={readOnly}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Search part..."
-                            sx={{ ...inputSx, '& .MuiOutlinedInput-root': { ...inputSx['& .MuiOutlinedInput-root'], borderRadius: '8px' } }}
-                            error={Boolean(errors[`items[${idx}].partId`])}
-                            helperText={errors[`items[${idx}].partId`]}
-                          />
-                        )}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                        {item.itemCode || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                        {item.vehicleCode || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: item.availableQuantity > 0 ? '#2e7d32' : '#c62828' }}>
-                        {item.availableQuantity || 0}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <TextField
-                        size="small"
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                        disabled={readOnly}
-                        inputProps={{ min: 1, max: item.availableQuantity || undefined }}
-                        sx={{ ...inputSx, width: 80, '& .MuiOutlinedInput-root': { ...inputSx['& .MuiOutlinedInput-root'], borderRadius: '8px' } }}
-                        error={Boolean(errors[`items[${idx}].quantity`])}
-                        helperText={errors[`items[${idx}].quantity`]}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <TextField
-                        size="small"
-                        type="number"
-                        value={item.unitPrice}
-                        onChange={(e) => handleItemChange(idx, 'unitPrice', e.target.value)}
-                        disabled={readOnly}
-                        inputProps={{ min: 0 }}
-                        sx={{ ...inputSx, width: 100, '& .MuiOutlinedInput-root': { ...inputSx['& .MuiOutlinedInput-root'], borderRadius: '8px' } }}
-                        error={Boolean(errors[`items[${idx}].unitPrice`])}
-                        helperText={errors[`items[${idx}].unitPrice`]}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {lineTotal > 0 ? `₹${lineTotal.toLocaleString('en-IN')}` : '—'}
-                      </Typography>
-                    </TableCell>
-                    {!readOnly && (
+          <Box sx={{ overflowX: 'auto' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ backgroundColor: 'var(--color-grey-50)' }}>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 200 }}>Part</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', minWidth: 90 }}>Vehicle</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="center">Avail qty</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="center">Avail KG</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Qty *</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Sold KG</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Unit ₹ *</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }} align="right">Line total</TableCell>
+                  {!readOnly && <TableCell sx={{ width: 40 }} />}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {items.map((item, idx) => {
+                  const lineTotal = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+                  const needsWeight = Number(item.availableWeightKg) > 0;
+                  return (
+                    <TableRow key={idx}>
                       <TableCell>
-                        {items.length > 1 && (
-                          <Tooltip title="Remove">
-                            <IconButton size="small" onClick={() => removeItem(idx)} sx={{ color: '#e53935' }}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                        <Autocomplete
+                          size="small"
+                          options={availableParts}
+                          getOptionLabel={getPartLabel}
+                          value={availableParts.find((p) => (p._id || p.id) === item.partId) || null}
+                          onChange={(_, newVal) => handlePartSelect(idx, newVal)}
+                          disabled={readOnly}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Search part..."
+                              sx={{ ...inputSx, '& .MuiOutlinedInput-root': { ...inputSx['& .MuiOutlinedInput-root'], borderRadius: '8px' } }}
+                              error={Boolean(errors[`items[${idx}].partId`])}
+                              helperText={errors[`items[${idx}].partId`]}
+                            />
+                          )}
+                        />
+                        {item.partName && (
+                          <Typography variant="caption" color="text.secondary" noWrap display="block">
+                            {item.partName}
+                          </Typography>
                         )}
                       </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          {item.vehicleCode || '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: item.availableQuantity > 0 ? '#2e7d32' : '#c62828' }}>
+                          {item.availableQuantity || 0}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'var(--color-grey-700)' }}>
+                          {Number(item.availableWeightKg) > 0 ? item.availableWeightKg : '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                          disabled={readOnly}
+                          inputProps={{ min: 1, max: item.availableQuantity || undefined }}
+                          sx={{ ...inputSx, width: 72, '& .MuiOutlinedInput-root': { ...inputSx['& .MuiOutlinedInput-root'], borderRadius: '8px' } }}
+                          error={Boolean(errors[`items[${idx}].quantity`])}
+                          helperText={errors[`items[${idx}].quantity`]}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={item.soldWeightKg}
+                          onChange={(e) => handleItemChange(idx, 'soldWeightKg', e.target.value)}
+                          disabled={readOnly || !needsWeight}
+                          placeholder={needsWeight ? 'KG' : '—'}
+                          inputProps={{ min: 0, step: 'any', max: item.availableWeightKg || undefined }}
+                          sx={{ ...inputSx, width: 88, '& .MuiOutlinedInput-root': { ...inputSx['& .MuiOutlinedInput-root'], borderRadius: '8px' } }}
+                          error={Boolean(errors[`items[${idx}].soldWeightKg`])}
+                          helperText={errors[`items[${idx}].soldWeightKg`]}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={item.unitPrice}
+                          onChange={(e) => handleItemChange(idx, 'unitPrice', e.target.value)}
+                          disabled={readOnly}
+                          inputProps={{ min: 0 }}
+                          sx={{ ...inputSx, width: 96, '& .MuiOutlinedInput-root': { ...inputSx['& .MuiOutlinedInput-root'], borderRadius: '8px' } }}
+                          error={Boolean(errors[`items[${idx}].unitPrice`])}
+                          helperText={errors[`items[${idx}].unitPrice`]}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {lineTotal > 0 ? `₹${lineTotal.toLocaleString('en-IN')}` : '—'}
+                        </Typography>
+                      </TableCell>
+                      {!readOnly && (
+                        <TableCell>
+                          {items.length > 1 && (
+                            <Tooltip title="Remove">
+                              <IconButton size="small" onClick={() => removeItem(idx)} sx={{ color: '#e53935' }}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Box>
+
+          <Box
+            sx={{
+              mt: 2,
+              pt: 1.5,
+              borderTop: '1px solid var(--color-grey-100)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 3,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              Subtotal:{' '}
+              <strong>₹{subtotal.toLocaleString('en-IN')}</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Tax:{' '}
+              <strong>₹{gstAmount.toLocaleString('en-IN')}</strong>
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              Total: ₹{totalAmount.toLocaleString('en-IN')}
+            </Typography>
+          </Box>
         </Box>
+
+        <Divider />
 
         <Divider />
 

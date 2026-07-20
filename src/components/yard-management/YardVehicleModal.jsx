@@ -21,6 +21,7 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
   const [zoneId, setZoneId] = useState('');
   const [slot, setSlot] = useState('');
   const [notes, setNotes] = useState('');
+  const [grossWeightKg, setGrossWeightKg] = useState('');
   const [saving, setSaving] = useState(false);
 
   const id = item?._id || item?.id;
@@ -32,6 +33,9 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
     setZoneId(item?.currentZoneId?._id || item?.currentZoneId || '');
     setSlot(item?.currentSlot || '');
     setNotes('');
+    setGrossWeightKg(
+      item?.grossWeightKg != null ? String(item.grossWeightKg) : '',
+    );
     setLoadingMovements(true);
     yardApi
       .getMovements(id)
@@ -52,6 +56,8 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
         zoneId,
         slot: slot.trim() || undefined,
         notes: notes.trim() || undefined,
+        grossWeightKg:
+          grossWeightKg === '' ? undefined : Number(grossWeightKg),
       });
       toast.success('Vehicle parked');
       onSaved();
@@ -134,6 +140,17 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
                 value={slot}
                 onChange={(e) => setSlot(e.target.value)}
                 sx={inputSx}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Vehicle weight (KG)"
+                value={grossWeightKg}
+                onChange={(e) => setGrossWeightKg(e.target.value)}
+                sx={inputSx}
+                inputProps={{ min: 0, step: 'any' }}
               />
             </Grid>
             <Grid item xs={12}>

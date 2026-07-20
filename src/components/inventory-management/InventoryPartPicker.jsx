@@ -44,7 +44,9 @@ const panelSx = {
   boxShadow: '0 1px 2px rgba(16, 24, 40, 0.06)',
   display: 'flex',
   flexDirection: 'column',
-  minHeight: 440,
+  height: { xs: 420, lg: 520 },
+  maxHeight: { xs: 420, lg: 520 },
+  minHeight: 0,
   overflow: 'hidden',
 };
 
@@ -131,7 +133,7 @@ function PanelShell({ title, subtitle, icon, children, footer, headerExtra, sx, 
         </Box>
         {headerExtra}
       </Box>
-      <Box sx={{ flex: 1, overflow: 'auto', px: 1.5, py: 1 }}>{children}</Box>
+      <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>{children}</Box>
       {footer && (
         <Box sx={{ px: 1.5, py: 1.25, borderTop: '1px solid var(--color-grey-100)' }}>
           {footer}
@@ -148,6 +150,8 @@ export default function InventoryPartPicker({
   catalogMmv,
   catalogLoading,
   partCategories,
+  materials = [],
+  onAddMaterial,
   readOnly,
   errors,
   onLoadCatalog,
@@ -424,12 +428,11 @@ export default function InventoryPartPicker({
             )}
           </Box>
 
-          <Grid container spacing={2}>
-            {/* Basket */}
-            <Grid item xs={12} lg={6}>
+          <Grid container spacing={2} alignItems="stretch">
+            <Grid item xs={12} lg={6} sx={{ order: { xs: 2, lg: 2 } }}>
               <PanelShell
                 title="Parts to add"
-                subtitle="Set quantity and price for each part"
+                subtitle="Weight · material · qty for each part"
                 icon={<PlaylistAddCheckOutlinedIcon sx={{ fontSize: 18 }} />}
                 sx={{
                   outline: dragOver ? '2px solid var(--color-secondary-200)' : 'none',
@@ -495,10 +498,10 @@ export default function InventoryPartPicker({
                                   bgcolor: 'var(--color-grey-50)',
                                 }}
                               >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
                                   <Typography
                                     variant="body2"
-                                    sx={{ fontWeight: 500, flex: 1, color: 'var(--color-grey-800)' }}
+                                    sx={{ fontWeight: 500, flex: 1, color: 'var(--color-grey-800)', fontSize: '0.8rem' }}
                                     noWrap
                                   >
                                     {part.partName}
@@ -513,8 +516,8 @@ export default function InventoryPartPicker({
                                     </IconButton>
                                   )}
                                 </Box>
-                                <Grid container spacing={1}>
-                                  <Grid item xs={4}>
+                                <Grid container spacing={0.75}>
+                                  <Grid item xs={3}>
                                     <TextField
                                       fullWidth
                                       size="small"
@@ -527,22 +530,36 @@ export default function InventoryPartPicker({
                                       inputProps={{ min: 0 }}
                                     />
                                   </Grid>
-                                  <Grid item xs={4}>
+                                  <Grid item xs={3}>
                                     <TextField
                                       fullWidth
                                       size="small"
                                       type="number"
-                                      label="Price"
-                                      value={part.unitPrice}
+                                      label="KG"
+                                      value={part.weightKg ?? ''}
                                       disabled={readOnly}
-                                      onChange={(e) => onSelectedPartChange(idx, 'unitPrice', e.target.value)}
+                                      onChange={(e) => onSelectedPartChange(idx, 'weightKg', e.target.value)}
                                       sx={inputSx}
-                                      error={Boolean(errors[`part_${idx}_unitPrice`])}
-                                      helperText={errors[`part_${idx}_unitPrice`]}
-                                      inputProps={{ min: 0 }}
+                                      inputProps={{ min: 0, step: 'any' }}
                                     />
                                   </Grid>
-                                  <Grid item xs={4}>
+                                  <Grid item xs={3}>
+                                    <TextField
+                                      select
+                                      fullWidth
+                                      size="small"
+                                      label="State"
+                                      value={part.stateOfMatter || 'SOLID'}
+                                      disabled={readOnly}
+                                      onChange={(e) => onSelectedPartChange(idx, 'stateOfMatter', e.target.value)}
+                                      sx={inputSx}
+                                    >
+                                      {['SOLID', 'LIQUID', 'GAS'].map((s) => (
+                                        <MenuItem key={s} value={s}>{s}</MenuItem>
+                                      ))}
+                                    </TextField>
+                                  </Grid>
+                                  <Grid item xs={3}>
                                     <TextField
                                       select
                                       fullWidth
@@ -558,6 +575,76 @@ export default function InventoryPartPicker({
                                       ))}
                                     </TextField>
                                   </Grid>
+                                  <Grid item xs={4}>
+                                    <TextField
+                                      select
+                                      fullWidth
+                                      size="small"
+                                      label="Class"
+                                      value={part.matterClass || 'OTHER'}
+                                      disabled={readOnly}
+                                      onChange={(e) => onSelectedPartChange(idx, 'matterClass', e.target.value)}
+                                      sx={inputSx}
+                                    >
+                                      {['METAL', 'NON_METAL', 'OTHER'].map((s) => (
+                                        <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>
+                                      ))}
+                                    </TextField>
+                                  </Grid>
+                                  <Grid item xs={5}>
+                                    <TextField
+                                      select
+                                      fullWidth
+                                      size="small"
+                                      label="Material"
+                                      value={part.materialCode || ''}
+                                      disabled={readOnly}
+                                      onChange={(e) => {
+                                        const code = e.target.value;
+                                        onSelectedPartChange(idx, 'materialCode', code);
+                                        const mat = (materials || []).find((m) => m.code === code);
+                                        if (mat?.defaultStateOfMatter) {
+                                          onSelectedPartChange(idx, 'stateOfMatter', mat.defaultStateOfMatter);
+                                        }
+                                        if (mat?.matterClass) {
+                                          onSelectedPartChange(idx, 'matterClass', mat.matterClass);
+                                        }
+                                      }}
+                                      sx={inputSx}
+                                    >
+                                      <MenuItem value="">—</MenuItem>
+                                      {(materials || []).map((m) => (
+                                        <MenuItem key={m.code} value={m.code}>{m.label}</MenuItem>
+                                      ))}
+                                    </TextField>
+                                  </Grid>
+                                  <Grid item xs={3}>
+                                    <Button
+                                      fullWidth
+                                      size="small"
+                                      variant="outlined"
+                                      disabled={readOnly || !onAddMaterial}
+                                      onClick={() => onAddMaterial?.(idx)}
+                                      sx={{ height: '40px', minWidth: 0, px: 0.5, fontSize: '0.7rem' }}
+                                    >
+                                      + Mat
+                                    </Button>
+                                  </Grid>
+                                  <Grid item xs={12}>
+                                    <TextField
+                                      fullWidth
+                                      size="small"
+                                      type="number"
+                                      label="Price"
+                                      value={part.unitPrice}
+                                      disabled={readOnly}
+                                      onChange={(e) => onSelectedPartChange(idx, 'unitPrice', e.target.value)}
+                                      sx={inputSx}
+                                      error={Boolean(errors[`part_${idx}_unitPrice`])}
+                                      helperText={errors[`part_${idx}_unitPrice`]}
+                                      inputProps={{ min: 0 }}
+                                    />
+                                  </Grid>
                                 </Grid>
                               </Box>
                             );
@@ -569,8 +656,8 @@ export default function InventoryPartPicker({
               </PanelShell>
             </Grid>
 
-            {/* Catalog */}
-            <Grid item xs={12} lg={6}>
+            {/* Catalog stays left / first on desktop & mobile */}
+            <Grid item xs={12} lg={6} sx={{ order: { xs: 1, lg: 1 } }}>
               <PanelShell
                 title="Parts catalog"
                 subtitle={`${availableCatalog.length} available`}

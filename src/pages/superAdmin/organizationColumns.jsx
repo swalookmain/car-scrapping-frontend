@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
-import { Switch, IconButton, Box } from '@mui/material';
+import { Switch, IconButton, Box, Chip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { daysRemaining } from '../../utils/subscriptionDates';
 
 // ── Named cell components ─────────────────────────────────────
 export const OrgNameCell = ({ row }) => row.name || '—';
@@ -17,6 +18,67 @@ export const OrgActiveCell = ({ row, onToggle }) => {
         transform: 'translateY(4px)',
         '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' },
         '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'var(--color-secondary-main)' },
+      }}
+    />
+  );
+};
+
+export const OrgSubscriptionCell = ({ row }) => {
+  const type = row.subscriptionType;
+  const status = row.subscriptionStatus;
+  const endDate = row.subscriptionEndDate;
+  const remaining = daysRemaining(endDate);
+
+  if (!type) {
+    return <Chip label="No plan" size="small" variant="outlined" sx={{ fontSize: '0.7rem', height: 24 }} />;
+  }
+
+  const isExpired =
+    status === 'EXPIRED' || (remaining != null && remaining < 0);
+
+  if (isExpired) {
+    return (
+      <Chip
+        label="EXPIRED"
+        size="small"
+        sx={{
+          fontSize: '0.7rem',
+          height: 24,
+          fontWeight: 700,
+          backgroundColor: '#ffebee',
+          color: '#c62828',
+        }}
+      />
+    );
+  }
+
+  if (type === 'TRIAL') {
+    const daysLabel = remaining != null && remaining >= 0 ? ` · ${remaining}d left` : '';
+    return (
+      <Chip
+        label={`TRIAL${daysLabel}`}
+        size="small"
+        sx={{
+          fontSize: '0.7rem',
+          height: 24,
+          fontWeight: 700,
+          backgroundColor: '#fff3e0',
+          color: '#e65100',
+        }}
+      />
+    );
+  }
+
+  return (
+    <Chip
+      label="PAID"
+      size="small"
+      sx={{
+        fontSize: '0.7rem',
+        height: 24,
+        fontWeight: 700,
+        backgroundColor: '#e8f5e9',
+        color: '#2e7d32',
       }}
     />
   );
@@ -47,9 +109,10 @@ export const OrgActionsCell = ({ row, onView, onEdit, onDelete }) => {
 // ── Column factory ─────────────────────────────────────────────
 export default function getOrganizationColumns({ handleToggleActive, handleView, handleEdit, openDeleteConfirm }) {
   return [
-    { field: 'name',      headerName: 'Name',       width: '35%', render: (row) => <OrgNameCell row={row} /> },
-    { field: 'isActive',  headerName: 'Status',     width: '15%', render: (row) => <OrgActiveCell row={row} onToggle={handleToggleActive} /> },
-    { field: 'createdAt', headerName: 'Created At', width: '30%', render: (row) => <OrgCreatedAtCell row={row} /> },
-    { field: 'actions',   headerName: 'Actions',    width: '20%', render: (row) => <OrgActionsCell row={row} onView={handleView} onEdit={handleEdit} onDelete={openDeleteConfirm} /> },
+    { field: 'name', headerName: 'Name', width: '28%', render: (row) => <OrgNameCell row={row} /> },
+    { field: 'subscription', headerName: 'Subscription', width: '18%', render: (row) => <OrgSubscriptionCell row={row} /> },
+    { field: 'isActive', headerName: 'Status', width: '12%', render: (row) => <OrgActiveCell row={row} onToggle={handleToggleActive} /> },
+    { field: 'createdAt', headerName: 'Created At', width: '22%', render: (row) => <OrgCreatedAtCell row={row} /> },
+    { field: 'actions', headerName: 'Actions', width: '20%', render: (row) => <OrgActionsCell row={row} onView={handleView} onEdit={handleEdit} onDelete={openDeleteConfirm} /> },
   ];
 }

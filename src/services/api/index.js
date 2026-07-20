@@ -7,6 +7,8 @@ export { default as invoicesApi } from './invoices/invoicesApi';
 export { default as leadsApi } from './leads/leadsApi';
 export { default as auctionsApi } from './auctions/auctionsApi';
 export { default as inventoryApi } from './inventory/inventoryApi';
+export { default as materialMasterApi } from './inventory/materialMasterApi';
+export { default as inventoryAuditApi, facilitySettingsApi } from './inventory/inventoryAuditApi';
 export { default as yardApi } from './yard/yardApi';
 export { default as auditLogsApi } from './auditLogs/auditLogsApi';
 export { default as vehicleComplianceApi } from './vehicleCompliance/vehicleComplianceApi';

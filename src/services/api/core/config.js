@@ -114,10 +114,25 @@ export const ENDPOINTS = {
   INVENTORY: {
     BASE: '/inventory',
     GET_ALL: '/inventory',
+    GET_VEHICLES: '/inventory/vehicles',
+    GET_BY_VEHICLE: (vechileId) => `/inventory/by-vehicle/${vechileId}`,
     GET_BY_ID: (id) => `/inventory/${id}`,
     CREATE: '/inventory',
     UPDATE: (id) => `/inventory/${id}`,
     DELETE: (id) => `/inventory/${id}`,
+  },
+  MATERIAL_MASTER: {
+    LIST: '/material-master',
+    CREATE: '/material-master',
+    DELETE: (id) => `/material-master/${id}`,
+  },
+  INVENTORY_AUDIT: {
+    PREVIEW: '/inventory-audit/preview',
+    PDF: '/inventory-audit/pdf',
+  },
+  FACILITY_SETTINGS: {
+    GET: '/organizations/facility-settings',
+    UPDATE: '/organizations/facility-settings',
   },
   PART_CATALOG: {
     MAKES: '/part-catalog/makes',
