@@ -42,6 +42,20 @@ export const inventoryApi = {
     return promise;
   },
 
+  getVehicles: async (filters = {}) => {
+    const params = {};
+    if (filters.page) params.page = filters.page;
+    if (filters.limit) params.limit = filters.limit;
+    if (filters.search) params.search = filters.search;
+    const response = await axiosInstance.get(ENDPOINTS.INVENTORY.GET_VEHICLES, { params });
+    return response.data;
+  },
+
+  getByVehicle: async (vechileId) => {
+    const response = await axiosInstance.get(ENDPOINTS.INVENTORY.GET_BY_VEHICLE(vechileId));
+    return response.data;
+  },
+
   getById: async (id) => {
     const response = await axiosInstance.get(ENDPOINTS.INVENTORY.GET_BY_ID(id));
     return response.data;

@@ -10,17 +10,18 @@ import {
   Autocomplete,
 } from '@mui/material';
 import NormalModal from '../../ui/NormalModal';
-import { autocompleteSx } from '../../services/inputStyles';
+import inputSx, { autocompleteSx } from '../../services/inputStyles';
 import InventoryPartRow from './InventoryPartRow';
 import InventoryPartPicker from './InventoryPartPicker';
 import { useInventoryForm } from './useInventoryForm';
 
-const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
+const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], onRequestAddMaterial }, ref) => {
   const {
     open, loading, editMode,
     invoices, invoiceLoading,
     selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleFetching,
     yardStatus, yardLoading, hasYardRecord, canAddParts,
+    grossWeightKg, setGrossWeightKg, savingWeight, handleSaveGrossWeight,
     catalogMode, catalogMeta, catalogMmv, catalogLoading,
     catalogParts, selectedParts, partCategories,
     parts, errors, fileInputRefs,
@@ -32,10 +33,12 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     handleFileSelect, removeDocument,
     handleSubmit, handleClose,
     openFormWith,
+    openFormWithAddMore,
   } = useInventoryForm({ onSubmit, readOnly });
 
   useImperativeHandle(ref, () => ({
     open: openFormWith,
+    openAddMore: openFormWithAddMore,
     close: handleClose,
   }));
 
@@ -57,7 +60,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     && Boolean(selectedInvoiceId)
     && Boolean(selectedVehicleId)
     && canAddParts
-    && yardStatus === 'DISMANTLING_IN_PROGRESS';
+    && (yardStatus === 'DISMANTLING_IN_PROGRESS' || yardStatus === 'DISMANTLED' || !hasYardRecord);
 
   const pickerHint = (() => {
     if (editMode) return '';
@@ -65,6 +68,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
     if (!selectedVehicleId) return 'Select a vehicle from this invoice.';
     if (yardStatus === 'PARKED') return 'Start dismantling in Yard to add parts.';
     if (yardStatus === 'AWAITING_ARRIVAL') return 'Park this vehicle in Yard first.';
+    if (yardStatus === 'DISMANTLED') return 'Add more parts to this vehicle.';
     if (hasYardRecord && yardStatus && yardStatus !== 'DISMANTLING_IN_PROGRESS') {
       return 'Vehicle must be in dismantling before you can add parts.';
     }
@@ -188,53 +192,106 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
               </Grid>
             </Grid>
 
-            {selectedVehicleId && hasYardRecord && (
-              <Box
-                sx={{
-                  mt: 1.5,
-                  px: 1.5,
-                  py: 1,
-                  borderRadius: '8px',
-                  bgcolor: '#fff',
-                  border: '1px solid var(--color-grey-200)',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <Typography variant="body2" sx={{ color: 'var(--color-grey-700)' }}>
-                  Yard: <strong>{yardStatus?.replace(/_/g, ' ') || '—'}</strong>
-                  {yardLoading ? ' …' : ''}
-                </Typography>
-                {yardStatus === 'PARKED' && (
-                  <Button
-                    variant="contained"
-                    size="small"
-                    disableElevation
-                    disabled={yardLoading}
-                    onClick={handleStartDismantling}
-                    sx={{ textTransform: 'none', borderRadius: '8px', py: 0.25 }}
+            {selectedVehicleId && (
+              <>
+                {hasYardRecord && (
+                  <Box
+                    sx={{
+                      mt: 1.5,
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: '8px',
+                      bgcolor: '#fff',
+                      border: '1px solid var(--color-grey-200)',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
                   >
-                    Start dismantling
-                  </Button>
+                    <Typography variant="body2" sx={{ color: 'var(--color-grey-700)' }}>
+                      Yard: <strong>{yardStatus?.replace(/_/g, ' ') || '—'}</strong>
+                      {yardLoading ? ' …' : ''}
+                    </Typography>
+                    {yardStatus === 'PARKED' && (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        disableElevation
+                        disabled={yardLoading}
+                        onClick={handleStartDismantling}
+                        sx={{ textTransform: 'none', borderRadius: '8px', py: 0.25 }}
+                      >
+                        Start dismantling
+                      </Button>
+                    )}
+                    {yardStatus === 'AWAITING_ARRIVAL' && (
+                      <Typography variant="caption" color="error">
+                        Park vehicle in Yard first
+                      </Typography>
+                    )}
+                    {canAddParts && yardStatus === 'DISMANTLING_IN_PROGRESS' && (
+                      <Typography variant="caption" sx={{ color: 'var(--color-success-dark)' }}>
+                        Ready to add parts
+                      </Typography>
+                    )}
+                    {canAddParts && yardStatus === 'DISMANTLED' && (
+                      <Typography variant="caption" sx={{ color: 'var(--color-success-dark)' }}>
+                        Add more parts anytime
+                      </Typography>
+                    )}
+                    {errors.yard && (
+                      <Typography variant="caption" color="error" sx={{ width: '100%' }}>
+                        {errors.yard}
+                      </Typography>
+                    )}
+                  </Box>
                 )}
-                {yardStatus === 'AWAITING_ARRIVAL' && (
-                  <Typography variant="caption" color="error">
-                    Park vehicle in Yard first
-                  </Typography>
-                )}
-                {canAddParts && yardStatus === 'DISMANTLING_IN_PROGRESS' && (
-                  <Typography variant="caption" sx={{ color: 'var(--color-success-dark)' }}>
-                    Ready to add parts
-                  </Typography>
-                )}
-                {errors.yard && (
-                  <Typography variant="caption" color="error" sx={{ width: '100%' }}>
-                    {errors.yard}
-                  </Typography>
-                )}
-              </Box>
+
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    px: 1.5,
+                    py: 1.25,
+                    borderRadius: '8px',
+                    bgcolor: grossWeightKg ? '#fff' : 'rgba(255, 193, 7, 0.08)',
+                    border: `1px solid ${grossWeightKg ? 'var(--color-grey-200)' : '#f0c14b'}`,
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: 1.5,
+                  }}
+                >
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Vehicle weight (KG)"
+                    value={grossWeightKg}
+                    onChange={(e) => setGrossWeightKg(e.target.value)}
+                    disabled={readOnly || !hasYardRecord}
+                    sx={{ ...inputSx, width: { xs: '100%', sm: 220 } }}
+                    inputProps={{ min: 0, step: 'any' }}
+                    helperText={
+                      !hasYardRecord
+                        ? 'Park in Yard first to save weight'
+                        : grossWeightKg
+                          ? 'Loaded from yard / vehicle — edit if needed'
+                          : 'Missed at park? Enter weight here for FORM-3'
+                    }
+                  />
+                  {!readOnly && hasYardRecord && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={savingWeight}
+                      onClick={handleSaveGrossWeight}
+                      sx={{ textTransform: 'none', borderRadius: '8px' }}
+                    >
+                      {savingWeight ? <CircularProgress size={16} /> : 'Save weight'}
+                    </Button>
+                  )}
+                </Box>
+              </>
             )}
           </Box>
         )}
@@ -261,6 +318,8 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
             catalogMmv={catalogMmv}
             catalogLoading={catalogLoading}
             partCategories={partCategories}
+            materials={materials}
+            onAddMaterial={onRequestAddMaterial}
             readOnly={readOnly || (!editMode && hasYardRecord && !canAddParts)}
             errors={errors}
             onLoadCatalog={() => loadCatalogChecklist()}
@@ -301,6 +360,8 @@ InventoryForm.displayName = 'InventoryForm';
 InventoryForm.propTypes = {
   onSubmit: PropTypes.func.isRequired,
   readOnly: PropTypes.bool,
+  materials: PropTypes.array,
+  onRequestAddMaterial: PropTypes.func,
 };
 
 export default InventoryForm;

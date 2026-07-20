@@ -18,6 +18,7 @@ export function getInventoryColumns({
   canPerform,
   handleView,
   handleEdit,
+  handleAddMore,
   openDeleteConfirm,
   handleMarkDamaged,
 }) {
@@ -43,6 +44,7 @@ export function getInventoryColumns({
           canPerform={canPerform}
           handleView={handleView}
           handleEdit={handleEdit}
+          handleAddMore={handleAddMore}
           openDeleteConfirm={openDeleteConfirm}
           handleMarkDamaged={handleMarkDamaged}
         />

@@ -21,6 +21,7 @@ import WarehouseIcon from '@mui/icons-material/Warehouse';
 import ArticleIcon from '@mui/icons-material/Article';
 import DrawIcon from '@mui/icons-material/Draw';
 import GavelIcon from '@mui/icons-material/Gavel';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 
 
 export const ROLES = {
@@ -73,6 +74,10 @@ export const ROUTE_CONFIG = [
   },
   {
     path: '/inventory',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/inventory/audit',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
@@ -139,22 +144,29 @@ export const SIDEBAR_CONFIG = [
     section: 'Super Admin',
     items: [
       {
-        path: '/super-admin/audit-logs',
-        label: 'Audit Logs',
-        icon: HistoryIcon,
-        allowedRoles: [ROLES.SUPER_ADMIN],
-      },
-      {
-        path: '/super-admin/organizations',
-        label: 'Organizations',
+        label: 'Super Admin',
         icon: CorporateFareIcon,
         allowedRoles: [ROLES.SUPER_ADMIN],
-      },
-      {
-        path: '/super-admin/admins',
-        label: 'Admin Users',
-        icon: ManageAccountsIcon,
-        allowedRoles: [ROLES.SUPER_ADMIN],
+        children: [
+          {
+            path: '/super-admin/organizations',
+            label: 'Organizations',
+            icon: CorporateFareIcon,
+            allowedRoles: [ROLES.SUPER_ADMIN],
+          },
+          {
+            path: '/super-admin/admins',
+            label: 'Admin Users',
+            icon: ManageAccountsIcon,
+            allowedRoles: [ROLES.SUPER_ADMIN],
+          },
+          {
+            path: '/super-admin/audit-logs',
+            label: 'Audit Logs',
+            icon: HistoryIcon,
+            allowedRoles: [ROLES.SUPER_ADMIN],
+          },
+        ],
       },
     ],
   },
@@ -166,17 +178,6 @@ export const SIDEBAR_CONFIG = [
         label: 'Dashboard',
         icon: SpaceDashboardIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
-      },
-    ],
-  },
-  {
-    section: 'Audit Logs',
-    items: [
-      {
-        path: '/audit-logs',
-        label: 'Audit Logs',
-        icon: HistoryIcon,
-        allowedRoles: [ROLES.ADMIN],
       },
     ],
   },
@@ -206,16 +207,23 @@ export const SIDEBAR_CONFIG = [
     section: 'Auction Management',
     items: [
       {
-        path: '/auctions',
         label: 'Auctions',
         icon: GavelIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
-      },
-      {
-        path: '/authorization-letters',
-        label: 'Authorization Letters',
-        icon: ArticleIcon,
-        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+        children: [
+          {
+            path: '/auctions',
+            label: 'Auctions',
+            icon: GavelIcon,
+            allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+          },
+          {
+            path: '/authorization-letters',
+            label: 'Authorization Letters',
+            icon: ArticleIcon,
+            allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+          },
+        ],
       },
     ],
   },
@@ -256,16 +264,29 @@ export const SIDEBAR_CONFIG = [
     section: 'Inventory Management',
     items: [
       {
-        path: '/inventory',
-        label: 'Parts Inventory',
+        label: 'Inventory',
         icon: CategoryIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
-      },
-      {
-        path: '/inventory/damage-adjustments',
-        label: 'Damage Adjustments',
-        icon: BuildCircleIcon,
-        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+        children: [
+          {
+            path: '/inventory',
+            label: 'Parts Inventory',
+            icon: CategoryIcon,
+            allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+          },
+          {
+            path: '/inventory/audit',
+            label: 'Inventory Audit',
+            icon: AssessmentIcon,
+            allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+          },
+          {
+            path: '/inventory/damage-adjustments',
+            label: 'Damage Adjustments',
+            icon: BuildCircleIcon,
+            allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+          },
+        ],
       },
     ],
   },
@@ -284,16 +305,23 @@ export const SIDEBAR_CONFIG = [
     section: 'Sales & Dispatch',
     items: [
       {
-        path: '/sales/buyers',
-        label: 'Buyers',
-        icon: StoreIcon,
-        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
-      },
-      {
-        path: '/sales/invoices',
-        label: 'Sales Invoices',
+        label: 'Sales',
         icon: PointOfSaleIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+        children: [
+          {
+            path: '/sales/buyers',
+            label: 'Buyers',
+            icon: StoreIcon,
+            allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+          },
+          {
+            path: '/sales/invoices',
+            label: 'Sales Invoices',
+            icon: PointOfSaleIcon,
+            allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+          },
+        ],
       },
     ],
   },
@@ -301,28 +329,35 @@ export const SIDEBAR_CONFIG = [
     section: 'Tax Compliance',
     items: [
       {
-        path: '/tax/config',
-        label: 'Tax Configuration',
+        label: 'Tax',
         icon: PercentIcon,
-        allowedRoles: [ROLES.ADMIN],
-      },
-      {
-        path: '/tax/eway-bills',
-        label: 'E-Way Bills',
-        icon: RouteIcon,
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
-      },
-      {
-        path: '/tax/summary',
-        label: 'GST Summary',
-        icon: SummarizeIcon,
-        allowedRoles: [ROLES.ADMIN],
-      },
-      {
-        path: '/tax/audit',
-        label: 'GST Audit Trail',
-        icon: FindInPageIcon,
-        allowedRoles: [ROLES.ADMIN],
+        children: [
+          {
+            path: '/tax/config',
+            label: 'Tax Configuration',
+            icon: PercentIcon,
+            allowedRoles: [ROLES.ADMIN],
+          },
+          {
+            path: '/tax/eway-bills',
+            label: 'E-Way Bills',
+            icon: RouteIcon,
+            allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+          },
+          {
+            path: '/tax/summary',
+            label: 'GST Summary',
+            icon: SummarizeIcon,
+            allowedRoles: [ROLES.ADMIN],
+          },
+          {
+            path: '/tax/audit',
+            label: 'GST Audit Trail',
+            icon: FindInPageIcon,
+            allowedRoles: [ROLES.ADMIN],
+          },
+        ],
       },
     ],
   },
@@ -330,21 +365,39 @@ export const SIDEBAR_CONFIG = [
     section: 'Accounting',
     items: [
       {
-        path: '/accounting',
-        label: 'Overview',
+        label: 'Accounting',
         icon: AccountBalanceWalletIcon,
         allowedRoles: [ROLES.ADMIN],
+        children: [
+          {
+            path: '/accounting',
+            label: 'Overview',
+            icon: AccountBalanceWalletIcon,
+            allowedRoles: [ROLES.ADMIN],
+          },
+          {
+            path: '/accounting/ledger',
+            label: 'General Ledger',
+            icon: MenuBookIcon,
+            allowedRoles: [ROLES.ADMIN],
+          },
+          {
+            path: '/accounting/pnl',
+            label: 'Profit & Loss',
+            icon: AnalyticsIcon,
+            allowedRoles: [ROLES.ADMIN],
+          },
+        ],
       },
+    ],
+  },
+  {
+    section: 'Audit Logs',
+    items: [
       {
-        path: '/accounting/ledger',
-        label: 'General Ledger',
-        icon: MenuBookIcon,
-        allowedRoles: [ROLES.ADMIN],
-      },
-      {
-        path: '/accounting/pnl',
-        label: 'Profit & Loss',
-        icon: AnalyticsIcon,
+        path: '/audit-logs',
+        label: 'Audit Logs',
+        icon: HistoryIcon,
         allowedRoles: [ROLES.ADMIN],
       },
     ],
@@ -374,22 +427,33 @@ export const isRouteAllowed = (path, role) => {
 export const getFilteredSidebarConfig = (role) => {
   return SIDEBAR_CONFIG.map((section) => ({
     ...section,
-    items: section.items.filter((item) => item.allowedRoles.includes(role)),
+    items: section.items
+      .filter((item) => item.allowedRoles.includes(role))
+      .map((item) => {
+        if (!item.children?.length) return item;
+        return {
+          ...item,
+          children: item.children.filter((child) => child.allowedRoles.includes(role)),
+        };
+      })
+      .filter((item) => !item.children || item.children.length > 0),
   })).filter((section) => section.items.length > 0);
 };
 
+const flattenSidebarItems = (sections) =>
+  sections.flatMap((s) =>
+    s.items.flatMap((item) => (item.children?.length ? item.children : [item])),
+  );
+
 /** Resolve current page label for header / breadcrumbs */
 export const getPageLabel = (pathname) => {
-  for (const section of SIDEBAR_CONFIG) {
-    for (const item of section.items) {
-      if (item.path === pathname) return item.label;
-    }
+  const all = flattenSidebarItems(SIDEBAR_CONFIG);
+  for (const item of all) {
+    if (item.path === pathname) return item.label;
   }
-  const sorted = SIDEBAR_CONFIG.flatMap((s) => s.items).sort(
-    (a, b) => b.path.length - a.path.length,
-  );
+  const sorted = [...all].sort((a, b) => (b.path?.length || 0) - (a.path?.length || 0));
   const partial = sorted.find(
-    (item) => pathname.startsWith(item.path) && item.path !== '/',
+    (item) => item.path && pathname.startsWith(item.path) && item.path !== '/',
   );
   if (partial) return partial.label;
   return 'Workspace';
