@@ -31,8 +31,7 @@ const STEPS = [
   'KYC Details',
   'Documents',
 ];
-const VEHICLE_NUMBER_REGEX =
-  /^(?:[A-Z]{2}[- ]?\d{1,2}[- ]?[A-Z]{1,3}[- ]?\d{4}|[0-9]{2}[- ]?BH[- ]?[0-9]{4}[- ]?[A-Z]{2})$/;
+const VEHICLE_NUMBER_REGEX = /^[A-Za-z0-9]+$/;
 
 const INITIAL_FORM = {
   name: '',
@@ -333,7 +332,7 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
       if (step === 1 && form.registrationNumber) {
         const normalized = normalizeRegistration(form.registrationNumber);
         if (!VEHICLE_NUMBER_REGEX.test(normalized)) {
-          next.registrationNumber = 'Enter valid Indian vehicle number';
+          next.registrationNumber = 'Only letters and numbers allowed (no special characters)';
         }
       }
       if (step === 3 && form.aadhaarLinkedMobileNumber && !/^\d{10}$/.test(form.aadhaarLinkedMobileNumber)) {

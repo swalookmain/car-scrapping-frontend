@@ -8,12 +8,12 @@ import {
   LinearProgress,
   Typography,
   Avatar,
-  Badge,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+// Notifications deferred — restore when ready
+// import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import NotificationModal from './NotificationModal';
+// import NotificationModal from './NotificationModal';
 import ProfileModal from './ProfileModal';
 import { useAuth } from '../../context/AuthContext';
 import { getPageLabel } from '../../config/roleConfig';
@@ -29,10 +29,10 @@ const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading
   const { user } = useAuth();
   const pageLabel = getPageLabel(location.pathname);
 
-  const [notificationOpen, setNotificationOpen] = useState(false);
-  const notificationButtonRef = useRef(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileButtonRef = useRef(null);
+  // const [notificationOpen, setNotificationOpen] = useState(false);
+  // const notificationButtonRef = useRef(null);
 
   const displayName = user?.name || user?.email || 'User';
   const displayRole = user?.role ? roleLabels[user.role] || user.role : '';
@@ -122,8 +122,9 @@ const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading
           </Box>
         </Box>
 
-        {/* Right: notifications + profile */}
+        {/* Right: profile (notifications deferred) */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/*
           <Box sx={{ position: 'relative' }}>
             <IconButton
               ref={notificationButtonRef}
@@ -154,6 +155,7 @@ const Header = memo(({ handleDrawerToggle, drawerWidth, isSidebarOpen, isLoading
               anchorRef={notificationButtonRef}
             />
           </Box>
+          */}
 
           <Box
             ref={profileButtonRef}

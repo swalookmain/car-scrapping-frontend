@@ -38,6 +38,14 @@ const yardApi = {
     const response = await axiosInstance.get(ENDPOINTS.YARD.ZONES);
     return response.data;
   },
+  getEligibleAuctionLots: async () => {
+    const response = await axiosInstance.get(ENDPOINTS.YARD.ELIGIBLE_AUCTION_LOTS);
+    return response.data;
+  },
+  addFromAuction: async (payload) => {
+    const response = await axiosInstance.post(ENDPOINTS.YARD.FROM_AUCTION, payload);
+    return response.data;
+  },
   backfill: async (invoiceId) => {
     const response = await axiosInstance.post(ENDPOINTS.YARD.BACKFILL, null, {
       params: { invoiceId },

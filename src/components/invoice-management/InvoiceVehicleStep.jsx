@@ -14,7 +14,7 @@ import inputSx from '../../services/inputStyles';
 
 const VEHICLE_TYPES = ['CAR', 'BIKE', 'COMMERCIAL'];
 const FUEL_TYPES = ['PETROL', 'DIESEL', 'CNG', 'ELECTRIC', 'HYBRID'];
-const DOCUMENT_ACCEPT = '.jpg,.jpeg,.png,.pdf';
+const DOCUMENT_ACCEPT = 'image/*,.jpg,.jpeg,.png,.pdf';
 
 /**
  * Renders all vehicle detail fields for step 2 of InvoiceForm.
@@ -250,7 +250,7 @@ export default function InvoiceVehicleStep({
                   label={label}
                   fullWidth
                   sx={inputSx}
-                  inputProps={{ accept: DOCUMENT_ACCEPT }}
+                  inputProps={{ accept: DOCUMENT_ACCEPT, capture: 'environment' }}
                   InputLabelProps={{ shrink: true }}
                   error={Boolean(errors[field])}
                   helperText={errors[field]}

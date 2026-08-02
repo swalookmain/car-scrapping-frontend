@@ -72,6 +72,7 @@ const DocUploadField = ({ label, docState, onChange, readOnly }) => {
             <input
               type="file"
               accept="image/*,application/pdf"
+              capture="environment"
               style={{ display: 'none' }}
               ref={inputRef}
               onChange={handleFile}
@@ -95,7 +96,7 @@ const DocUploadField = ({ label, docState, onChange, readOnly }) => {
               {docState ? 'Replace' : 'Upload'}
             </Button>
             <Typography variant="caption" sx={{ color: 'var(--color-grey-400)' }}>
-              Image or PDF
+              Image, PDF, or camera
             </Typography>
           </>
         )}

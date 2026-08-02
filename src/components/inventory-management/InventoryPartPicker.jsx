@@ -146,6 +146,7 @@ function PanelShell({ title, subtitle, icon, children, footer, headerExtra, sx, 
 export default function InventoryPartPicker({
   catalogParts,
   selectedParts,
+  existingPartKeys = [],
   catalogMeta,
   catalogMmv,
   catalogLoading,
@@ -185,6 +186,11 @@ export default function InventoryPartPicker({
     [selectedParts],
   );
 
+  const alreadyAddedKeys = useMemo(
+    () => new Set(existingPartKeys || []),
+    [existingPartKeys],
+  );
+
   const availableCatalog = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (catalogParts || []).filter((p) => {
@@ -196,6 +202,11 @@ export default function InventoryPartPicker({
       );
     });
   }, [catalogParts, selectedKeys, search]);
+
+  const selectableCatalog = useMemo(
+    () => availableCatalog.filter((p) => !alreadyAddedKeys.has(getPartKey(p))),
+    [availableCatalog, alreadyAddedKeys],
+  );
 
   const catalogGroups = useMemo(
     () => groupByCategory(availableCatalog, categorySlugs),
@@ -215,6 +226,7 @@ export default function InventoryPartPicker({
 
   const toggleCheck = (part) => {
     const key = getPartKey(part);
+    if (alreadyAddedKeys.has(key)) return;
     setCheckedKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -228,6 +240,7 @@ export default function InventoryPartPicker({
       const next = new Set(prev);
       parts.forEach((p) => {
         const key = getPartKey(p);
+        if (alreadyAddedKeys.has(key)) return;
         if (select) next.add(key);
         else next.delete(key);
       });
@@ -236,7 +249,7 @@ export default function InventoryPartPicker({
   };
 
   const moveCheckedToSelected = () => {
-    const toAdd = availableCatalog.filter((p) => checkedKeys.has(getPartKey(p)));
+    const toAdd = selectableCatalog.filter((p) => checkedKeys.has(getPartKey(p)));
     if (toAdd.length) onAddManyToSelected(toAdd);
     setCheckedKeys(new Set());
   };
@@ -252,7 +265,9 @@ export default function InventoryPartPicker({
     try {
       const raw = e.dataTransfer.getData('application/json');
       if (!raw) return;
-      onAddToSelected(JSON.parse(raw));
+      const part = JSON.parse(raw);
+      if (alreadyAddedKeys.has(getPartKey(part))) return;
+      onAddToSelected(part);
     } catch {
       // ignore
     }
@@ -715,8 +730,15 @@ export default function InventoryPartPicker({
                   </Typography>
                 ) : (
                   catalogGroups.map((group) => {
-                    const allChecked = group.parts.every((p) => checkedKeys.has(getPartKey(p)));
-                    const someChecked = group.parts.some((p) => checkedKeys.has(getPartKey(p)));
+                    const selectableParts = group.parts.filter(
+                      (p) => !alreadyAddedKeys.has(getPartKey(p)),
+                    );
+                    const allChecked =
+                      selectableParts.length > 0 &&
+                      selectableParts.every((p) => checkedKeys.has(getPartKey(p)));
+                    const someChecked = selectableParts.some((p) =>
+                      checkedKeys.has(getPartKey(p)),
+                    );
                     return (
                       <CategorySection
                         key={group.slug}
@@ -725,24 +747,34 @@ export default function InventoryPartPicker({
                         expanded={isExpanded(`cat_${group.slug}`)}
                         onToggle={() => toggleExpand(`cat_${group.slug}`)}
                         selectAll={
-                          !readOnly && (
+                          !readOnly && selectableParts.length > 0 && (
                             <Checkbox
                               size="small"
                               checked={allChecked}
                               indeterminate={someChecked && !allChecked}
                               onClick={(e) => e.stopPropagation()}
-                              onChange={() => selectAllInCategory(group.parts, !allChecked)}
+                              onChange={() => selectAllInCategory(selectableParts, !allChecked)}
                               sx={{ p: 0.25 }}
                             />
                           )
                         }
                       >
                         <Stack spacing={0} sx={{ pl: 1.5 }}>
-                          {group.parts.map((part) => (
+                          {group.parts.map((part) => {
+                            const partKey = getPartKey(part);
+                            const alreadyAdded = alreadyAddedKeys.has(partKey);
+                            const rowDisabled = readOnly || alreadyAdded;
+                            return (
                             <Box
-                              key={getPartKey(part)}
-                              draggable={!readOnly}
-                              onDragStart={(e) => handleDragStart(e, part)}
+                              key={partKey}
+                              draggable={!rowDisabled}
+                              onDragStart={(e) => {
+                                if (rowDisabled) {
+                                  e.preventDefault();
+                                  return;
+                                }
+                                handleDragStart(e, part);
+                              }}
                               sx={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -750,8 +782,9 @@ export default function InventoryPartPicker({
                                 py: 0.75,
                                 px: 0.5,
                                 borderRadius: '6px',
-                                cursor: readOnly ? 'default' : 'pointer',
-                                '&:hover': readOnly
+                                opacity: alreadyAdded ? 0.55 : 1,
+                                cursor: rowDisabled ? 'default' : 'pointer',
+                                '&:hover': rowDisabled
                                   ? {}
                                   : { bgcolor: 'var(--color-grey-50)' },
                                 '&:hover .add-btn': { opacity: 1 },
@@ -760,7 +793,8 @@ export default function InventoryPartPicker({
                               {!readOnly && (
                                 <Checkbox
                                   size="small"
-                                  checked={checkedKeys.has(getPartKey(part))}
+                                  checked={alreadyAdded || checkedKeys.has(partKey)}
+                                  disabled={alreadyAdded}
                                   onChange={() => toggleCheck(part)}
                                   onClick={(e) => e.stopPropagation()}
                                   sx={{ p: 0.25 }}
@@ -773,12 +807,20 @@ export default function InventoryPartPicker({
                               >
                                 {part.partName}
                               </Typography>
-                              {part.defaultQty > 1 && (
+                              {alreadyAdded && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: 'var(--color-grey-400)', flexShrink: 0 }}
+                                >
+                                  Already added
+                                </Typography>
+                              )}
+                              {!alreadyAdded && part.defaultQty > 1 && (
                                 <Typography variant="caption" sx={{ color: 'var(--color-grey-400)', flexShrink: 0 }}>
                                   ×{part.defaultQty}
                                 </Typography>
                               )}
-                              {!readOnly && (
+                              {!readOnly && !alreadyAdded && (
                                 <IconButton
                                   className="add-btn"
                                   size="small"
@@ -794,7 +836,8 @@ export default function InventoryPartPicker({
                                 </IconButton>
                               )}
                             </Box>
-                          ))}
+                            );
+                          })}
                         </Stack>
                       </CategorySection>
                     );

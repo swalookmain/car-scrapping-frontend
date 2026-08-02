@@ -36,6 +36,7 @@ import LotLifecycleModal from './lifecycle/LotLifecycleModal';
 import { LIFECYCLE_ACTIONS, ACTION_LABELS, hasAction } from './lifecycle/lotLifecycleConstants';
 import AuthorizationLetterWizard from '../authorization-letters/AuthorizationLetterWizard';
 import AuthorizationLetterStatus from '../authorization-letters/AuthorizationLetterStatus';
+import AuctionViewModal from './AuctionViewModal';
 import { authorizationLettersApi } from '../../services/api';
 import tokenStorage from '../../services/tokenStorage';
 
@@ -610,9 +611,13 @@ const AuctionTable = () => {
         <MenuItem
           onClick={async () => {
             if (menuRow) {
-              const res = await auctionsApi.getById(menuRow._id || menuRow.id);
-              setViewAuction(res?.data || res);
-              setOpenViewModal(true);
+              try {
+                const res = await auctionsApi.getById(menuRow._id || menuRow.id);
+                setViewAuction(res?.data || res);
+                setOpenViewModal(true);
+              } catch {
+                toast.error('Failed to load auction');
+              }
             }
             setMenuAnchorEl(null);
           }}
@@ -1485,53 +1490,29 @@ const AuctionTable = () => {
         )}
       </NormalModal>
 
-      <NormalModal open={openViewModal} onClose={() => setOpenViewModal(false)} title="Auction details">
-        {viewAuction && (
-          <Box>
-            <Box sx={{ mb: 2 }}>
-              <AuthorizationLetterStatus
-                auctionId={viewAuction._id || viewAuction.id}
-                onCreate={(id) => setAuthLetterWizard({ open: true, auctionId: id || viewAuction._id || viewAuction.id })}
-                onView={async (letterId) => {
-                  setLetterPreview({ open: true, html: '', loading: true });
-                  try {
-                    const token = tokenStorage.getAccessToken();
-                    const response = await fetch(authorizationLettersApi.getPreviewUrl(letterId), {
-                      headers: token ? { Authorization: `Bearer ${token}` } : {},
-                      credentials: 'include',
-                    });
-                    setLetterPreview({ open: true, html: await response.text(), loading: false });
-                  } catch {
-                    setLetterPreview({ open: false, html: '', loading: false });
-                    toast.error('Failed to load preview');
-                  }
-                }}
-                onDownload={async (letterId, letterNumber) => {
-                  try {
-                    await authorizationLettersApi.downloadPdf(
-                      letterId,
-                      `${letterNumber || 'authorization-letter'}.pdf`,
-                    );
-                  } catch {
-                    toast.error('Download failed');
-                  }
-                }}
-              />
-            </Box>
-            <Typography variant="body2">Auction number: {viewAuction.auctionNumber || '—'}</Typography>
-            <Typography variant="body2">
-              Buyer ref: {viewAuction.buyerReferenceNumber || '—'}
-            </Typography>
-            <Typography variant="body2">
-              Date: {viewAuction.auctionDate ? new Date(viewAuction.auctionDate).toLocaleDateString() : '—'}
-            </Typography>
-            <Typography variant="body2">
-              Vehicle Location: {viewAuction.vehicleLocation || viewAuction.auctionLocation || '—'}
-            </Typography>
-            <Typography variant="body2">Status: {viewAuction.status || '—'}</Typography>
-          </Box>
-        )}
-      </NormalModal>
+      <AuctionViewModal
+        open={openViewModal}
+        auction={viewAuction}
+        onClose={() => {
+          setOpenViewModal(false);
+          setViewAuction(null);
+        }}
+        onCreateAuthLetter={(id) => setAuthLetterWizard({ open: true, auctionId: id })}
+        onViewAuthLetterHtml={async (letterId) => {
+          setLetterPreview({ open: true, html: '', loading: true });
+          try {
+            const token = tokenStorage.getAccessToken();
+            const response = await fetch(authorizationLettersApi.getPreviewUrl(letterId), {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+              credentials: 'include',
+            });
+            setLetterPreview({ open: true, html: await response.text(), loading: false });
+          } catch {
+            setLetterPreview({ open: false, html: '', loading: false });
+            toast.error('Failed to load preview');
+          }
+        }}
+      />
     </>
   );
 };

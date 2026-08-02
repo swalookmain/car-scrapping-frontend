@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { invoicesApi, yardApi, partCatalogApi } from '../../services/api';
+import { invoicesApi, yardApi, partCatalogApi, inventoryApi } from '../../services/api';
 import useApiCall from '../../hooks/useApiCall';
 import toast from 'react-hot-toast';
 import { getPartKey, normalizeCategory, formatCategoryLabel } from './inventoryPickerUtils';
@@ -108,6 +108,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   const [catalogParts, setCatalogParts] = useState([]);
   const [selectedParts, setSelectedParts] = useState([]);
   const [partCategories, setPartCategories] = useState([]);
+  const [existingPartKeys, setExistingPartKeys] = useState([]);
 
   // Parts & validation (manual mode / edit)
   const [parts,    setParts]  = useState([createInitialPart()]);
@@ -216,6 +217,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
             setVehicleLabel(selected.label);
             syncCatalogMmvFromVehicle(selected);
             fetchYardForVehicle(preserveVehicleId, selected);
+            fetchExistingPartsForVehicle(preserveVehicleId);
           }
         }
       });
@@ -260,6 +262,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     syncCatalogMmvFromVehicle(selected);
     syncWeightFromSources(selected, null);
     fetchYardForVehicle(vehicleId, selected);
+    fetchExistingPartsForVehicle(vehicleId);
   };
 
   const yardStatus = yardRecord?.currentStatus || null;
@@ -269,6 +272,40 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     setCatalogMeta(null);
     setCatalogParts([]);
     setSelectedParts([]);
+    setExistingPartKeys([]);
+  };
+
+  const fetchExistingPartsForVehicle = async (vehicleId) => {
+    if (!vehicleId) {
+      setExistingPartKeys([]);
+      return;
+    }
+    try {
+      const res = await inventoryApi.getByVehicle(vehicleId);
+      const partsList = Array.isArray(res?.parts)
+        ? res.parts
+        : Array.isArray(res?.data?.parts)
+          ? res.data.parts
+          : Array.isArray(res?.data)
+            ? res.data
+            : Array.isArray(res)
+              ? res
+              : [];
+      const keys = partsList
+        .map((p) => {
+          const catalogId = p.catalogPartId?._id || p.catalogPartId?.id || p.catalogPartId;
+          return getPartKey({
+            catalogPartId: catalogId ? String(catalogId) : undefined,
+            partName: p.partName,
+            partType: p.partType,
+            _uid: p._id || p.id,
+          });
+        })
+        .filter(Boolean);
+      setExistingPartKeys(keys);
+    } catch {
+      setExistingPartKeys([]);
+    }
   };
 
   const syncCatalogMmvFromVehicle = (vehicle) => {
@@ -401,6 +438,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
 
   const handleAddToSelected = (catalogPart) => {
     const key = getPartKey(catalogPart);
+    if (existingPartKeys.includes(key)) return;
     setSelectedParts((prev) => {
       if (prev.some((p) => getPartKey(p) === key)) return prev;
       return [...prev, createPartFromCatalog(catalogPart)];
@@ -408,10 +446,14 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   };
 
   const handleAddManyToSelected = (catalogItems) => {
+    const blocked = new Set(existingPartKeys);
     setSelectedParts((prev) => {
       const existing = new Set(prev.map(getPartKey));
       const toAdd = catalogItems
-        .filter((item) => !existing.has(getPartKey(item)))
+        .filter((item) => {
+          const key = getPartKey(item);
+          return !existing.has(key) && !blocked.has(key);
+        })
         .map(createPartFromCatalog);
       return [...prev, ...toAdd];
     });
@@ -684,6 +726,9 @@ export function useInventoryForm({ onSubmit, readOnly }) {
       await fetchVehicleForInvoice(invoiceId, vehicleId || null);
     } else if (vehicleId) {
       fetchYardForVehicle(vehicleId);
+      fetchExistingPartsForVehicle(vehicleId);
+    } else {
+      setExistingPartKeys([]);
     }
   };
 
@@ -737,7 +782,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     yardRecord, yardStatus, yardLoading, hasYardRecord, canAddParts,
     grossWeightKg, setGrossWeightKg, savingWeight, handleSaveGrossWeight,
     catalogMode, catalogMeta, catalogMmv, catalogLoading,
-    catalogParts, selectedParts, partCategories,
+    catalogParts, selectedParts, partCategories, existingPartKeys,
     parts, errors,
     fileInputRefs,
     // handlers
