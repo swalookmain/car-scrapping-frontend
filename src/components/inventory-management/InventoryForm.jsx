@@ -23,7 +23,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], 
     yardStatus, yardLoading, hasYardRecord, canAddParts,
     grossWeightKg, setGrossWeightKg, savingWeight, handleSaveGrossWeight,
     catalogMode, catalogMeta, catalogMmv, catalogLoading,
-    catalogParts, selectedParts, partCategories,
+    catalogParts, selectedParts, partCategories, existingPartKeys,
     parts, errors, fileInputRefs,
     handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel, handleStartDismantling,
     loadCatalogChecklist, loadCatalogChecklistByMmv, handleCatalogMmvChange,
@@ -314,6 +314,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], 
           <InventoryPartPicker
             catalogParts={catalogParts}
             selectedParts={selectedParts}
+            existingPartKeys={existingPartKeys}
             catalogMeta={catalogMeta}
             catalogMmv={catalogMmv}
             catalogLoading={catalogLoading}

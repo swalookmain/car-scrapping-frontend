@@ -173,9 +173,15 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
 
       {status === 'PARKED' && (
         <Box sx={{ mb: 2 }}>
-          <Button variant="contained" color="secondary" disabled={saving} onClick={handleStartDismantling}>
-            Start dismantling
-          </Button>
+          {vehicleInvoiceId ? (
+            <Button variant="contained" color="secondary" disabled={saving} onClick={handleStartDismantling}>
+              Start dismantling
+            </Button>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Link a purchase invoice for this vehicle before starting dismantling.
+            </Typography>
+          )}
         </Box>
       )}
 

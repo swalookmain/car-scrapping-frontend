@@ -31,6 +31,7 @@ const InvoiceTable = ({ isLoading }) => {
   const [viewStep, setViewStep] = useState(0); // 0: invoice, 1: vehicle
   const [viewVehicles, setViewVehicles] = useState([]);
   const [viewVehicleIndex, setViewVehicleIndex] = useState(0);
+  const [viewDocuments, setViewDocuments] = useState([]);
 
   const handleView = async (row) => {
     try {
@@ -46,11 +47,25 @@ const InvoiceTable = ({ isLoading }) => {
           setViewVehicleIndex(0);
           const vData = vehicles.length > 0 ? vehicles[0] : null;
           if (vData) invoiceData.vehicle = vData; // backward compatible for existing UI rows
+          try {
+            const docsRes = await invoicesApi.getDocuments(id);
+            const docs = Array.isArray(docsRes?.data)
+              ? docsRes.data
+              : Array.isArray(docsRes)
+                ? docsRes
+                : [];
+            setViewDocuments(docs);
+          } catch {
+            setViewDocuments([]);
+          }
+        } else {
+          setViewDocuments([]);
         }
       } catch (vehErr) {
         // ignore vehicle fetch errors — still show invoice
         setViewVehicles([]);
         setViewVehicleIndex(0);
+        setViewDocuments([]);
       }
       setViewItem(invoiceData);
       setViewStep(0);
@@ -68,15 +83,28 @@ const InvoiceTable = ({ isLoading }) => {
           const fallback = { ...row };
           if (vData) fallback.vehicle = vData;
           setViewItem(fallback);
+          try {
+            const docsRes = await invoicesApi.getDocuments(id);
+            const docs = Array.isArray(docsRes?.data)
+              ? docsRes.data
+              : Array.isArray(docsRes)
+                ? docsRes
+                : [];
+            setViewDocuments(docs);
+          } catch {
+            setViewDocuments([]);
+          }
         } else {
           setViewItem(row);
           setViewVehicles([]);
           setViewVehicleIndex(0);
+          setViewDocuments([]);
         }
       } catch (vehErr) {
         setViewItem(row);
         setViewVehicles([]);
         setViewVehicleIndex(0);
+        setViewDocuments([]);
       }
       setViewStep(0);
       setViewOpen(true);
@@ -144,23 +172,32 @@ const InvoiceTable = ({ isLoading }) => {
     documents = {},
   ) => {
     try {
-      if (!editingVehicleId) {
-        const formData = new FormData();
-        formData.append('invoiceId', invoiceId);
-        Object.entries(documents).forEach(([field, file]) => {
-          if (file) {
-            formData.append(field, file);
-          }
-        });
-        await invoicesApi.uploadDocuments(formData);
-      }
-
+      let vehicleId = editingVehicleId;
       if (editingVehicleId) {
         await invoicesApi.updateVehicle(editingVehicleId, vehicle);
       } else {
         if (!invoiceId) throw new Error('Missing invoice ID');
-        await invoicesApi.createVehicle({ ...vehicle, invoiceId });
+        const created = await invoicesApi.createVehicle({ ...vehicle, invoiceId });
+        const createdVehicle = created?.data || created?.invoice || created;
+        vehicleId =
+          createdVehicle?._id ||
+          createdVehicle?.id ||
+          created?.data?._id ||
+          created?.data?.id ||
+          null;
       }
+
+      const filesToUpload = Object.entries(documents).filter(([, file]) => Boolean(file));
+      if (filesToUpload.length > 0) {
+        const formData = new FormData();
+        formData.append('invoiceId', invoiceId);
+        if (vehicleId) formData.append('vechileInvoiceId', vehicleId);
+        filesToUpload.forEach(([field, file]) => {
+          formData.append(field, file);
+        });
+        await invoicesApi.uploadDocuments(formData);
+      }
+
       toast.success(editingVehicleId ? 'Vehicle details updated' : 'Vehicle details added');
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       return { success: true };
@@ -170,11 +207,12 @@ const InvoiceTable = ({ isLoading }) => {
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message;
-      toast.error(
-        typeof backendMessage === 'string'
+      const message = Array.isArray(backendMessage)
+        ? backendMessage.join(', ')
+        : typeof backendMessage === 'string'
           ? backendMessage
-          : 'Failed to save vehicle details. Please try again.',
-      );
+          : 'Failed to save vehicle details. Please try again.';
+      toast.error(message);
       return { success: false, error: backendMessage };
     }
   };
@@ -212,6 +250,7 @@ const InvoiceTable = ({ isLoading }) => {
     setViewStep(0);
     setViewVehicles([]);
     setViewVehicleIndex(0);
+    setViewDocuments([]);
   }, []);
 
   const [preview, setPreview] = useState({ open: false, src: null, name: null, mime: null });
@@ -220,7 +259,12 @@ const InvoiceTable = ({ isLoading }) => {
 
   const handleViewNext = useCallback(() => {
     if (viewStep === 0) setViewStep(1);
-    else { setViewOpen(false); setViewItem(null); setViewStep(0); }
+    else {
+      setViewOpen(false);
+      setViewItem(null);
+      setViewStep(0);
+      setViewDocuments([]);
+    }
   }, [viewStep]);
 
   const handleDelete = async (id) => {
@@ -442,14 +486,23 @@ const InvoiceTable = ({ isLoading }) => {
                 ))}
               </Box>
 
-              {(inv.documents || inv.purchaseDocuments || inv.documentsUrls || []).length > 0 && (
+              {(() => {
+                const docs =
+                  viewDocuments.length > 0
+                    ? viewDocuments
+                    : inv.documents || inv.purchaseDocuments || inv.documentsUrls || [];
+                if (!docs.length) return null;
+                return (
                 <Box sx={{ gridColumn: '1 / -1', mt: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Documents</Typography>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {(inv.documents || inv.purchaseDocuments || inv.documentsUrls || []).map((d, i) => {
-                      const name = typeof d === 'string' ? d.split('/').pop() : d.name || `Document ${i + 1}`;
+                    {docs.map((d, i) => {
+                      const name =
+                        typeof d === 'string'
+                          ? d.split('/').pop()
+                          : d.fileName || d.name || d.documentType || `Document ${i + 1}`;
                       const src = typeof d === 'string' ? d : d.url || d.data || d.dataUrl || null;
-                      const mime = typeof d === 'string' ? '' : d.type || '';
+                      const mime = typeof d === 'string' ? '' : d.mimeType || d.type || '';
                       return (
                         <Button key={src || name || i} size="small" variant="outlined" onClick={() => setPreview({ open: true, src, name, mime })}>
                           {name}
@@ -458,7 +511,8 @@ const InvoiceTable = ({ isLoading }) => {
                     })}
                   </Box>
                 </Box>
-              )}
+                );
+              })()}
 
               {/* ── Payments Section ── */}
               {viewStep === 0 && (inv.status === 'CONFIRMED' || inv.status === 'COMPLETED') && inv.id && (

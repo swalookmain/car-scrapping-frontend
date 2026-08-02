@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropTypes from 'prop-types';
 import { Box, Chip, IconButton, MenuItem, TextField, Tooltip, Typography } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -9,6 +9,7 @@ import { yardApi } from '../../services/api';
 import inputSx from '../../services/inputStyles';
 import YardDashboardCards from './YardDashboardCards';
 import YardVehicleModal from './YardVehicleModal';
+import YardAddAuctionModal from './YardAddAuctionModal';
 import { YARD_STATUS_COLORS, YARD_STATUS_LABELS } from './yardConstants';
 
 const STATUS_FILTER_OPTIONS = [
@@ -21,12 +22,14 @@ const STATUS_FILTER_OPTIONS = [
 ];
 
 const YardTable = ({ isLoading: pageLoading }) => {
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const { data: dashboard } = useQuery({
     queryKey: ['yard-dashboard'],
@@ -73,7 +76,14 @@ const YardTable = ({ isLoading: pageLoading }) => {
     setDetailOpen(false);
     setSelected(null);
     refetch();
-  }, [refetch]);
+    queryClient.invalidateQueries({ queryKey: ['yard-dashboard'] });
+  }, [refetch, queryClient]);
+
+  const handleAddSaved = useCallback(() => {
+    setAddOpen(false);
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ['yard-dashboard'] });
+  }, [refetch, queryClient]);
 
   const columns = useMemo(
     () => [
@@ -210,8 +220,17 @@ const YardTable = ({ isLoading: pageLoading }) => {
             searchPlaceholder="Search registration number…"
             onRefresh={refetch}
             showRefresh
+            showAdd
+            onAdd={() => setAddOpen(true)}
           />
         }
+      />
+
+      <YardAddAuctionModal
+        open={addOpen}
+        zones={zones}
+        onClose={() => setAddOpen(false)}
+        onSaved={handleAddSaved}
       />
 
       <YardVehicleModal

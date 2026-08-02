@@ -157,6 +157,8 @@ export const ENDPOINTS = {
     ZONES: '/yard/zones',
     CREATE_ZONE: '/yard/zones',
     BACKFILL: '/yard/backfill',
+    ELIGIBLE_AUCTION_LOTS: '/yard/eligible-auction-lots',
+    FROM_AUCTION: '/yard/from-auction',
   },
   AUDIT_LOGS: {
     GET_ALL: '/audit-logs',
