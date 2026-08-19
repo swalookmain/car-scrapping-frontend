@@ -15,11 +15,13 @@ import {
   Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import GavelIcon from '@mui/icons-material/Gavel';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import AmountSummaryChips from './AmountSummaryChips';
 import LotAccordionPanel from './LotAccordionPanel';
 import RecordLotPaymentModal from './RecordLotPaymentModal';
+import AddLotPenaltyModal from './AddLotPenaltyModal';
 import { PAYMENT_STATUS_COLORS } from './lotLifecycleConstants';
 import { formatINR } from '../../../services/taxEngine';
 import inputSx from '../../../services/inputStyles';
@@ -90,6 +92,7 @@ const AcceptanceLetterFields = ({ lot, auctionId, disabled }) => {
 
 const LotPaymentPanel = ({ lots, auctionId, readOnly = false }) => {
   const [paymentLot, setPaymentLot] = useState(null);
+  const [penaltyLot, setPenaltyLot] = useState(null);
   const dealDoneLots = lots.filter((l) => l.outcomeStatus === 'DEAL_DONE');
 
   if (!dealDoneLots.length) {
@@ -101,24 +104,48 @@ const LotPaymentPanel = ({ lots, auctionId, readOnly = false }) => {
       {dealDoneLots.map((lot) => {
         const payColors = PAYMENT_STATUS_COLORS[lot.payment?.paymentStatus] || PAYMENT_STATUS_COLORS.NOT_PAID;
         const balance = lot.deal?.balanceAmount ?? 0;
+        const penalty = lot.payment?.penaltyAmount ?? 0;
+        const totalDue = Math.round((balance + penalty) * 100) / 100;
         const paid = lot.payment?.amountPaidTotal ?? 0;
-        const left = lot.payment?.amountLeft ?? balance;
+        const left = lot.payment?.amountLeft ?? totalDue;
 
         return (
           <LotAccordionPanel key={lot._id || lot.id} lot={lot}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, gap: 1, flexWrap: 'wrap' }}>
               <Chip label={(lot.payment?.paymentStatus || 'NOT_PAID').replace(/_/g, ' ')} size="small" sx={{ bgcolor: payColors.bg, color: payColors.color }} />
               {!readOnly && (
-                <Button size="small" startIcon={<AddIcon />} onClick={() => setPaymentLot(lot)} sx={{ textTransform: 'none' }}>
-                  Add payment
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    size="small"
+                    startIcon={<GavelIcon />}
+                    onClick={() => setPenaltyLot(lot)}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Add penalty
+                  </Button>
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={() => setPaymentLot(lot)}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Add payment
+                  </Button>
+                </Box>
               )}
             </Box>
-            <AmountSummaryChips total={balance} paid={paid} outstanding={left} labels={{ total: 'Balance due', paid: 'Paid', outstanding: 'Left to pay' }} />
+            <AmountSummaryChips
+              total={totalDue}
+              penalty={penalty}
+              paid={paid}
+              outstanding={left}
+              labels={{ total: 'Total due', penalty: 'Penalty', paid: 'Paid', outstanding: 'Left to pay' }}
+            />
             {lot.payments?.length > 0 && (
               <Table size="small" sx={{ mt: 2 }}>
                 <TableHead>
                   <TableRow>
+                    <TableCell>Type</TableCell>
                     <TableCell>Date</TableCell>
                     <TableCell>Amount</TableCell>
                     <TableCell>Txn #</TableCell>
@@ -127,15 +154,29 @@ const LotPaymentPanel = ({ lots, auctionId, readOnly = false }) => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {lot.payments.map((p) => (
-                    <TableRow key={p._id || p.id}>
-                      <TableCell>{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}</TableCell>
-                      <TableCell>{formatINR(p.amountPaid)}</TableCell>
-                      <TableCell>{p.transactionNumber || '—'}</TableCell>
-                      <TableCell>{p.bank || '—'}</TableCell>
-                      <TableCell>{p.remark || '—'}</TableCell>
-                    </TableRow>
-                  ))}
+                  {lot.payments.map((p) => {
+                    const isPenalty = p.recordType === 'PENALTY';
+                    return (
+                      <TableRow key={p._id || p.id}>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={isPenalty ? 'Penalty' : 'Payment'}
+                            sx={{
+                              fontSize: '0.7rem',
+                              bgcolor: isPenalty ? '#fce4ec' : '#e8f5e9',
+                              color: isPenalty ? '#c62828' : '#2e7d32',
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}</TableCell>
+                        <TableCell>{formatINR(p.amountPaid)}</TableCell>
+                        <TableCell>{p.transactionNumber || '—'}</TableCell>
+                        <TableCell>{p.bank || '—'}</TableCell>
+                        <TableCell>{p.remark || '—'}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -148,6 +189,14 @@ const LotPaymentPanel = ({ lots, auctionId, readOnly = false }) => {
           open={Boolean(paymentLot)}
           onClose={() => setPaymentLot(null)}
           lot={paymentLot}
+          auctionId={auctionId}
+        />
+      )}
+      {penaltyLot && (
+        <AddLotPenaltyModal
+          open={Boolean(penaltyLot)}
+          onClose={() => setPenaltyLot(null)}
+          lot={penaltyLot}
           auctionId={auctionId}
         />
       )}

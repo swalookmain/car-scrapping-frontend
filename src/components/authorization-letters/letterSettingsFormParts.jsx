@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
-import { Box, Button, Chip, Grid, TextField, Typography } from '@mui/material';
+import { Box, Button, Chip, Grid, IconButton, TextField, Tooltip, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import inputSx from '../../services/inputStyles';
 import DocUploadField from '../vehicle-compliance/DocUploadField';
 
@@ -112,7 +113,7 @@ export function LetterMobileNumbersField({
   );
 }
 
-function AssetUploadSlot({ label, url, assetType, uploading, onSelect }) {
+function AssetUploadSlot({ label, url, assetType, uploading, onSelect, onDelete }) {
   const inputRef = useRef(null);
   const isUploading = uploading === assetType;
 
@@ -120,31 +121,39 @@ function AssetUploadSlot({ label, url, assetType, uploading, onSelect }) {
     <Grid item xs={12} md={4}>
       <Typography variant="subtitle2" sx={{ mb: 1 }}>{label}</Typography>
       <DocUploadField label={label} docState={url || null} onChange={() => {}} readOnly />
-      <input
-        ref={inputRef}
-        hidden
-        type="file"
-        accept="image/*"
-        onChange={(e) => onSelect(assetType, e.target.files?.[0])}
-      />
-      <Button
-        size="small"
-        sx={{ mt: 1 }}
-        disabled={isUploading}
-        onClick={() => inputRef.current?.click()}
-      >
-        {isUploading ? 'Uploading...' : `Upload ${label.toLowerCase()}`}
-      </Button>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+        <input
+          ref={inputRef}
+          hidden
+          type="file"
+          accept="image/*"
+          onChange={(e) => onSelect(assetType, e.target.files?.[0])}
+        />
+        <Button
+          size="small"
+          disabled={isUploading}
+          onClick={() => inputRef.current?.click()}
+        >
+          {isUploading ? 'Uploading...' : `Upload ${label.toLowerCase()}`}
+        </Button>
+        {url && onDelete && (
+          <Tooltip title={`Delete ${label.toLowerCase()}`}>
+            <IconButton size="small" color="error" onClick={() => onDelete(assetType)}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
     </Grid>
   );
 }
 
-export function LetterAssetUploads({ form, uploading, onUpload }) {
+export function LetterAssetUploads({ form, uploading, onUpload, onDelete }) {
   return (
     <>
-      <AssetUploadSlot label="Logo" url={form.logoUrl} assetType="logo" uploading={uploading} onSelect={onUpload} />
-      <AssetUploadSlot label="RVSF logo" url={form.rvsfLogoUrl} assetType="rvsfLogo" uploading={uploading} onSelect={onUpload} />
-      <AssetUploadSlot label="Signature" url={form.signatureUrl} assetType="signature" uploading={uploading} onSelect={onUpload} />
+      <AssetUploadSlot label="Logo" url={form.logoUrl} assetType="logo" uploading={uploading} onSelect={onUpload} onDelete={onDelete} />
+      <AssetUploadSlot label="RVSF logo" url={form.rvsfLogoUrl} assetType="rvsfLogo" uploading={uploading} onSelect={onUpload} onDelete={onDelete} />
+      <AssetUploadSlot label="Signature" url={form.signatureUrl} assetType="signature" uploading={uploading} onSelect={onUpload} onDelete={onDelete} />
     </>
   );
 }
