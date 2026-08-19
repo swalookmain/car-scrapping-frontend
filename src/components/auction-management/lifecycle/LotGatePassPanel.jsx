@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Button, Link, TextField, Typography } from '@mui/material';
+import { Box, Button, IconButton, Link, TextField, Tooltip, Typography } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import LotAccordionPanel from './LotAccordionPanel';
@@ -51,12 +52,31 @@ const LotGatePassForm = ({ lot, auctionId }) => {
           sx={inputSx}
         />
         {lot.gatePassDocumentUrl && (
-          <Typography variant="body2">
-            Current document:{' '}
-            <Link href={lot.gatePassDocumentUrl} target="_blank" rel="noopener">
-              View gate pass
-            </Link>
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2">
+              Current document:{' '}
+              <Link href={lot.gatePassDocumentUrl} target="_blank" rel="noopener">
+                View gate pass
+              </Link>
+            </Typography>
+            <Tooltip title="Delete uploaded file">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={async () => {
+                  try {
+                    await auctionsApi.deleteGatePassFile(lot._id || lot.id);
+                    toast.success('Gate pass file deleted');
+                    queryClient.invalidateQueries({ queryKey: ['auction-lifecycle', auctionId] });
+                  } catch (err) {
+                    toast.error(err?.response?.data?.message || 'Failed to delete');
+                  }
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
         )}
         <Button component="label" variant="outlined" sx={{ textTransform: 'none', alignSelf: 'flex-start' }}>
           {file ? file.name : 'Upload image / PDF'}

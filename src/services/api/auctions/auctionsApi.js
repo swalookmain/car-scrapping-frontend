@@ -103,6 +103,10 @@ const auctionsApi = {
     const response = await axiosInstance.post(ENDPOINTS.AUCTIONS.LOT_PAYMENT(lotId), payload);
     return response.data;
   },
+  addLotPenalty: async (lotId, payload) => {
+    const response = await axiosInstance.post(ENDPOINTS.AUCTIONS.LOT_PENALTY(lotId), payload);
+    return response.data;
+  },
   updateAcceptanceLetter: async (lotId, payload) => {
     const response = await axiosInstance.patch(ENDPOINTS.AUCTIONS.LOT_ACCEPTANCE(lotId), payload);
     return response.data;
@@ -117,8 +121,16 @@ const auctionsApi = {
     });
     return response.data;
   },
+  deleteGatePassFile: async (lotId) => {
+    const response = await axiosInstance.delete(ENDPOINTS.AUCTIONS.LOT_GATE_PASS_FILE(lotId));
+    return response.data;
+  },
   updateLotRcm: async (lotId, payload) => {
-    const response = await axiosInstance.patch(ENDPOINTS.AUCTIONS.LOT_RCM(lotId), payload);
+    const response = await axiosInstance.patch(
+      ENDPOINTS.AUCTIONS.LOT_RCM(lotId),
+      payload,
+      { _silentError: true },
+    );
     return response.data;
   },
 };

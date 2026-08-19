@@ -9,20 +9,50 @@ import { formatINR } from '../../../services/taxEngine';
 
 const LotRcmForm = ({ lot, auctionId, readOnly }) => {
   const queryClient = useQueryClient();
+  const lotId = String(lot._id || lot.id || '');
   const [challanNumber, setChallanNumber] = useState(lot.rcm?.challanNumber || '');
   const [transactionDate, setTransactionDate] = useState(
     lot.rcm?.transactionDate ? String(lot.rcm.transactionDate).slice(0, 10) : '',
   );
-  const [amount, setAmount] = useState(lot.rcm?.amount ?? '');
+  const [amount, setAmount] = useState(
+    lot.rcm?.amount != null && lot.rcm?.amount !== '' ? String(lot.rcm.amount) : '',
+  );
 
   const mutation = useMutation({
-    mutationFn: (payload) => auctionsApi.updateLotRcm(lot._id || lot.id, payload),
+    mutationFn: (payload) => auctionsApi.updateLotRcm(lotId, payload),
     onSuccess: () => {
       toast.success('RCM details saved');
       queryClient.invalidateQueries({ queryKey: ['auction-lifecycle', auctionId] });
     },
-    onError: (err) => toast.error(err?.response?.data?.message || 'Save failed'),
+    onError: (err) => {
+      const msg = err?.response?.data?.message;
+      const text = Array.isArray(msg) ? msg.join(', ') : msg;
+      toast.error(
+        text ||
+          (err?.message === 'Network Error'
+            ? 'Could not reach server. Confirm API is running, then retry.'
+            : 'Failed to save RCM'),
+      );
+    },
   });
+
+  const handleSave = () => {
+    if (!lotId || lotId === 'undefined') {
+      toast.error('Lot id missing. Close and reopen this dialog.');
+      return;
+    }
+    if (!challanNumber.trim() && !transactionDate && amount === '') {
+      toast.error('Enter challan number, date, or amount');
+      return;
+    }
+    mutation.mutate({
+      ...(challanNumber.trim() ? { challanNumber: challanNumber.trim() } : {}),
+      ...(transactionDate ? { transactionDate } : {}),
+      ...(amount !== '' && !Number.isNaN(Number(amount))
+        ? { amount: Number(amount) }
+        : {}),
+    });
+  };
 
   if (readOnly && lot.rcm?.challanNumber) {
     return (
@@ -36,21 +66,42 @@ const LotRcmForm = ({ lot, auctionId, readOnly }) => {
   return (
     <LotAccordionPanel lot={lot}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <TextField fullWidth label="Challan number" value={challanNumber} onChange={(e) => setChallanNumber(e.target.value)} disabled={readOnly} sx={inputSx} />
-        <TextField fullWidth type="date" label="Transaction date" InputLabelProps={{ shrink: true }} value={transactionDate} onChange={(e) => setTransactionDate(e.target.value)} disabled={readOnly} sx={inputSx} />
-        <TextField fullWidth type="number" label="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={readOnly} sx={inputSx} />
+        <TextField
+          fullWidth
+          label="Challan number"
+          value={challanNumber}
+          onChange={(e) => setChallanNumber(e.target.value)}
+          disabled={readOnly}
+          sx={inputSx}
+        />
+        <TextField
+          fullWidth
+          type="date"
+          label="Transaction date"
+          InputLabelProps={{ shrink: true }}
+          value={transactionDate}
+          onChange={(e) => setTransactionDate(e.target.value)}
+          disabled={readOnly}
+          sx={inputSx}
+        />
+        <TextField
+          fullWidth
+          type="number"
+          label="Amount"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          disabled={readOnly}
+          inputProps={{ min: 0, step: '0.01' }}
+          sx={inputSx}
+        />
         {!readOnly && (
           <Button
             variant="contained"
             sx={{ alignSelf: 'flex-end', textTransform: 'none' }}
             disabled={mutation.isPending}
-            onClick={() => mutation.mutate({
-              challanNumber: challanNumber || undefined,
-              transactionDate: transactionDate || undefined,
-              amount: amount !== '' ? Number(amount) : undefined,
-            })}
+            onClick={handleSave}
           >
-            Save RCM
+            {mutation.isPending ? 'Saving...' : 'Save RCM'}
           </Button>
         )}
       </Box>
@@ -64,7 +115,12 @@ const LotRcmPanel = ({ lots, auctionId }) => {
   return (
     <Box>
       {dealDoneLots.map((lot) => (
-        <LotRcmForm key={lot._id || lot.id} lot={lot} auctionId={auctionId} readOnly={lot.locked} />
+        <LotRcmForm
+          key={lot._id || lot.id}
+          lot={{ ...lot, locked: false }}
+          auctionId={auctionId}
+          readOnly={false}
+        />
       ))}
     </Box>
   );

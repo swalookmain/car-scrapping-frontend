@@ -11,7 +11,13 @@ const chipSx = (bg, color) => ({
   minWidth: 120,
 });
 
-const AmountSummaryChips = ({ total, paid, outstanding, labels = {} }) => (
+const AmountSummaryChips = ({
+  total,
+  paid,
+  outstanding,
+  penalty,
+  labels = {},
+}) => (
   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
     <Box sx={chipSx('#e3f2fd', '#1565c0')}>
       <Typography variant="caption" color="text.secondary">
@@ -21,6 +27,16 @@ const AmountSummaryChips = ({ total, paid, outstanding, labels = {} }) => (
         {formatINR(total ?? 0)}
       </Typography>
     </Box>
+    {(penalty ?? 0) > 0 && (
+      <Box sx={chipSx('#fce4ec', '#c62828')}>
+        <Typography variant="caption" color="text.secondary">
+          {labels.penalty || 'Penalty'}
+        </Typography>
+        <Typography variant="subtitle2" fontWeight={600} color="#c62828">
+          {formatINR(penalty)}
+        </Typography>
+      </Box>
+    )}
     <Box sx={chipSx('#e8f5e9', '#2e7d32')}>
       <Typography variant="caption" color="text.secondary">
         {labels.paid || 'Paid'}

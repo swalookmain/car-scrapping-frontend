@@ -23,6 +23,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
+import CloseIcon from '@mui/icons-material/Close';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -95,13 +96,28 @@ const VEHICLE_PHOTO_FIELDS = [
   { key: 'vehicleInterior', label: 'Interior' },
 ];
 
-const formatTimeFromDate = (d) =>
-  d
-    ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-    : '';
+const asString = (value) => (value == null ? '' : String(value));
 
-const toIsoDateTime = (dateValue, timeValue) =>
-  dateValue && timeValue ? new Date(`${dateValue}T${timeValue}:00`).toISOString() : '';
+const toDateInput = (value) => {
+  if (!value) return '';
+  const raw = String(value);
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+};
+
+const formatTimeFromDate = (d) => {
+  if (!d || Number.isNaN(d.getTime())) return '';
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+const toIsoDateTime = (dateValue, timeValue) => {
+  if (!dateValue || !timeValue) return '';
+  const parsed = new Date(`${dateValue}T${timeValue}:00`);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString();
+};
 
 const emptyOfficers = (auctionerName = 'MSTC') => [
   { name: '', email: '', phoneNumber: '', officerType: auctionerName },
@@ -216,26 +232,26 @@ const AuctionTable = () => {
   const buildAuctionStepPayload = useCallback(
     (form, officerRows) => ({
       auctionerName: form.auctionerName || 'MSTC',
-      auctionNumber: form.auctionNumber.trim(),
-      buyerReferenceNumber: form.buyerReferenceNumber?.trim() || undefined,
+      auctionNumber: asString(form.auctionNumber).trim(),
+      buyerReferenceNumber: asString(form.buyerReferenceNumber).trim() || undefined,
       auctionDate: form.auctionDate,
       startDateTime: toIsoDateTime(form.auctionDate, form.startTime),
       endDateTime: toIsoDateTime(form.auctionDate, form.endTime),
       inspectionFromDate: form.inspectionFromDate || undefined,
       inspectionToDate: form.inspectionToDate || undefined,
-      vehicleLocation: form.vehicleLocation.trim(),
+      vehicleLocation: asString(form.vehicleLocation).trim(),
       sourcePlatform: form.auctionerName || 'MSTC',
-      sellerName: form.sellerName.trim(),
-      sellerMobileNumber: form.sellerMobileNumber.replace(/\D/g, ''),
+      sellerName: asString(form.sellerName).trim(),
+      sellerMobileNumber: asString(form.sellerMobileNumber).replace(/\D/g, ''),
       sellerEmail: form.sellerEmail || undefined,
       sellerAccountNumber: form.sellerAccountNumber || undefined,
       sellerTaxMode: form.sellerTaxMode || 'RCM',
       officers: officerRows
-        .filter((x) => x.name?.trim())
+        .filter((x) => asString(x.name).trim())
         .map((x) => ({
-          name: x.name.trim(),
-          email: x.email?.trim() || undefined,
-          phoneNumber: x.phoneNumber?.trim() || undefined,
+          name: asString(x.name).trim(),
+          email: asString(x.email).trim() || undefined,
+          phoneNumber: asString(x.phoneNumber).trim() || undefined,
           officerType: x.officerType || form.auctionerName || 'MSTC',
         })),
     }),
@@ -251,34 +267,31 @@ const AuctionTable = () => {
 
     const start = auction?.startDateTime ? new Date(auction.startDateTime) : null;
     const end = auction?.endDateTime ? new Date(auction.endDateTime) : null;
-    setAuctionForm({
+    const hydratedForm = {
       auctionerName: auction?.auctionerName || auction?.sourcePlatform || 'MSTC',
-      auctionNumber: auction?.auctionNumber || '',
-      buyerReferenceNumber: auction?.buyerReferenceNumber || '',
-      auctionDate: auction?.auctionDate ? String(auction.auctionDate).slice(0, 10) : '',
+      auctionNumber: asString(auction?.auctionNumber),
+      buyerReferenceNumber: asString(auction?.buyerReferenceNumber),
+      auctionDate: toDateInput(auction?.auctionDate),
       startTime: formatTimeFromDate(start),
       endTime: formatTimeFromDate(end),
-      inspectionFromDate: auction?.inspectionFromDate
-        ? String(auction.inspectionFromDate).slice(0, 10)
-        : '',
-      inspectionToDate: auction?.inspectionToDate
-        ? String(auction.inspectionToDate).slice(0, 10)
-        : '',
-      vehicleLocation: auction?.vehicleLocation || auction?.auctionLocation || '',
-      sellerName: auction?.sellerName || '',
-      sellerMobileNumber: auction?.sellerMobileNumber || '',
-      sellerEmail: auction?.sellerEmail || '',
-      sellerAccountNumber: auction?.sellerAccountNumber || '',
+      inspectionFromDate: toDateInput(auction?.inspectionFromDate),
+      inspectionToDate: toDateInput(auction?.inspectionToDate),
+      vehicleLocation: asString(auction?.vehicleLocation || auction?.auctionLocation),
+      sellerName: asString(auction?.sellerName),
+      sellerMobileNumber: asString(auction?.sellerMobileNumber),
+      sellerEmail: asString(auction?.sellerEmail),
+      sellerAccountNumber: asString(auction?.sellerAccountNumber),
       sellerTaxMode:
         auction?.sellerTaxMode ||
         (auction?.sellerAccountNumber ? 'FCM' : 'RCM'),
-    });
+    };
+    setAuctionForm(hydratedForm);
 
     const o = Array.isArray(auction?.officers) && auction.officers.length > 0
       ? auction.officers.map((x) => ({
-          name: x.name || '',
-          email: x.email || '',
-          phoneNumber: x.phoneNumber || '',
+          name: asString(x.name),
+          email: asString(x.email),
+          phoneNumber: asString(x.phoneNumber),
           officerType:
             x.officerType ||
             auction?.auctionerName ||
@@ -293,28 +306,6 @@ const AuctionTable = () => {
         ? String(auction.dealDoneAt).slice(0, 16)
         : '',
     });
-    const hydratedForm = {
-      auctionerName: auction?.auctionerName || auction?.sourcePlatform || 'MSTC',
-      auctionNumber: auction?.auctionNumber || '',
-      buyerReferenceNumber: auction?.buyerReferenceNumber || '',
-      auctionDate: auction?.auctionDate ? String(auction.auctionDate).slice(0, 10) : '',
-      startTime: formatTimeFromDate(start),
-      endTime: formatTimeFromDate(end),
-      inspectionFromDate: auction?.inspectionFromDate
-        ? String(auction.inspectionFromDate).slice(0, 10)
-        : '',
-      inspectionToDate: auction?.inspectionToDate
-        ? String(auction.inspectionToDate).slice(0, 10)
-        : '',
-      vehicleLocation: auction?.vehicleLocation || auction?.auctionLocation || '',
-      sellerName: auction?.sellerName || '',
-      sellerMobileNumber: auction?.sellerMobileNumber || '',
-      sellerEmail: auction?.sellerEmail || '',
-      sellerAccountNumber: auction?.sellerAccountNumber || '',
-      sellerTaxMode:
-        auction?.sellerTaxMode ||
-        (auction?.sellerAccountNumber ? 'FCM' : 'RCM'),
-    };
     setInitialAuctionStepPayload(buildAuctionStepPayload(hydratedForm, o));
 
     const serverLots = Array.isArray(auction?.lots) ? auction.lots : [];
@@ -615,8 +606,9 @@ const AuctionTable = () => {
                 const res = await auctionsApi.getById(menuRow._id || menuRow.id);
                 setViewAuction(res?.data || res);
                 setOpenViewModal(true);
-              } catch {
-                toast.error('Failed to load auction');
+              } catch (err) {
+                console.error('Failed to load auction for view', err);
+                toast.error(err?.response?.data?.message || 'Failed to load auction');
               }
             }
             setMenuAnchorEl(null);
@@ -634,8 +626,9 @@ const AuctionTable = () => {
                 const res = await auctionsApi.getById(menuRow._id || menuRow.id);
                 hydrateFromAuction(res?.data || res, { startAtStep: 0, mode: 'edit' });
                 setOpenAuctionModal(true);
-              } catch {
-                toast.error('Failed to load auction');
+              } catch (err) {
+                console.error('Failed to load auction for edit', err);
+                toast.error(err?.response?.data?.message || err?.message || 'Failed to load auction');
               }
             }
             setMenuAnchorEl(null);
@@ -656,8 +649,9 @@ const AuctionTable = () => {
                   mode: 'addLot',
                 });
                 setOpenAuctionModal(true);
-              } catch {
-                toast.error('Failed to load auction');
+              } catch (err) {
+                console.error('Failed to load auction for add lot', err);
+                toast.error(err?.response?.data?.message || err?.message || 'Failed to load auction');
               }
             }
             setMenuAnchorEl(null);
@@ -1452,34 +1446,55 @@ const AuctionTable = () => {
                   <Grid container spacing={1.5}>
                     {VEHICLE_PHOTO_FIELDS.map(({ key, label }) => (
                       <Grid item xs={12} sm={6} md={4} key={key}>
-                        <Button
-                          component="label"
-                          variant="outlined"
-                          fullWidth
-                          size="small"
-                          sx={{ py: 1.25, textTransform: 'none' }}
-                        >
-                          {label}
-                          {imgRow[key] ? ` — ${imgRow[key].name}` : ''}
-                          <input
-                            hidden
-                            accept="image/jpeg,image/png,application/pdf"
-                            type="file"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0] || null;
-                              setImagesByLotIndex((prev) => {
-                                const lotImgs = Array.isArray(prev[li])
-                                  ? [...prev[li]]
-                                  : Array.from({ length: cnt }, () => ({}));
-                                const cell = { ...(lotImgs[vehicleIndex] || {}) };
-                                if (file) cell[key] = file;
-                                lotImgs[vehicleIndex] = cell;
-                                return { ...prev, [li]: lotImgs };
-                              });
-                              e.target.value = '';
-                            }}
-                          />
-                        </Button>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Button
+                            component="label"
+                            variant="outlined"
+                            fullWidth
+                            size="small"
+                            sx={{ py: 1.25, textTransform: 'none' }}
+                          >
+                            {label}
+                            {imgRow[key] ? ` — ${imgRow[key].name}` : ''}
+                            <input
+                              hidden
+                              accept="image/jpeg,image/png,application/pdf"
+                              type="file"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] || null;
+                                setImagesByLotIndex((prev) => {
+                                  const lotImgs = Array.isArray(prev[li])
+                                    ? [...prev[li]]
+                                    : Array.from({ length: cnt }, () => ({}));
+                                  const cell = { ...(lotImgs[vehicleIndex] || {}) };
+                                  if (file) cell[key] = file;
+                                  lotImgs[vehicleIndex] = cell;
+                                  return { ...prev, [li]: lotImgs };
+                                });
+                                e.target.value = '';
+                              }}
+                            />
+                          </Button>
+                          {imgRow[key] && (
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => {
+                                setImagesByLotIndex((prev) => {
+                                  const lotImgs = Array.isArray(prev[li])
+                                    ? [...prev[li]]
+                                    : Array.from({ length: cnt }, () => ({}));
+                                  const cell = { ...(lotImgs[vehicleIndex] || {}) };
+                                  delete cell[key];
+                                  lotImgs[vehicleIndex] = cell;
+                                  return { ...prev, [li]: lotImgs };
+                                });
+                              }}
+                            >
+                              <CloseIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          )}
+                        </Box>
                       </Grid>
                     ))}
                   </Grid>

@@ -631,6 +631,12 @@ const AuctionViewModal = ({
                               : null,
                           ],
                           [
+                            'Penalty',
+                            (lot.payment?.penaltyAmount ?? 0) > 0
+                              ? `₹${Number(lot.payment.penaltyAmount).toLocaleString('en-IN')}`
+                              : null,
+                          ],
+                          [
                             'Amount paid',
                             lot.payment?.amountPaidTotal != null
                               ? `₹${Number(lot.payment.amountPaidTotal).toLocaleString('en-IN')}`

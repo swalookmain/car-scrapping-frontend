@@ -106,9 +106,11 @@ export const ENDPOINTS = {
     LIFECYCLE: (id) => `/auctions/${id}/lifecycle`,
     LOT_OUTCOME: (id) => `/auctions/${id}/lifecycle/outcome`,
     LOT_PAYMENT: (lotId) => `/auctions/lots/${lotId}/payments`,
+    LOT_PENALTY: (lotId) => `/auctions/lots/${lotId}/penalty`,
     LOT_ACCEPTANCE: (lotId) => `/auctions/lots/${lotId}/acceptance-letter`,
     LOT_DELIVERY: (lotId) => `/auctions/lots/${lotId}/delivery`,
     LOT_GATE_PASS: (lotId) => `/auctions/lots/${lotId}/gate-pass`,
+    LOT_GATE_PASS_FILE: (lotId) => `/auctions/lots/${lotId}/gate-pass-file`,
     LOT_RCM: (lotId) => `/auctions/lots/${lotId}/rcm`,
   },
   INVENTORY: {
@@ -212,6 +214,9 @@ export const ENDPOINTS = {
   },
   DASHBOARD: {
     OVERVIEW: '/dashboard/overview',
+  },
+  STORAGE: {
+    DELETE: (storageKey) => `/storage/${storageKey}`,
   },
 };
 
