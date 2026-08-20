@@ -300,12 +300,6 @@ const AuctionTable = () => {
         }))
       : emptyOfficers(auction?.auctionerName || auction?.sourcePlatform || 'MSTC');
     setOfficers(o);
-    setStatusForm({
-      status: auction?.status || 'UPCOMING',
-      dealDoneAt: auction?.dealDoneAt
-        ? String(auction.dealDoneAt).slice(0, 16)
-        : '',
-    });
     setInitialAuctionStepPayload(buildAuctionStepPayload(hydratedForm, o));
 
     const serverLots = Array.isArray(auction?.lots) ? auction.lots : [];
