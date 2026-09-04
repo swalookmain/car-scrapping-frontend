@@ -1,4 +1,5 @@
 import React from 'react';
+import { validateFileSize, MAX_FILE_SIZE_LABEL } from '../../utils/fileValidation';
 import PropTypes from 'prop-types';
 import {
   Box,
@@ -233,7 +234,7 @@ export default function InvoiceVehicleStep({
             Required Purchase Documents
           </Typography>
           <Typography variant="caption" sx={{ color: 'var(--color-grey-500)' }}>
-            Supported formats: JPEG, PNG, PDF.
+            Supported formats: JPEG, PNG, PDF. Max {MAX_FILE_SIZE_LABEL} per file.
           </Typography>
           <Grid container spacing={2}>
             {[
@@ -253,8 +254,12 @@ export default function InvoiceVehicleStep({
                   inputProps={{ accept: DOCUMENT_ACCEPT, capture: 'environment' }}
                   InputLabelProps={{ shrink: true }}
                   error={Boolean(errors[field])}
-                  helperText={errors[field]}
-                  onChange={(e) => onDocumentChange(field, e.target.files?.[0] || null)}
+                  helperText={errors[field] || `Max ${MAX_FILE_SIZE_LABEL}`}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    if (f && !validateFileSize(f)) { e.target.value = ''; return; }
+                    onDocumentChange(field, f);
+                  }}
                 />
                 {documents?.[field]?.name && (
                   <Typography variant="caption" sx={{ color: 'var(--color-grey-500)' }}>

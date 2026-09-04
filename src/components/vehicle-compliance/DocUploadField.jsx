@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { validateFileSize, MAX_FILE_SIZE_LABEL } from '../../utils/fileValidation';
 import PropTypes from 'prop-types';
 import {
   Box,
@@ -32,6 +33,10 @@ const DocUploadField = ({ label, docState, onChange, readOnly }) => {
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!validateFileSize(file)) {
+      e.target.value = '';
+      return;
+    }
     try {
       const dataUrl = await fileToBase64(file);
       onChange({ name: file.name, type: file.type, size: file.size, dataUrl });
@@ -96,7 +101,7 @@ const DocUploadField = ({ label, docState, onChange, readOnly }) => {
               {docState ? 'Replace' : 'Upload'}
             </Button>
             <Typography variant="caption" sx={{ color: 'var(--color-grey-400)' }}>
-              Image, PDF, or camera
+              Image, PDF, or camera · Max 5 MB allowed
             </Typography>
           </>
         )}

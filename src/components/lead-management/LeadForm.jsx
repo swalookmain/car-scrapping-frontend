@@ -17,6 +17,7 @@ import {
   Typography,
 } from '@mui/material';
 import toast from 'react-hot-toast';
+import { validateFileSize, MAX_FILE_SIZE_LABEL } from '../../utils/fileValidation';
 import { useAuth } from '../../context/AuthContext';
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
@@ -546,6 +547,7 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
         {step === 2 && (
           <Box>
             <SectionLabel>Document 1 (Vehicle Images + RC)</SectionLabel>
+            <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', mb: 1 }}>Max {MAX_FILE_SIZE_LABEL} per file</Typography>
             <Grid container spacing={2}>
               {[
                 ['vehicleFront', 'Vehicle Front'],
@@ -563,9 +565,12 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                     sx={inputSx}
                     InputLabelProps={{ shrink: true }}
                     inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
-                    onChange={(e) =>
-                      setDocuments((prev) => ({ ...prev, [field]: e.target.files?.[0] || null }))
-                    }
+                    helperText={`Max ${MAX_FILE_SIZE_LABEL}`}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && !validateFileSize(f)) { e.target.value = ''; return; }
+                      setDocuments((prev) => ({ ...prev, [field]: f || null }));
+                    }}
                   />
                 </Grid>
               ))}
@@ -595,9 +600,12 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                   sx={inputSx}
                   InputLabelProps={{ shrink: true }}
                   inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
-                  onChange={(e) =>
-                    setDocuments((prev) => ({ ...prev, rcFront: e.target.files?.[0] || null }))
-                  }
+                  helperText={`Max ${MAX_FILE_SIZE_LABEL}`}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f && !validateFileSize(f)) { e.target.value = ''; return; }
+                    setDocuments((prev) => ({ ...prev, rcFront: f || null }));
+                  }}
                 />
               </Grid>
               {rcPageMode === 'double' && (
@@ -609,9 +617,12 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                     sx={inputSx}
                     InputLabelProps={{ shrink: true }}
                     inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
-                    onChange={(e) =>
-                      setDocuments((prev) => ({ ...prev, rcBack: e.target.files?.[0] || null }))
-                    }
+                    helperText={`Max ${MAX_FILE_SIZE_LABEL}`}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && !validateFileSize(f)) { e.target.value = ''; return; }
+                      setDocuments((prev) => ({ ...prev, rcBack: f || null }));
+                    }}
                   />
                 </Grid>
               )}
@@ -649,6 +660,7 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
         {step === 4 && (
           <Box>
             <SectionLabel>Documents</SectionLabel>
+            <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', mb: 1 }}>Max {MAX_FILE_SIZE_LABEL} per file</Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}><TextField select label="Aadhaar Page Mode" value={aadhaarPageMode} onChange={(e) => setAadhaarPageMode(e.target.value)} fullWidth sx={inputSx}><MenuItem value="single">One Page</MenuItem><MenuItem value="double">Two Pages</MenuItem></TextField></Grid>
               {[
@@ -665,9 +677,12 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                     sx={inputSx}
                     InputLabelProps={{ shrink: true }}
                     inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
-                    onChange={(e) =>
-                      setDocuments((prev) => ({ ...prev, [field]: e.target.files?.[0] || null }))
-                    }
+                    helperText={`Max ${MAX_FILE_SIZE_LABEL}`}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && !validateFileSize(f)) { e.target.value = ''; return; }
+                      setDocuments((prev) => ({ ...prev, [field]: f || null }));
+                    }}
                   />
                 </Grid>
               ))}
