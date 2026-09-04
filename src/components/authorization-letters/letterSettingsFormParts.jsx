@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { validateFileSize, MAX_FILE_SIZE_LABEL } from '../../utils/fileValidation';
 import { Box, Button, Chip, Grid, IconButton, TextField, Tooltip, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -127,14 +128,18 @@ function AssetUploadSlot({ label, url, assetType, uploading, onSelect, onDelete 
           hidden
           type="file"
           accept="image/*"
-          onChange={(e) => onSelect(assetType, e.target.files?.[0])}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f && !validateFileSize(f)) { e.target.value = ''; return; }
+            onSelect(assetType, f);
+          }}
         />
         <Button
           size="small"
           disabled={isUploading}
           onClick={() => inputRef.current?.click()}
         >
-          {isUploading ? 'Uploading...' : `Upload ${label.toLowerCase()}`}
+          {isUploading ? 'Uploading...' : `Upload ${label.toLowerCase()} (Max ${MAX_FILE_SIZE_LABEL})`}
         </Button>
         {url && onDelete && (
           <Tooltip title={`Delete ${label.toLowerCase()}`}>

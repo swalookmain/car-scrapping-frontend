@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { validateFilesSizes, MAX_FILE_SIZE_LABEL } from '../../utils/fileValidation';
 import PropTypes from 'prop-types';
 import {
   Box,
@@ -274,7 +275,7 @@ const InventoryPartRow = ({
                   Upload
                 </Button>
                 <Typography variant="caption" sx={{ color: 'var(--color-grey-400)' }}>
-                  Images, PDF, Video supported
+                  Images, PDF, Video supported · Max {MAX_FILE_SIZE_LABEL}
                 </Typography>
               </>
             )}

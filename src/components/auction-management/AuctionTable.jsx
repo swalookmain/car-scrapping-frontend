@@ -27,6 +27,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { validateFileSize, MAX_FILE_SIZE_LABEL } from '../../utils/fileValidation';
 import NormalTable from '../../ui/NormalTable';
 import TableToolbar from '../../ui/TableToolbar';
 import NormalModal from '../../ui/NormalModal';
@@ -1205,7 +1206,7 @@ const AuctionTable = () => {
               Vehicles & photos (per vehicle)
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-              Pick a lot, then fill each vehicle. Under each vehicle, upload all photos in one place before moving to the next vehicle.
+              Pick a lot, then fill each vehicle. Under each vehicle, upload all photos in one place before moving to the next vehicle. Max {MAX_FILE_SIZE_LABEL} per file.
             </Typography>
             <TextField
               select
@@ -1456,6 +1457,7 @@ const AuctionTable = () => {
                               type="file"
                               onChange={(e) => {
                                 const file = e.target.files?.[0] || null;
+                                if (file && !validateFileSize(file)) { e.target.value = ''; return; }
                                 setImagesByLotIndex((prev) => {
                                   const lotImgs = Array.isArray(prev[li])
                                     ? [...prev[li]]

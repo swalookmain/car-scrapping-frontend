@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { validateFileSize, MAX_FILE_SIZE_LABEL } from '../../../utils/fileValidation';
 import { Box, Button, IconButton, Link, TextField, Tooltip, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -79,8 +80,8 @@ const LotGatePassForm = ({ lot, auctionId }) => {
           </Box>
         )}
         <Button component="label" variant="outlined" sx={{ textTransform: 'none', alignSelf: 'flex-start' }}>
-          {file ? file.name : 'Upload image / PDF'}
-          <input type="file" hidden accept="image/*,.pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          {file ? file.name : `Upload image / PDF (Max ${MAX_FILE_SIZE_LABEL})`}
+          <input type="file" hidden accept="image/*,.pdf" onChange={(e) => { const f = e.target.files?.[0] || null; if (f && !validateFileSize(f)) { e.target.value = ''; return; } setFile(f); }} />
         </Button>
         <Button variant="contained" onClick={handleSubmit} disabled={mutation.isPending} sx={{ alignSelf: 'flex-end', textTransform: 'none' }}>
           Save gate pass

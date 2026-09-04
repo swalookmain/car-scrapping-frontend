@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { invoicesApi, yardApi, partCatalogApi, inventoryApi } from '../../services/api';
 import useApiCall from '../../hooks/useApiCall';
 import toast from 'react-hot-toast';
+import { validateFileSize } from '../../utils/fileValidation';
 import { getPartKey, normalizeCategory, formatCategoryLabel } from './inventoryPickerUtils';
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -542,7 +543,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   };
 
   const handleFileSelect = async (partIndex, e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files).filter((f) => validateFileSize(f));
     if (!files.length) return;
     const newDocs = await Promise.all(
       files.map(async (file) => {
