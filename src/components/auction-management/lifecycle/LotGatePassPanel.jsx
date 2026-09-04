@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import LotAccordionPanel from './LotAccordionPanel';
 import inputSx from '../../../services/inputStyles';
 import { auctionsApi } from '../../../services/api';
+import UploadStatusBadge, { useUploadStatus } from '../../common/UploadStatusBadge';
 
 const LotGatePassForm = ({ lot, auctionId }) => {
   const queryClient = useQueryClient();
@@ -14,15 +15,21 @@ const LotGatePassForm = ({ lot, auctionId }) => {
     lot.gatePass?.gatePassDate ? String(lot.gatePass.gatePassDate).slice(0, 10) : '',
   );
   const [file, setFile] = useState(null);
+  const { status: uploadStatus, progress: uploadProgress, startUpload, finishUpload } = useUploadStatus();
 
   const mutation = useMutation({
     mutationFn: (formData) => auctionsApi.uploadGatePass(lot._id || lot.id, formData),
+    onMutate: () => startUpload(),
     onSuccess: () => {
+      finishUpload(true);
       toast.success('Gate pass uploaded');
       queryClient.invalidateQueries({ queryKey: ['auction-lifecycle', auctionId] });
       setFile(null);
     },
-    onError: (err) => toast.error(err?.response?.data?.message || 'Upload failed'),
+    onError: (err) => {
+      finishUpload(false);
+      toast.error(err?.response?.data?.message || 'Upload failed');
+    },
   });
 
   const handleSubmit = () => {
@@ -43,6 +50,14 @@ const LotGatePassForm = ({ lot, auctionId }) => {
   return (
     <LotAccordionPanel lot={lot}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* Status row */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+          <Typography variant="caption" sx={{ color: 'var(--color-grey-500)' }}>
+            📎 Accepted: Image / PDF &nbsp;·&nbsp; Max {MAX_FILE_SIZE_LABEL}
+          </Typography>
+          <UploadStatusBadge status={uploadStatus} progress={uploadProgress} />
+        </Box>
+
         <TextField
           fullWidth
           type="date"
@@ -81,10 +96,24 @@ const LotGatePassForm = ({ lot, auctionId }) => {
         )}
         <Button component="label" variant="outlined" sx={{ textTransform: 'none', alignSelf: 'flex-start' }}>
           {file ? file.name : `Upload image / PDF (Max ${MAX_FILE_SIZE_LABEL})`}
-          <input type="file" hidden accept="image/*,.pdf" onChange={(e) => { const f = e.target.files?.[0] || null; if (f && !validateFileSize(f)) { e.target.value = ''; return; } setFile(f); }} />
+          <input
+            type="file"
+            hidden
+            accept="image/*,.pdf"
+            onChange={(e) => {
+              const f = e.target.files?.[0] || null;
+              if (f && !validateFileSize(f)) { e.target.value = ''; return; }
+              setFile(f);
+            }}
+          />
         </Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={mutation.isPending} sx={{ alignSelf: 'flex-end', textTransform: 'none' }}>
-          Save gate pass
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={mutation.isPending}
+          sx={{ alignSelf: 'flex-end', textTransform: 'none' }}
+        >
+          {mutation.isPending ? 'Uploading…' : 'Save gate pass'}
         </Button>
       </Box>
     </LotAccordionPanel>

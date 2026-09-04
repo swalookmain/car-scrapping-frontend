@@ -14,6 +14,7 @@ import { getInvoiceColumns, invoiceStatusColor } from './invoiceColumns';
 import { invoicesApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { usePermissions } from '../../hooks/usePermissions';
+import UploadStatusBadge, { useUploadStatus } from '../common/UploadStatusBadge';
 
 const InvoiceTable = ({ isLoading }) => {
   const { canPerform } = usePermissions();
@@ -21,6 +22,7 @@ const InvoiceTable = ({ isLoading }) => {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { status: uploadStatus, progress: uploadProgress, startUpload, finishUpload } = useUploadStatus();
 
   const formRef = useRef(null);
   const tableRef = useRef(null);
@@ -195,7 +197,14 @@ const InvoiceTable = ({ isLoading }) => {
         filesToUpload.forEach(([field, file]) => {
           formData.append(field, file);
         });
-        await invoicesApi.uploadDocuments(formData);
+        startUpload();
+        try {
+          await invoicesApi.uploadDocuments(formData);
+          finishUpload(true);
+        } catch (uploadErr) {
+          finishUpload(false);
+          throw uploadErr;
+        }
       }
 
       toast.success(editingVehicleId ? 'Vehicle details updated' : 'Vehicle details added');
@@ -341,6 +350,15 @@ const InvoiceTable = ({ isLoading }) => {
         onPageChange={(p) => setPage(p)}
         onRowsPerPageChange={(r) => { setRowsPerPage(r); setPage(0); }}
       />
+
+      {/* Upload status badge — appears top-right when vehicle docs are uploading */}
+      {uploadStatus !== 'idle' && (
+        <Box sx={{ position: 'fixed', bottom: 80, right: 24, zIndex: 1400, pointerEvents: 'none' }}>
+          <Box sx={{ backgroundColor: '#fff', borderRadius: '10px', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', px: 2, py: 1.25 }}>
+            <UploadStatusBadge status={uploadStatus} progress={uploadProgress} />
+          </Box>
+        </Box>
+      )}
 
       <InvoiceForm
         ref={formRef}

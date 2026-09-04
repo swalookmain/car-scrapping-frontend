@@ -16,6 +16,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import UploadStatusBadge, { useUploadStatus } from '../common/UploadStatusBadge';
 import toast from 'react-hot-toast';
 import { validateFileSize, MAX_FILE_SIZE_LABEL } from '../../utils/fileValidation';
 import { useAuth } from '../../context/AuthContext';
@@ -101,6 +102,7 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
   const [errors, setErrors] = useState({});
   const [staffOptions, setStaffOptions] = useState([]);
   const [saving, setSaving] = useState(false);
+  const { status: uploadStatus, progress: uploadProgress, startUpload, finishUpload } = useUploadStatus();
   const [savedStepPayloads, setSavedStepPayloads] = useState({
     0: null,
     1: null,
@@ -384,7 +386,17 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
           });
           const hasFiles = ['vehicleFront', 'vehicleRight', 'vehicleEngine', 'vehicleLeft', 'vehicleBack', 'vehicleInterior', 'rcFront', 'rcBack']
             .some((key) => Boolean(documents[key]));
-          if (hasFiles) await onUploadDocuments(editingId, formData);
+          if (hasFiles) {
+            startUpload();
+            try {
+              await onUploadDocuments(editingId, formData);
+              finishUpload(true);
+            } catch {
+              finishUpload(false);
+              toast.error('Document upload failed. Please try again.');
+              return;
+            }
+          }
         }
       }
 
@@ -397,7 +409,17 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
             if (documents[key]) formData.append(key, documents[key]);
           });
           const hasFiles = ['aadhaarFront', 'aadhaarBack', 'pan', 'bankDetail'].some((key) => Boolean(documents[key]));
-          if (hasFiles) await onUploadDocuments(editingId, formData);
+          if (hasFiles) {
+            startUpload();
+            try {
+              await onUploadDocuments(editingId, formData);
+              finishUpload(true);
+            } catch {
+              finishUpload(false);
+              toast.error('Document upload failed. Please try again.');
+              return;
+            }
+          }
         }
         toast.success('Lead saved. Missing fields can be completed later.');
         setOpen(false);
@@ -546,8 +568,28 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
 
         {step === 2 && (
           <Box>
-            <SectionLabel>Document 1 (Vehicle Images + RC)</SectionLabel>
-            <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', mb: 1 }}>Max {MAX_FILE_SIZE_LABEL} per file</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+              <SectionLabel>Document 1 (Vehicle Images + RC)</SectionLabel>
+              <UploadStatusBadge status={uploadStatus} progress={uploadProgress} />
+            </Box>
+            {/* Single clean info bar — no per-field helper text to avoid overlap */}
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.75,
+                px: 1.25,
+                py: 0.5,
+                mb: 1.5,
+                borderRadius: '6px',
+                backgroundColor: 'rgba(99,102,241,0.07)',
+                border: '1px solid rgba(99,102,241,0.18)',
+              }}
+            >
+              <Typography variant="caption" sx={{ color: 'var(--color-grey-600)', fontWeight: 500 }}>
+                📎 Accepted: JPG, PNG, PDF &nbsp;·&nbsp; Max {MAX_FILE_SIZE_LABEL} per file
+              </Typography>
+            </Box>
             <Grid container spacing={2}>
               {[
                 ['vehicleFront', 'Vehicle Front'],
@@ -565,7 +607,6 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                     sx={inputSx}
                     InputLabelProps={{ shrink: true }}
                     inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
-                    helperText={`Max ${MAX_FILE_SIZE_LABEL}`}
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       if (f && !validateFileSize(f)) { e.target.value = ''; return; }
@@ -600,7 +641,6 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                   sx={inputSx}
                   InputLabelProps={{ shrink: true }}
                   inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
-                  helperText={`Max ${MAX_FILE_SIZE_LABEL}`}
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f && !validateFileSize(f)) { e.target.value = ''; return; }
@@ -617,7 +657,6 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                     sx={inputSx}
                     InputLabelProps={{ shrink: true }}
                     inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
-                    helperText={`Max ${MAX_FILE_SIZE_LABEL}`}
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       if (f && !validateFileSize(f)) { e.target.value = ''; return; }
@@ -659,8 +698,27 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
 
         {step === 4 && (
           <Box>
-            <SectionLabel>Documents</SectionLabel>
-            <Typography variant="caption" sx={{ color: 'var(--color-grey-500)', mb: 1 }}>Max {MAX_FILE_SIZE_LABEL} per file</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+              <SectionLabel>Documents (KYC)</SectionLabel>
+              <UploadStatusBadge status={uploadStatus} progress={uploadProgress} />
+            </Box>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.75,
+                px: 1.25,
+                py: 0.5,
+                mb: 1.5,
+                borderRadius: '6px',
+                backgroundColor: 'rgba(99,102,241,0.07)',
+                border: '1px solid rgba(99,102,241,0.18)',
+              }}
+            >
+              <Typography variant="caption" sx={{ color: 'var(--color-grey-600)', fontWeight: 500 }}>
+                📎 Accepted: JPG, PNG, PDF &nbsp;·&nbsp; Max {MAX_FILE_SIZE_LABEL} per file
+              </Typography>
+            </Box>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}><TextField select label="Aadhaar Page Mode" value={aadhaarPageMode} onChange={(e) => setAadhaarPageMode(e.target.value)} fullWidth sx={inputSx}><MenuItem value="single">One Page</MenuItem><MenuItem value="double">Two Pages</MenuItem></TextField></Grid>
               {[
@@ -677,7 +735,6 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                     sx={inputSx}
                     InputLabelProps={{ shrink: true }}
                     inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
-                    helperText={`Max ${MAX_FILE_SIZE_LABEL}`}
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       if (f && !validateFileSize(f)) { e.target.value = ''; return; }
