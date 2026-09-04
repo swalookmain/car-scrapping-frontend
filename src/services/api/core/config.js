@@ -3,7 +3,7 @@
 //    Set it in Vercel → Settings → Environment Variables.
 const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
-  TIMEOUT: 30000,
+  TIMEOUT: 300000, // 5 minutes – matches Nginx proxy_read_timeout (300s)
 };
 
 export const ENDPOINTS = {
