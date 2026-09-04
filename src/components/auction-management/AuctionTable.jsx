@@ -41,6 +41,7 @@ import AuthorizationLetterStatus from '../authorization-letters/AuthorizationLet
 import AuctionViewModal from './AuctionViewModal';
 import { authorizationLettersApi } from '../../services/api';
 import tokenStorage from '../../services/tokenStorage';
+import UploadStatusBadge, { useUploadStatus } from '../common/UploadStatusBadge';
 
 const STEPS = ['Auction details', 'Lots', 'Vehicles & photos'];
 
@@ -132,6 +133,7 @@ const AuctionTable = () => {
   const [query, setQuery] = useState('');
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [menuRow, setMenuRow] = useState(null);
+  const { status: uploadStatus, progress: uploadProgress, startUpload, finishUpload } = useUploadStatus();
 
   const [openAuctionModal, setOpenAuctionModal] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
@@ -480,8 +482,15 @@ const AuctionTable = () => {
           }
         });
         if (vehicleId && has) {
-          await auctionsApi.uploadVehicleImages(vehicleId, fd);
-        }
+            startUpload();
+            try {
+              await auctionsApi.uploadVehicleImages(vehicleId, fd);
+              finishUpload(true);
+            } catch (imgErr) {
+              finishUpload(false);
+              throw imgErr;
+            }
+          }
       }
     }
     toast.success('Vehicles and photos saved');
@@ -523,6 +532,14 @@ const AuctionTable = () => {
 
   return (
     <>
+      {/* Floating upload badge — shown when vehicle photos are uploading */}
+      {uploadStatus !== 'idle' && (
+        <Box sx={{ position: 'fixed', bottom: 80, right: 24, zIndex: 1400, pointerEvents: 'none' }}>
+          <Box sx={{ backgroundColor: '#fff', borderRadius: '10px', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', px: 2, py: 1.25 }}>
+            <UploadStatusBadge status={uploadStatus} progress={uploadProgress} />
+          </Box>
+        </Box>
+      )}
       <NormalTable
         ref={tableRef}
         columns={[
