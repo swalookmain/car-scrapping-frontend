@@ -10,7 +10,7 @@ const NotFound = () => {
 
   const handleGoHome = () => {
     if (isAuthenticated && user?.role) {
-      navigate(getDefaultRoute(user.role), { replace: true });
+    navigate(getDefaultRoute(user.role, user.allowedModules), { replace: true });
     } else {
       navigate('/', { replace: true });
     }

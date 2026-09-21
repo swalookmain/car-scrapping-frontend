@@ -130,7 +130,15 @@ export const usePermissions = () => {
     [hasPermission]
   );
 
-  // Alias for convenience in JSX
+  const canAccessModule = useCallback(
+    (moduleId) => {
+      if (!userRole) return false;
+      if (userRole === ROLES.ADMIN || userRole === ROLES.SUPER_ADMIN) return true;
+      return (user?.allowedModules || []).includes(moduleId);
+    },
+    [userRole, user?.allowedModules]
+  );
+
   const canPerform = hasPermission;
 
   const role = userRole;
@@ -144,12 +152,13 @@ export const usePermissions = () => {
       hasAnyPermission,
       hasAllPermissions,
       canPerform,
+      canAccessModule,
       role,
       isSuperAdmin,
       isAdmin,
       isStaff,
     }),
-    [hasPermission, hasAnyPermission, hasAllPermissions, canPerform, role, isSuperAdmin, isAdmin, isStaff]
+    [hasPermission, hasAnyPermission, hasAllPermissions, canPerform, canAccessModule, role, isSuperAdmin, isAdmin, isStaff]
   );
 };
 

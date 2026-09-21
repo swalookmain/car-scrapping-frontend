@@ -13,20 +13,30 @@ export const AuthProvider = ({ children }) => {
   const isRefreshingRef = useRef(false);
 
   useEffect(() => {
-    try {
-      const accessToken = tokenStorage.getAccessToken();
-      const parsedUser = tokenStorage.getUser();
-
-      if (parsedUser && accessToken) {
-        setUser(parsedUser);
+    const restore = async () => {
+      try {
+        const accessToken = tokenStorage.getAccessToken();
+        if (!accessToken) {
+          setLoading(false);
+          return;
+        }
         scheduleRefresh(accessToken);
+        try {
+          const me = await authApi.getMe();
+          tokenStorage.setUser(me);
+          setUser(me);
+        } catch (err) {
+          console.error('Failed to restore session from /me:', err);
+          tokenStorage.clearAll();
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Failed to restore session:', err);
+        tokenStorage.clearAll();
       }
-    } catch (err) {
-      // Corrupted storage data - clear it
-      console.error('Failed to restore session:', err);
-      tokenStorage.clearAll();
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+    restore();
   }, []);
 
   const parseJwt = (token) => {
@@ -104,15 +114,26 @@ export const AuthProvider = ({ children }) => {
     }, timeout);
   };
 
-  const persistSession = (response) => {
+  const persistSession = async (response) => {
     const { accessToken, user: userData } = response;
     tokenStorage.setAccessToken(accessToken);
     tokenStorage.setUser(userData);
     setUser(userData);
     if (accessToken) scheduleRefresh(accessToken);
+
+    let resolved = userData;
+    try {
+      const me = await authApi.getMe();
+      resolved = me;
+      tokenStorage.setUser(me);
+      setUser(me);
+    } catch (err) {
+      console.error('Failed to load current user profile:', err);
+    }
+
     return {
-      user: userData,
-      redirectPath: getDefaultRoute(userData.role),
+      user: resolved,
+      redirectPath: getDefaultRoute(resolved.role, resolved.allowedModules),
     };
   };
 

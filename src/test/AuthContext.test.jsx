@@ -12,6 +12,7 @@ vi.mock('../services/api', () => ({
   authApi: {
     login: vi.fn(),
     logout: vi.fn().mockResolvedValue({}),
+    getMe: vi.fn(),
   },
 }));
 
@@ -49,16 +50,20 @@ const renderWithAuth = (ui = <AuthConsumer />) => {
 };
 
 describe('AuthContext — initial state', () => {
-  beforeEach(() => sessionStorage.clear());
+  beforeEach(() => {
+    sessionStorage.clear();
+    authApi.getMe.mockReset();
+  });
 
   it('renders unauthenticated state when no token stored', async () => {
     renderWithAuth();
     await waitFor(() => expect(screen.getByTestId('authenticated').textContent).toBe('no'));
   });
 
-  it('restores session from sessionStorage when token + user present', async () => {
+  it('restores session from /me when token is present', async () => {
     sessionStorage.setItem('accessToken', 'some-token');
     sessionStorage.setItem('user', JSON.stringify({ role: 'ADMIN', name: 'Alice' }));
+    authApi.getMe.mockResolvedValue({ role: 'ADMIN', name: 'Alice', allowedModules: ['dashboard'] });
     renderWithAuth();
     await waitFor(() => expect(screen.getByTestId('user-role').textContent).toBe('ADMIN'));
     expect(screen.getByTestId('authenticated').textContent).toBe('yes');
@@ -69,6 +74,8 @@ describe('AuthContext — login', () => {
   beforeEach(() => {
     sessionStorage.clear();
     authApi.login.mockReset();
+    authApi.getMe.mockReset();
+    authApi.getMe.mockResolvedValue({ role: 'ADMIN', name: 'Test Admin', allowedModules: ['dashboard'] });
   });
 
   it('sets user and isAuthenticated after successful login', async () => {
@@ -132,6 +139,7 @@ describe('AuthContext — logout', () => {
   it('clears user and isAuthenticated after logout', async () => {
     sessionStorage.setItem('accessToken', 'tok');
     sessionStorage.setItem('user', JSON.stringify({ role: 'ADMIN' }));
+    authApi.getMe.mockResolvedValue({ role: 'ADMIN', allowedModules: [] });
 
     const LogoutButton = () => {
       const { logout, isAuthenticated } = useAuth();

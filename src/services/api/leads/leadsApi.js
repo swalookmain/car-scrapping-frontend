@@ -38,10 +38,11 @@ export const leadsApi = {
     return response.data;
   },
 
-  updateStatus: async (id, status) => {
+  updateStatus: async (id, payload) => {
+    const body = typeof payload === 'string' ? { status: payload } : payload;
     const response = await axiosInstance.patch(
       ENDPOINTS.LEADS.UPDATE_STATUS(id),
-      { status },
+      body,
     );
     return response.data;
   },

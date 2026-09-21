@@ -12,6 +12,7 @@ export const ENDPOINTS = {
     SIGNUP: '/auth/signup',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
+    ME: '/auth/me',
   },
   USERS: {
     BASE: '/users',
@@ -22,6 +23,9 @@ export const ENDPOINTS = {
     UPDATE: (id) => `/users/${id}`,
     UPDATE_REFRESH_TOKEN: (id) => `/users/update-refresh-token/${id}`,
     GET_ALL_STAFF: (orgId) => `/users/find-all-staff-by-organization/${orgId}`,
+  },
+  ACCESS: {
+    MODULES: '/access/modules',
   },
   ORGANIZATIONS: {
     BASE: '/organizations',
@@ -145,6 +149,11 @@ export const ENDPOINTS = {
     CHECKLIST_MMV: '/part-catalog/checklist/mmv',
     ADD_VARIANT_PART: (variantId) => `/part-catalog/variants/${variantId}/parts`,
     CATEGORIES: '/part-catalog/categories',
+  },
+  LIFTING: {
+    GET_ALL: '/lifting',
+    GET_SUMMARY: '/lifting/summary',
+    GET_BY_ID: (id) => `/lifting/${id}`,
   },
   YARD: {
     VEHICLES: '/yard/vehicles',

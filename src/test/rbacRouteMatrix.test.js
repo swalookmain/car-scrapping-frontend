@@ -6,12 +6,13 @@ import { ROLES, ROUTE_CONFIG, isRouteAllowed } from '../config/roleConfig';
 const ALL_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.STAFF];
 
 describe('Full route RBAC matrix', () => {
-  ROUTE_CONFIG.forEach(({ path, allowedRoles }) => {
+  ROUTE_CONFIG.forEach(({ path, allowedRoles, moduleId }) => {
     describe(path, () => {
       ALL_ROLES.forEach((role) => {
         const allowed = allowedRoles.includes(role);
         it(`${role} → ${allowed ? 'allowed' : 'denied'}`, () => {
-          expect(isRouteAllowed(path, role)).toBe(allowed);
+          const modules = role === ROLES.STAFF && allowed ? [moduleId].filter(Boolean) : [];
+          expect(isRouteAllowed(path, role, modules)).toBe(allowed);
         });
       });
 
@@ -42,9 +43,16 @@ describe('Role isolation rules', () => {
   });
 
   it('STAFF cannot access admin-only staff management', () => {
-    expect(isRouteAllowed('/staff', ROLES.STAFF)).toBe(false);
-    expect(isRouteAllowed('/audit-logs', ROLES.STAFF)).toBe(false);
-    expect(isRouteAllowed('/tax/config', ROLES.STAFF)).toBe(false);
-    expect(isRouteAllowed('/accounting', ROLES.STAFF)).toBe(false);
+    expect(isRouteAllowed('/staff', ROLES.STAFF, ['staff'])).toBe(false);
+    expect(isRouteAllowed('/audit-logs', ROLES.STAFF, ['audit-logs'])).toBe(false);
+    expect(isRouteAllowed('/tax/config', ROLES.STAFF, ['tax'])).toBe(false);
+    expect(isRouteAllowed('/accounting', ROLES.STAFF, ['accounting'])).toBe(false);
+  });
+
+  it('STAFF with only yard cannot open inventory or lifting', () => {
+    expect(isRouteAllowed('/yard', ROLES.STAFF, ['yard'])).toBe(true);
+    expect(isRouteAllowed('/inventory', ROLES.STAFF, ['yard'])).toBe(false);
+    expect(isRouteAllowed('/lifting', ROLES.STAFF, ['yard'])).toBe(false);
+    expect(isRouteAllowed('/lifting', ROLES.STAFF, ['lifting'])).toBe(true);
   });
 });

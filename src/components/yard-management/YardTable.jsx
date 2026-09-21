@@ -2,6 +2,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropTypes from 'prop-types';
 import { Box, Chip, IconButton, MenuItem, TextField, Tooltip, Typography } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import NormalTable from '../../ui/NormalTable';
 import TableToolbar from '../../ui/TableToolbar';
@@ -15,6 +16,7 @@ import { YARD_STATUS_COLORS, YARD_STATUS_LABELS } from './yardConstants';
 const STATUS_FILTER_OPTIONS = [
   '',
   'AWAITING_ARRIVAL',
+  'GATE_IN',
   'PARKED',
   'DISMANTLING_IN_PROGRESS',
   'DISMANTLED',
@@ -152,11 +154,18 @@ const YardTable = ({ isLoading: pageLoading }) => {
         headerName: 'Actions',
         width: '8%',
         render: (row, onAction) => (
-          <Tooltip title="View / manage">
-            <IconButton size="small" onClick={() => onAction?.('view', row)}>
-              <VisibilityIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <>
+            <Tooltip title="View">
+              <IconButton size="small" onClick={() => onAction?.('view', row)}>
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Update status">
+              <IconButton size="small" onClick={() => onAction?.('status', row)}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </>
         ),
       },
     ],
@@ -165,7 +174,7 @@ const YardTable = ({ isLoading: pageLoading }) => {
 
   const handleAction = useCallback(
     (action, row) => {
-      if (action === 'view') handleRowClick(row);
+      if (action === 'view' || action === 'status') handleRowClick(row);
     },
     [handleRowClick],
   );

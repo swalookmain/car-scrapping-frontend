@@ -71,6 +71,11 @@ export const usersApi = {
     });
     return response.data;
   },
+
+  getAssignableModules: async () => {
+    const response = await axiosInstance.get(ENDPOINTS.ACCESS.MODULES);
+    return response.data;
+  },
 };
 
 export default usersApi;

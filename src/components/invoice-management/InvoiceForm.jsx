@@ -871,7 +871,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, onSubmitVehicl
                 fullWidth
                 sx={inputSx}
                 disabled={readOnly}
-                helperText="Select a lead to auto-fetch all details."
+                helperText="Select a closed deal that has no invoice yet."
               >
                 <MenuItem value="">None</MenuItem>
                 {leadOptions.map((lead) => (

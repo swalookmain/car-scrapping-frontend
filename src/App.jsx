@@ -24,6 +24,7 @@ const Auctions = lazy(() => import('./pages/adminPanel/Auctions'));
 const Inventory = lazy(() => import('./pages/adminPanel/Inventory'));
 const InventoryAudit = lazy(() => import('./pages/adminPanel/InventoryAudit'));
 const Yard = lazy(() => import('./pages/adminPanel/Yard'));
+const Lifting = lazy(() => import('./pages/adminPanel/Lifting'));
 
 const AuditLogs = lazy(() => import('./pages/adminPanel/AuditLogs'));
 const VehicleCompliance = lazy(() => import('./pages/adminPanel/VehicleCompliance'));
@@ -44,6 +45,7 @@ const OrganizationManagement = lazy(() => import('./pages/superAdmin/Organizatio
 const AdminManagement = lazy(() => import('./pages/superAdmin/AdminManagement'));
 const SuperAdminAuditLogs = lazy(() => import('./pages/superAdmin/SuperAdminAuditLogs'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const NoAccess = lazy(() => import('./pages/NoAccess'));
 
 // ── Suspense fallback ──────────────────────────────────────────
 const PageLoader = () => (
@@ -109,6 +111,14 @@ function App() {
                     }
                   />
                   <Route
+                    path="/no-access"
+                    element={
+                      <ProtectedRoute>
+                        <NoAccess />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/staff"
                     element={
                       <ProtectedRoute>
@@ -145,6 +155,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Yard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/lifting"
+                    element={
+                      <ProtectedRoute>
+                        <Lifting />
                       </ProtectedRoute>
                     }
                   />
