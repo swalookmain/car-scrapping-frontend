@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 import NormalModal from '../../ui/NormalModal';
 import { yardApi } from '../../services/api';
 import inputSx from '../../services/inputStyles';
-import { YARD_STATUS_LABELS } from './yardConstants';
+import { YARD_STATUS_LABELS, YARD_NEXT_STATUSES } from './yardConstants';
 
 const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
   const [movements, setMovements] = useState([]);
@@ -22,6 +22,9 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
   const [slot, setSlot] = useState('');
   const [notes, setNotes] = useState('');
   const [grossWeightKg, setGrossWeightKg] = useState('');
+  const [nextStatus, setNextStatus] = useState('');
+  const [arrivedAt, setArrivedAt] = useState('');
+  const [codNumber, setCodNumber] = useState('');
   const [saving, setSaving] = useState(false);
 
   const id = item?._id || item?.id;
@@ -36,6 +39,9 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
     setGrossWeightKg(
       item?.grossWeightKg != null ? String(item.grossWeightKg) : '',
     );
+    setNextStatus((YARD_NEXT_STATUSES[item?.currentStatus] || [])[0] || '');
+    setArrivedAt(item?.arrivedAt ? String(item.arrivedAt).slice(0, 10) : '');
+    setCodNumber(item?.codNumber || '');
     setLoadingMovements(true);
     yardApi
       .getMovements(id)
@@ -43,6 +49,36 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
       .catch(() => setMovements([]))
       .finally(() => setLoadingMovements(false));
   }, [open, id, item]);
+
+  const handleUpdateStatus = async () => {
+    if (!nextStatus) {
+      toast.error('Select a status');
+      return;
+    }
+    if (nextStatus === 'PARKED' && !zoneId) {
+      toast.error('Select a zone to park the vehicle');
+      return;
+    }
+    setSaving(true);
+    try {
+      await yardApi.updateStatus(id, {
+        status: nextStatus,
+        zoneId: zoneId || undefined,
+        slot: slot.trim() || undefined,
+        notes: notes.trim() || undefined,
+        arrivedAt: arrivedAt || undefined,
+        codNumber: codNumber.trim() || undefined,
+        grossWeightKg:
+          grossWeightKg === '' ? undefined : Number(grossWeightKg),
+      });
+      toast.success('Status updated');
+      onSaved();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e.message || 'Failed to update');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handlePark = async () => {
     if (!zoneId) {
@@ -110,6 +146,57 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
         {item?.currentZoneId?.name ? ` · Zone: ${item.currentZoneId.name}` : ''}
         {item?.currentSlot ? ` · Slot: ${item.currentSlot}` : ''}
       </Typography>
+
+      {(YARD_NEXT_STATUSES[status] || []).length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Update status
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                fullWidth
+                label="New status"
+                value={nextStatus}
+                onChange={(e) => setNextStatus(e.target.value)}
+                sx={inputSx}
+              >
+                {(YARD_NEXT_STATUSES[status] || []).map((s) => (
+                  <MenuItem key={s} value={s}>
+                    {YARD_STATUS_LABELS[s]}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                type="date"
+                fullWidth
+                label="Arrival date"
+                value={arrivedAt}
+                onChange={(e) => setArrivedAt(e.target.value)}
+                sx={inputSx}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="COD number"
+                value={codNumber}
+                onChange={(e) => setCodNumber(e.target.value)}
+                sx={inputSx}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Button variant="contained" disabled={saving} onClick={handleUpdateStatus}>
+                Update status
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
 
       {(status === 'AWAITING_ARRIVAL' || status === 'GATE_IN') && (
         <Box sx={{ mb: 2 }}>

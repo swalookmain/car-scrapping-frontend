@@ -75,9 +75,11 @@ describe('usePermissions — STAFF role', () => {
     const { result } = renderWithRole('STAFF');
     expect(result.current.hasPermission('inventory:view')).toBe(true);
   });
-  it('isStaff is true', () => {
-    const { result } = renderWithRole('STAFF');
-    expect(result.current.isStaff).toBe(true);
+  it('canAccessModule is true for granted modules only', () => {
+    mockUseAuth.mockReturnValue({ user: { role: 'STAFF', allowedModules: ['yard'] } });
+    const { result } = renderHook(() => usePermissions());
+    expect(result.current.canAccessModule('yard')).toBe(true);
+    expect(result.current.canAccessModule('inventory')).toBe(false);
   });
 });
 

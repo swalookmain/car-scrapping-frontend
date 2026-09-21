@@ -30,6 +30,11 @@ export const authApi = {
     );
     return response.data;
   },
+
+  getMe: async () => {
+    const response = await axiosInstance.get(ENDPOINTS.AUTH.ME);
+    return response.data;
+  },
 };
 
 export default authApi;

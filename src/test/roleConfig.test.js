@@ -45,6 +45,12 @@ describe('ROUTE_CONFIG', () => {
     expect(staffRoute.allowedRoles).not.toContain(ROLES.STAFF);
     expect(staffRoute.allowedRoles).not.toContain(ROLES.SUPER_ADMIN);
   });
+  it('lifting is accessible to ADMIN and STAFF', () => {
+    const liftingRoute = ROUTE_CONFIG.find((r) => r.path === '/lifting');
+    expect(liftingRoute.allowedRoles).toContain(ROLES.ADMIN);
+    expect(liftingRoute.allowedRoles).toContain(ROLES.STAFF);
+    expect(liftingRoute.moduleId).toBe('lifting');
+  });
   it('super-admin routes are only accessible to SUPER_ADMIN', () => {
     const superAdminRoutes = ROUTE_CONFIG.filter((r) => r.path.startsWith('/super-admin'));
     superAdminRoutes.forEach((route) => {
@@ -59,8 +65,11 @@ describe('isRouteAllowed', () => {
   it('allows ADMIN on /dashboard', () => {
     expect(isRouteAllowed('/dashboard', ROLES.ADMIN)).toBe(true);
   });
-  it('allows STAFF on /dashboard', () => {
-    expect(isRouteAllowed('/dashboard', ROLES.STAFF)).toBe(true);
+  it('allows STAFF on /dashboard when the dashboard module is granted', () => {
+    expect(isRouteAllowed('/dashboard', ROLES.STAFF, ['dashboard'])).toBe(true);
+  });
+  it('blocks STAFF on /dashboard when no modules are granted', () => {
+    expect(isRouteAllowed('/dashboard', ROLES.STAFF, [])).toBe(false);
   });
   it('blocks SUPER_ADMIN on /dashboard', () => {
     expect(isRouteAllowed('/dashboard', ROLES.SUPER_ADMIN)).toBe(false);
@@ -93,8 +102,11 @@ describe('getDefaultRoute', () => {
   it('returns /dashboard for ADMIN', () => {
     expect(getDefaultRoute(ROLES.ADMIN)).toBe('/dashboard');
   });
-  it('returns /dashboard for STAFF', () => {
-    expect(getDefaultRoute(ROLES.STAFF)).toBe('/dashboard');
+  it('returns /dashboard for STAFF when dashboard is granted', () => {
+    expect(getDefaultRoute(ROLES.STAFF, ['dashboard'])).toBe('/dashboard');
+  });
+  it('returns /no-access for STAFF with no modules', () => {
+    expect(getDefaultRoute(ROLES.STAFF, [])).toBe('/no-access');
   });
   it('returns / for unknown role', () => {
     const route = getDefaultRoute('UNKNOWN_ROLE');

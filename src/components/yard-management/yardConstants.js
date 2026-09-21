@@ -7,6 +7,13 @@ export const YARD_STATUS_LABELS = {
   EXITED: 'Exited',
 };
 
+export const YARD_NEXT_STATUSES = {
+  AWAITING_ARRIVAL: ['GATE_IN', 'PARKED'],
+  GATE_IN: ['PARKED'],
+  PARKED: ['EXITED'],
+  DISMANTLED: ['EXITED'],
+};
+
 export const YARD_STATUS_COLORS = {
   AWAITING_ARRIVAL: { bg: '#fff3e0', color: '#e65100' },
   GATE_IN: { bg: '#e3f2fd', color: '#1565c0' },

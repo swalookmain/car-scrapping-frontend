@@ -18,6 +18,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import BuildCircleIcon from '@mui/icons-material/BuildCircle';
 import WarehouseIcon from '@mui/icons-material/Warehouse';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import ArticleIcon from '@mui/icons-material/Article';
 import DrawIcon from '@mui/icons-material/Draw';
 import GavelIcon from '@mui/icons-material/Gavel';
@@ -30,110 +31,153 @@ export const ROLES = {
   STAFF: 'STAFF',
 };
 
+export const NO_ACCESS_PATH = '/no-access';
+
+const bypassesModuleFilter = (role) =>
+  role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN;
+
+const canAccessByModule = (item, role, allowedModules) => {
+  if (!item?.allowedRoles?.includes(role)) return false;
+  if (bypassesModuleFilter(role)) return true;
+  if (!item.moduleId) return false;
+  return (allowedModules || []).includes(item.moduleId);
+};
+
 
 export const ROUTE_CONFIG = [
   {
     path: '/super-admin/organizations',
+    moduleId: 'organizations',
     allowedRoles: [ROLES.SUPER_ADMIN],
   },
   {
     path: '/super-admin/admins',
+    moduleId: 'organizations',
     allowedRoles: [ROLES.SUPER_ADMIN],
   },
   {
     path: '/dashboard',
+    moduleId: 'dashboard',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/staff',
+    moduleId: 'staff',
     allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/leads',
-    allowedRoles: [ROLES.ADMIN],
+    moduleId: 'leads',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/auctions',
+    moduleId: 'auctions',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/authorization-letters',
+    moduleId: 'auctions',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/settings/letter',
+    moduleId: 'settings',
     allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/invoices',
+    moduleId: 'invoices',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/yard',
+    moduleId: 'yard',
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/lifting',
+    moduleId: 'lifting',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/inventory',
+    moduleId: 'inventory',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/inventory/audit',
+    moduleId: 'inventory',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/inventory/damage-adjustments',
+    moduleId: 'inventory',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/audit-logs',
+    moduleId: 'audit-logs',
     allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/vehicle-compliance',
+    moduleId: 'compliance',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/sales/buyers',
+    moduleId: 'sales',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/sales/invoices',
+    moduleId: 'sales',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/tax/config',
+    moduleId: 'tax',
     allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/tax/eway-bills',
+    moduleId: 'tax',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
   },
   {
     path: '/tax/summary',
+    moduleId: 'tax',
     allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/tax/audit',
+    moduleId: 'tax',
     allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/accounting',
+    moduleId: 'accounting',
     allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/accounting/ledger',
+    moduleId: 'accounting',
     allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/accounting/pnl',
+    moduleId: 'accounting',
     allowedRoles: [ROLES.ADMIN],
   },
   {
     path: '/super-admin/audit-logs',
+    moduleId: 'organizations',
     allowedRoles: [ROLES.SUPER_ADMIN],
   },
   {
     path: '/super-admin',
+    moduleId: 'organizations',
     allowedRoles: [ROLES.SUPER_ADMIN],
   },
 ];
@@ -152,18 +196,21 @@ export const SIDEBAR_CONFIG = [
             path: '/super-admin/organizations',
             label: 'Organizations',
             icon: CorporateFareIcon,
+            moduleId: 'organizations',
             allowedRoles: [ROLES.SUPER_ADMIN],
           },
           {
             path: '/super-admin/admins',
             label: 'Admin Users',
             icon: ManageAccountsIcon,
+            moduleId: 'organizations',
             allowedRoles: [ROLES.SUPER_ADMIN],
           },
           {
             path: '/super-admin/audit-logs',
             label: 'Audit Logs',
             icon: HistoryIcon,
+            moduleId: 'organizations',
             allowedRoles: [ROLES.SUPER_ADMIN],
           },
         ],
@@ -177,6 +224,7 @@ export const SIDEBAR_CONFIG = [
         path: '/dashboard',
         label: 'Dashboard',
         icon: SpaceDashboardIcon,
+        moduleId: 'dashboard',
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -188,6 +236,7 @@ export const SIDEBAR_CONFIG = [
         path: '/staff',
         label: 'Staff',
         icon: ManageAccountsIcon,
+        moduleId: 'staff',
         allowedRoles: [ROLES.ADMIN],
       },
     ],
@@ -199,7 +248,8 @@ export const SIDEBAR_CONFIG = [
         path: '/leads',
         label: 'Leads',
         icon: PersonSearchIcon,
-        allowedRoles: [ROLES.ADMIN],
+        moduleId: 'leads',
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
   },
@@ -215,12 +265,14 @@ export const SIDEBAR_CONFIG = [
             path: '/auctions',
             label: 'Auctions',
             icon: GavelIcon,
+            moduleId: 'auctions',
             allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
           },
           {
             path: '/authorization-letters',
             label: 'Authorization Letters',
             icon: ArticleIcon,
+            moduleId: 'auctions',
             allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
           },
         ],
@@ -234,6 +286,7 @@ export const SIDEBAR_CONFIG = [
         path: '/settings/letter',
         label: 'Letter Settings',
         icon: DrawIcon,
+        moduleId: 'settings',
         allowedRoles: [ROLES.ADMIN],
       },
     ],
@@ -245,6 +298,7 @@ export const SIDEBAR_CONFIG = [
         path: '/invoices',
         label: 'Purchase Invoices',
         icon: ReceiptLongIcon,
+        moduleId: 'invoices',
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -256,6 +310,14 @@ export const SIDEBAR_CONFIG = [
         path: '/yard',
         label: 'Yard Management',
         icon: WarehouseIcon,
+        moduleId: 'yard',
+        allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+      },
+      {
+        path: '/lifting',
+        label: 'Lifting Vehicles',
+        icon: LocalShippingIcon,
+        moduleId: 'lifting',
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -272,18 +334,21 @@ export const SIDEBAR_CONFIG = [
             path: '/inventory',
             label: 'Parts Inventory',
             icon: CategoryIcon,
+            moduleId: 'inventory',
             allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
           },
           {
             path: '/inventory/audit',
             label: 'Inventory Audit',
             icon: AssessmentIcon,
+            moduleId: 'inventory',
             allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
           },
           {
             path: '/inventory/damage-adjustments',
             label: 'Damage Adjustments',
             icon: BuildCircleIcon,
+            moduleId: 'inventory',
             allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
           },
         ],
@@ -297,6 +362,7 @@ export const SIDEBAR_CONFIG = [
         path: '/vehicle-compliance',
         label: 'COD Tracking',
         icon: PolicyIcon,
+        moduleId: 'compliance',
         allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
       },
     ],
@@ -313,12 +379,14 @@ export const SIDEBAR_CONFIG = [
             path: '/sales/buyers',
             label: 'Buyers',
             icon: StoreIcon,
+            moduleId: 'sales',
             allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
           },
           {
             path: '/sales/invoices',
             label: 'Sales Invoices',
             icon: PointOfSaleIcon,
+            moduleId: 'sales',
             allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
           },
         ],
@@ -337,24 +405,28 @@ export const SIDEBAR_CONFIG = [
             path: '/tax/config',
             label: 'Tax Configuration',
             icon: PercentIcon,
+            moduleId: 'tax',
             allowedRoles: [ROLES.ADMIN],
           },
           {
             path: '/tax/eway-bills',
             label: 'E-Way Bills',
             icon: RouteIcon,
+            moduleId: 'tax',
             allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
           },
           {
             path: '/tax/summary',
             label: 'GST Summary',
             icon: SummarizeIcon,
+            moduleId: 'tax',
             allowedRoles: [ROLES.ADMIN],
           },
           {
             path: '/tax/audit',
             label: 'GST Audit Trail',
             icon: FindInPageIcon,
+            moduleId: 'tax',
             allowedRoles: [ROLES.ADMIN],
           },
         ],
@@ -373,18 +445,21 @@ export const SIDEBAR_CONFIG = [
             path: '/accounting',
             label: 'Overview',
             icon: AccountBalanceWalletIcon,
+            moduleId: 'accounting',
             allowedRoles: [ROLES.ADMIN],
           },
           {
             path: '/accounting/ledger',
             label: 'General Ledger',
             icon: MenuBookIcon,
+            moduleId: 'accounting',
             allowedRoles: [ROLES.ADMIN],
           },
           {
             path: '/accounting/pnl',
             label: 'Profit & Loss',
             icon: AnalyticsIcon,
+            moduleId: 'accounting',
             allowedRoles: [ROLES.ADMIN],
           },
         ],
@@ -398,6 +473,7 @@ export const SIDEBAR_CONFIG = [
         path: '/audit-logs',
         label: 'Audit Logs',
         icon: HistoryIcon,
+        moduleId: 'audit-logs',
         allowedRoles: [ROLES.ADMIN],
       },
     ],
@@ -405,38 +481,50 @@ export const SIDEBAR_CONFIG = [
 ];
 
 
-export const getDefaultRoute = (role) => {
+export const getDefaultRoute = (role, allowedModules = []) => {
   switch (role) {
     case ROLES.SUPER_ADMIN:
       return '/super-admin/audit-logs';
     case ROLES.ADMIN:
       return '/dashboard';
-    case ROLES.STAFF:
-      return '/dashboard';
+    case ROLES.STAFF: {
+      const first = ROUTE_CONFIG.find((r) =>
+        canAccessByModule(r, role, allowedModules),
+      );
+      return first?.path || NO_ACCESS_PATH;
+    }
     default:
       return '/';
   }
 };
 
-export const isRouteAllowed = (path, role) => {
+export const isRouteAllowed = (path, role, allowedModules = []) => {
+  if (!role) return false;
+  if (path === NO_ACCESS_PATH) {
+    return role === ROLES.STAFF || role === ROLES.ADMIN;
+  }
   const route = ROUTE_CONFIG.find((r) => r.path === path);
   if (!route) return false;
-  return route.allowedRoles.includes(role);
+  return canAccessByModule(route, role, allowedModules);
 };
 
-export const getFilteredSidebarConfig = (role) => {
+export const getFilteredSidebarConfig = (role, allowedModules = []) => {
   return SIDEBAR_CONFIG.map((section) => ({
     ...section,
     items: section.items
       .filter((item) => item.allowedRoles.includes(role))
       .map((item) => {
-        if (!item.children?.length) return item;
+        if (!item.children?.length) {
+          return canAccessByModule(item, role, allowedModules) ? item : null;
+        }
         return {
           ...item,
-          children: item.children.filter((child) => child.allowedRoles.includes(role)),
+          children: item.children.filter((child) =>
+            canAccessByModule(child, role, allowedModules),
+          ),
         };
       })
-      .filter((item) => !item.children || item.children.length > 0),
+      .filter((item) => item && (!item.children || item.children.length > 0)),
   })).filter((section) => section.items.length > 0);
 };
 

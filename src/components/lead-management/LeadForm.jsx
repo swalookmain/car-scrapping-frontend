@@ -20,20 +20,22 @@ import UploadStatusBadge, { useUploadStatus } from '../common/UploadStatusBadge'
 import toast from 'react-hot-toast';
 import { validateFileSize, MAX_FILE_SIZE_LABEL } from '../../utils/fileValidation';
 import { useAuth } from '../../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
-import { usersApi } from '../../services/api';
+import { usersApi, leadsApi } from '../../services/api';
+import {
+  LEAD_WIZARD_STEPS as STEPS,
+  VEHICLE_NUMBER_REGEX,
+  buildLeadStepPayload,
+  getPendingStep,
+  mapLeadToForm,
+  normalizeRegistration,
+  snapshotStepPayloads,
+} from './leadWizard';
 
 const VEHICLE_TYPES = ['CAR', 'BIKE', 'COMMERCIAL'];
 const LEAD_SOURCES = ['WEBSITE', 'WHATSAPP', 'INSTAGRAM', 'MAIN_SITE', 'OTHER'];
-const STEPS = [
-  'Lead Details',
-  'Vehicle Details',
-  'Document 1',
-  'KYC Details',
-  'Documents',
-];
-const VEHICLE_NUMBER_REGEX = /^[A-Za-z0-9]+$/;
 
 const INITIAL_FORM = {
   name: '',
@@ -63,6 +65,14 @@ const INITIAL_FORM = {
   bankName: '',
   assignedTo: '',
   remarks: '',
+  offerAmount: '',
+  counterAmount: '',
+  dealStatus: 'OPEN',
+  closingAmount: '',
+  codNumber: '',
+  codInwardNumber: '',
+  liftingStaffId: '',
+  expectedArrivalAt: '',
 };
 
 const INITIAL_DOCUMENTS = {
@@ -78,6 +88,7 @@ const INITIAL_DOCUMENTS = {
   aadhaarBack: null,
   pan: null,
   bankDetail: null,
+  cod: null,
 };
 
 const SectionLabel = ({ children }) => (
@@ -88,10 +99,9 @@ const SectionLabel = ({ children }) => (
 
 SectionLabel.propTypes = { children: PropTypes.node.isRequired };
 
-const normalizeRegistration = (value) => (value || '').toUpperCase().replace(/[\s-]+/g, '');
-
 const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, ref) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [step, setStep] = useState(0);
@@ -107,7 +117,10 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
     0: null,
     1: null,
     3: null,
+    4: null,
   });
+
+  const isAdmin = user?.role === 'ADMIN';
 
   const organizationId =
     user?.organizationId ??
@@ -124,7 +137,13 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
       .then((res) => {
         if (!mounted) return;
         const items = Array.isArray(res?.data) ? res.data : [];
-        setStaffOptions(items.map((item) => ({ id: item._id || item.id, label: item.name })));
+        setStaffOptions(
+          items.map((item) => ({
+            id: item._id || item.id,
+            label: item.name,
+            allowedModules: Array.isArray(item.allowedModules) ? item.allowedModules : [],
+          })),
+        );
       })
       .catch(() => {
         if (mounted) setStaffOptions([]);
@@ -134,78 +153,8 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
     };
   }, [open, organizationId]);
 
-  const buildStepPayload = (currentStep, currentForm) => {
-    if (currentStep === 0) {
-      return {
-        name: currentForm.name,
-        mobileNumber: currentForm.mobileNumber,
-        location: currentForm.location,
-        purchaseDate: currentForm.purchaseDate || undefined,
-        leadSource: currentForm.leadSource,
-      };
-    }
-    if (currentStep === 1) {
-      return {
-        isOwnerSelf: currentForm.isOwnerSelf,
-        vehicleWorkingCondition: currentForm.vehicleWorkingCondition,
-        isInterested: currentForm.isInterested,
-        ownerName: currentForm.ownerName || undefined,
-        registrationNumber: currentForm.registrationNumber || undefined,
-        vehicleType: currentForm.vehicleType || undefined,
-        vehicleName: currentForm.vehicleName || undefined,
-        variant: currentForm.variant || undefined,
-        yearOfManufacture: currentForm.yearOfManufacture
-          ? Number(currentForm.yearOfManufacture)
-          : undefined,
-        color: currentForm.color || undefined,
-        rtoDistrictBranch: currentForm.rtoDistrictBranch || undefined,
-        last5ChassisNumber: currentForm.last5ChassisNumber || undefined,
-      };
-    }
-    return {
-      aadhaarNumber: currentForm.aadhaarNumber || undefined,
-      aadhaarLinkedMobileNumber: currentForm.aadhaarLinkedMobileNumber || undefined,
-      email: currentForm.email || undefined,
-      panNumber: currentForm.panNumber || undefined,
-      bankAccountNumber: currentForm.bankAccountNumber || undefined,
-      bankIfscCode: currentForm.bankIfscCode || undefined,
-      bankBranchName: currentForm.bankBranchName || undefined,
-      bankName: currentForm.bankName || undefined,
-      assignedTo: currentForm.assignedTo || undefined,
-      remarks: currentForm.remarks || undefined,
-    };
-  };
-
-  const getPendingStep = (nextForm, docs = []) => {
-    const docsList = Array.isArray(docs) ? docs : [];
-    const stepOneDone = Boolean(
-      nextForm.name?.trim() &&
-        /^\d{10}$/.test(nextForm.mobileNumber || '') &&
-        nextForm.location?.trim(),
-    );
-    if (!stepOneDone) return 0;
-    const stepTwoDone = Boolean(
-      nextForm.registrationNumber?.trim() &&
-        VEHICLE_NUMBER_REGEX.test(normalizeRegistration(nextForm.registrationNumber)) &&
-        nextForm.yearOfManufacture,
-    );
-    if (!stepTwoDone) return 1;
-    const hasDoc1 = docsList.some((doc) =>
-      ['vehicleFront', 'vehicleRight', 'vehicleEngine', 'vehicleLeft', 'vehicleBack', 'vehicleInterior', 'rc'].includes(
-        doc.documentType,
-      ),
-    );
-    if (!hasDoc1) return 2;
-    const stepFourDone = Boolean(
-      nextForm.aadhaarNumber?.trim() || nextForm.panNumber?.trim() || nextForm.bankAccountNumber?.trim(),
-    );
-    if (!stepFourDone) return 3;
-    const hasFinalDocs = docsList.some((doc) =>
-      ['aadhaar', 'pan', 'bankDetail'].includes(doc.documentType),
-    );
-    if (!hasFinalDocs) return 4;
-    return 4;
-  };
+  const buildStepPayload = (currentStep, currentForm) =>
+    buildLeadStepPayload(currentStep, currentForm, { isAdmin });
 
   useImperativeHandle(ref, () => ({
     open: (item) => {
@@ -214,99 +163,36 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
       setAadhaarPageMode('single');
       setRcPageMode('single');
       if (item) {
-        const nextForm = {
-          ...INITIAL_FORM,
-          name: item.name || '',
-          mobileNumber: item.mobileNumber || '',
-          location: item.location || '',
-          purchaseDate: item.purchaseDate ? item.purchaseDate.slice(0, 10) : '',
-          leadSource: item.leadSource || 'WEBSITE',
-          isOwnerSelf: typeof item.isOwnerSelf === 'boolean' ? item.isOwnerSelf : true,
-          vehicleWorkingCondition: item.vehicleWorkingCondition || 'WORKING',
-          isInterested:
-            typeof item.isInterested === 'boolean' ? item.isInterested : true,
-          ownerName: item.ownerName || '',
-          registrationNumber: item.registrationNumber || '',
-          vehicleType: item.vehicleType || 'CAR',
-          vehicleName: item.vehicleName || '',
-          variant: item.variant || '',
-          yearOfManufacture: item.yearOfManufacture ?? '',
-          color: item.color || '',
-          rtoDistrictBranch: item.rtoDistrictBranch || '',
-          last5ChassisNumber: item.last5ChassisNumber || '',
-          aadhaarNumber: item.aadhaarNumber || '',
-          aadhaarLinkedMobileNumber: item.aadhaarLinkedMobileNumber || '',
-          email: item.email || '',
-          panNumber: item.panNumber || '',
-          bankAccountNumber: item.bankAccountNumber || '',
-          bankIfscCode: item.bankIfscCode || '',
-          bankBranchName: item.bankBranchName || '',
-          bankName: item.bankName || '',
-          assignedTo: item.assignedTo?._id || item.assignedTo || '',
-          remarks: item.remarks || '',
-        };
+        const nextForm = mapLeadToForm(item, INITIAL_FORM);
         setEditingId(item._id || item.id || null);
         setForm(nextForm);
-        setSavedStepPayloads({
-          0: buildStepPayload(0, nextForm),
-          1: buildStepPayload(1, nextForm),
-          3: buildStepPayload(3, nextForm),
-        });
+        setSavedStepPayloads(snapshotStepPayloads(nextForm, { isAdmin }));
         setStep(0);
       } else {
         setEditingId(null);
         setForm(INITIAL_FORM);
-        setSavedStepPayloads({ 0: null, 1: null, 3: null });
+        setSavedStepPayloads({ 0: null, 1: null, 3: null, 4: null });
         setStep(0);
       }
       setOpen(true);
     },
     openPending: (item) => {
+      setErrors({});
+      setDocuments(INITIAL_DOCUMENTS);
+      setAadhaarPageMode('single');
+      setRcPageMode('single');
       if (!item) {
         setEditingId(null);
         setForm(INITIAL_FORM);
-        setSavedStepPayloads({ 0: null, 1: null });
+        setSavedStepPayloads({ 0: null, 1: null, 3: null, 4: null });
         setStep(0);
         setOpen(true);
         return;
       }
-      const nextForm = {
-        ...INITIAL_FORM,
-        name: item.name || '',
-        mobileNumber: item.mobileNumber || '',
-        location: item.location || '',
-        purchaseDate: item.purchaseDate ? item.purchaseDate.slice(0, 10) : '',
-        leadSource: item.leadSource || 'WEBSITE',
-        isOwnerSelf: typeof item.isOwnerSelf === 'boolean' ? item.isOwnerSelf : true,
-        vehicleWorkingCondition: item.vehicleWorkingCondition || 'WORKING',
-        isInterested: typeof item.isInterested === 'boolean' ? item.isInterested : true,
-        ownerName: item.ownerName || '',
-        registrationNumber: item.registrationNumber || '',
-        vehicleType: item.vehicleType || 'CAR',
-        vehicleName: item.vehicleName || '',
-        variant: item.variant || '',
-        yearOfManufacture: item.yearOfManufacture ?? '',
-        color: item.color || '',
-        rtoDistrictBranch: item.rtoDistrictBranch || '',
-        last5ChassisNumber: item.last5ChassisNumber || '',
-        aadhaarNumber: item.aadhaarNumber || '',
-        aadhaarLinkedMobileNumber: item.aadhaarLinkedMobileNumber || '',
-        email: item.email || '',
-        panNumber: item.panNumber || '',
-        bankAccountNumber: item.bankAccountNumber || '',
-        bankIfscCode: item.bankIfscCode || '',
-        bankBranchName: item.bankBranchName || '',
-        bankName: item.bankName || '',
-        assignedTo: item.assignedTo?._id || item.assignedTo || '',
-        remarks: item.remarks || '',
-      };
+      const nextForm = mapLeadToForm(item, INITIAL_FORM);
       setEditingId(item._id || item.id || null);
       setForm(nextForm);
-      setSavedStepPayloads({
-        0: buildStepPayload(0, nextForm),
-        1: buildStepPayload(1, nextForm),
-        3: buildStepPayload(3, nextForm),
-      });
+      setSavedStepPayloads(snapshotStepPayloads(nextForm, { isAdmin }));
       setStep(getPendingStep(nextForm, item.documents));
       setOpen(true);
     },
@@ -315,6 +201,11 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
   const selectedStaff = useMemo(
     () => staffOptions.find((item) => item.id === form.assignedTo) || null,
     [staffOptions, form.assignedTo],
+  );
+
+  const liftingStaffOptions = useMemo(
+    () => staffOptions.filter((item) => (item.allowedModules || []).includes('lifting')),
+    [staffOptions],
   );
 
   const handleChange = (field, value) => {
@@ -331,15 +222,23 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
       }
       if (!form.location.trim()) next.location = 'Location is required';
     }
-    if (step === 1 || step === 3) {
+    if (step === 1 || step === 3 || step === 4) {
       if (step === 1 && form.registrationNumber) {
         const normalized = normalizeRegistration(form.registrationNumber);
         if (!VEHICLE_NUMBER_REGEX.test(normalized)) {
           next.registrationNumber = 'Only letters and numbers allowed (no special characters)';
         }
       }
-      if (step === 3 && form.aadhaarLinkedMobileNumber && !/^\d{10}$/.test(form.aadhaarLinkedMobileNumber)) {
+      if (step === 4 && form.aadhaarLinkedMobileNumber && !/^\d{10}$/.test(form.aadhaarLinkedMobileNumber)) {
         next.aadhaarLinkedMobileNumber = 'Aadhaar linked mobile must be 10 digits';
+      }
+      if (step === 3) {
+        if (form.offerAmount === '' || Number(form.offerAmount) < 0) {
+          next.offerAmount = 'Offer amount is required';
+        }
+        if (form.counterAmount === '' || Number(form.counterAmount) < 0) {
+          next.counterAmount = 'Counter amount is required';
+        }
       }
       if (step === 1 && form.yearOfManufacture) {
         const year = Number(form.yearOfManufacture);
@@ -361,11 +260,8 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
     if (!validateStep()) return;
     setSaving(true);
     try {
-      if (step === 0 || step === 1 || step === 3) {
-        const payload = buildStepPayload(step, {
-          ...form,
-          registrationNumber: normalizeRegistration(form.registrationNumber),
-        });
+      if (step === 0 || step === 1 || step === 3 || step === 4) {
+        const payload = buildStepPayload(step, form);
         const shouldCall =
           !editingId || hasPayloadChanged(step, payload);
         if (shouldCall) {
@@ -400,7 +296,7 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
         }
       }
 
-      if (step === 4) {
+      if (step === 5) {
         if (editingId && onUploadDocuments) {
           const formData = new FormData();
           formData.append('aadhaarPageMode', aadhaarPageMode);
@@ -421,13 +317,43 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
             }
           }
         }
-        toast.success('Lead saved. Missing fields can be completed later.');
+      }
+
+      if (step === 6) {
+        if (!editingId) {
+          toast.error('Save the lead before closing the deal');
+          return;
+        }
+        if (form.dealStatus === 'CLOSED' && documents.cod && onUploadDocuments) {
+          const formData = new FormData();
+          formData.append('cod', documents.cod);
+          await onUploadDocuments(editingId, formData);
+        }
+        await leadsApi.updateStatus(editingId, {
+          status: form.dealStatus,
+          closingAmount:
+            form.dealStatus === 'CLOSED' && form.closingAmount !== ''
+              ? Number(form.closingAmount)
+              : undefined,
+          codNumber: form.codNumber || undefined,
+          codInwardNumber: form.codInwardNumber || undefined,
+          liftingStaffId: form.liftingStaffId || undefined,
+          expectedArrivalAt: form.expectedArrivalAt || undefined,
+        });
+        toast.success(
+          form.dealStatus === 'CLOSED'
+            ? 'Deal closed. Vehicle sent to yard and lifting.'
+            : 'Lead status updated',
+        );
+        queryClient.invalidateQueries({ queryKey: ['leads'] });
+        queryClient.invalidateQueries({ queryKey: ['yard-vehicles'] });
+        queryClient.invalidateQueries({ queryKey: ['lifting'] });
         setOpen(false);
         setStep(0);
         setEditingId(null);
         setForm(INITIAL_FORM);
         setDocuments(INITIAL_DOCUMENTS);
-        setSavedStepPayloads({ 0: null, 1: null, 3: null });
+        setSavedStepPayloads({ 0: null, 1: null, 3: null, 4: null });
         return;
       }
 
@@ -453,7 +379,7 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
           {step > 0 && !readOnly && <Button onClick={handleBack}>Back</Button>}
           {!readOnly && (
             <Button variant="contained" onClick={handleNext} disabled={saving}>
-              {step === 4 ? 'Finish' : 'Save & Next'}
+              {step === 6 ? 'Finish' : 'Save & Next'}
             </Button>
           )}
         </>
@@ -465,11 +391,11 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
           sx={{
             mb: 1,
             '& .MuiStepIcon-root.Mui-active': { color: 'var(--color-secondary-main)' },
-            '& .MuiStepIcon-root.Mui-completed': { color: 'var(--color-secondary-main)' },
+            '& .MuiStepIcon-root.Mui-completed': { color: '#2e7d32' },
           }}
         >
-          {STEPS.map((label) => (
-            <Step key={label}>
+          {STEPS.map((label, index) => (
+            <Step key={label} completed={index < step}>
               <StepLabel>{label}</StepLabel>
             </Step>
           ))}
@@ -671,6 +597,43 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
 
         {step === 3 && (
           <Box>
+            <SectionLabel>Offer</SectionLabel>
+            <Typography variant="body2" sx={{ color: 'var(--color-grey-600)', mb: 2 }}>
+              Both amounts are required before KYC can start.
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Offer amount *"
+                  type="number"
+                  value={form.offerAmount}
+                  onChange={(e) => handleChange('offerAmount', e.target.value)}
+                  fullWidth
+                  sx={inputSx}
+                  error={Boolean(errors.offerAmount)}
+                  helperText={errors.offerAmount}
+                  inputProps={{ min: 0 }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Counter amount *"
+                  type="number"
+                  value={form.counterAmount}
+                  onChange={(e) => handleChange('counterAmount', e.target.value)}
+                  fullWidth
+                  sx={inputSx}
+                  error={Boolean(errors.counterAmount)}
+                  helperText={errors.counterAmount}
+                  inputProps={{ min: 0 }}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+
+        {step === 4 && (
+          <Box>
             <SectionLabel>KYC Details</SectionLabel>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}><TextField label="Aadhaar Number" value={form.aadhaarNumber} onChange={(e) => handleChange('aadhaarNumber', e.target.value)} fullWidth sx={inputSx} /></Grid>
@@ -681,14 +644,17 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
               <Grid item xs={12} sm={4}><TextField label="IFSC Code" value={form.bankIfscCode} onChange={(e) => handleChange('bankIfscCode', e.target.value)} fullWidth sx={inputSx} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="Branch Name" value={form.bankBranchName} onChange={(e) => handleChange('bankBranchName', e.target.value)} fullWidth sx={inputSx} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="Bank Name" value={form.bankName} onChange={(e) => handleChange('bankName', e.target.value)} fullWidth sx={inputSx} /></Grid>
+              {isAdmin && (
               <Grid item xs={12} sm={4}>
                 <Autocomplete
                   options={staffOptions}
+                  getOptionLabel={(option) => option.label || ''}
                   value={selectedStaff}
                   onChange={(_, value) => handleChange('assignedTo', value?.id || '')}
                   renderInput={(params) => <TextField {...params} label="Assign Staff" fullWidth sx={inputSx} />}
                 />
               </Grid>
+              )}
             </Grid>
             <Box sx={{ mt: 2 }}>
               <TextField label="Remarks" value={form.remarks} onChange={(e) => handleChange('remarks', e.target.value)} fullWidth multiline minRows={3} sx={inputSx} />
@@ -696,7 +662,7 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
           </Box>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
               <SectionLabel>Documents (KYC)</SectionLabel>
@@ -743,6 +709,100 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                   />
                 </Grid>
               ))}
+            </Grid>
+          </Box>
+        )}
+
+        {step === 6 && (
+          <Box>
+            <SectionLabel>Close deal</SectionLabel>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  select
+                  label="Lead status"
+                  value={form.dealStatus}
+                  onChange={(e) => handleChange('dealStatus', e.target.value)}
+                  fullWidth
+                  sx={inputSx}
+                >
+                  <MenuItem value="OPEN">Open</MenuItem>
+                  <MenuItem value="CANCELLED">Cancelled</MenuItem>
+                  <MenuItem value="CLOSED">Closed</MenuItem>
+                </TextField>
+              </Grid>
+              {form.dealStatus === 'CLOSED' && (
+                <>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Closing amount"
+                      type="number"
+                      value={form.closingAmount}
+                      onChange={(e) => handleChange('closingAmount', e.target.value)}
+                      fullWidth
+                      sx={inputSx}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="COD number"
+                      value={form.codNumber}
+                      onChange={(e) => handleChange('codNumber', e.target.value)}
+                      fullWidth
+                      sx={inputSx}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Inward number"
+                      value={form.codInwardNumber}
+                      onChange={(e) => handleChange('codInwardNumber', e.target.value)}
+                      fullWidth
+                      sx={inputSx}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      type="date"
+                      label="Expected arrival"
+                      value={form.expectedArrivalAt}
+                      onChange={(e) => handleChange('expectedArrivalAt', e.target.value)}
+                      fullWidth
+                      sx={inputSx}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Autocomplete
+                      options={liftingStaffOptions}
+                      getOptionLabel={(option) => option.label || ''}
+                      value={liftingStaffOptions.find((s) => s.id === form.liftingStaffId) || null}
+                      onChange={(_, value) => handleChange('liftingStaffId', value?.id || '')}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Lifting staff" fullWidth sx={inputSx} />
+                      )}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      type="file"
+                      label="COD document"
+                      fullWidth
+                      sx={inputSx}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ accept: '.jpg,.jpeg,.png,.pdf' }}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f && !validateFileSize(f)) {
+                          e.target.value = '';
+                          return;
+                        }
+                        setDocuments((prev) => ({ ...prev, cod: f || null }));
+                      }}
+                    />
+                  </Grid>
+                </>
+              )}
             </Grid>
           </Box>
         )}

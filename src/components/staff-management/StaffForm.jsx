@@ -1,20 +1,36 @@
-import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Box, TextField, Switch, FormControlLabel, Button, IconButton, InputAdornment } from '@mui/material';
+import {
+  Box,
+  TextField,
+  Switch,
+  FormControlLabel,
+  Button,
+  IconButton,
+  InputAdornment,
+  Checkbox,
+  FormGroup,
+  Typography,
+  FormControlLabel as MuiFormControlLabel,
+} from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import NormalModal from '../../ui/NormalModal';
 import UpdatePasswordModal from '../../ui/UpdatePasswordModal';
 import inputSx from '../../services/inputStyles';
+import { usersApi } from '../../services/api';
+
+const emptyForm = { name: '', phone: '', email: '', password: '', isActive: true, allowedModules: [] };
 
 const StaffForm = forwardRef(({ onSubmit }, ref) => {
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', password: '', isActive: true });
+  const [formData, setFormData] = useState(emptyForm);
   const [initialData, setInitialData] = useState(null);
   const [errors, setErrors] = useState({});
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [updatePwdOpen, setUpdatePwdOpen] = useState(false);
+  const [modules, setModules] = useState([]);
   const refs = {
     name: useRef(null),
     phone: useRef(null),
@@ -22,15 +38,41 @@ const StaffForm = forwardRef(({ onSubmit }, ref) => {
     password: useRef(null)
   };
 
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    usersApi.getAssignableModules()
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
+        setModules(list.filter((m) => m.assignableToStaff));
+      })
+      .catch(() => {
+        if (!cancelled) setModules([]);
+      });
+    return () => { cancelled = true; };
+  }, [open]);
+
   useImperativeHandle(ref, () => ({
     open: (item) => {
       if (item) {
-        const loaded = { name: item.name || '', phone: item.phone || '', email: item.email || '', password: '', isActive: item.status === 'Active' || Boolean(item.isActive) };
+        const loaded = {
+          name: item.name || '',
+          phone: item.phone || '',
+          email: item.email || '',
+          password: '',
+          isActive: item.status === 'Active' || Boolean(item.isActive),
+          allowedModules: Array.isArray(item.allowedModules) ? item.allowedModules : [],
+        };
         setFormData(loaded);
         setInitialData(loaded);
         setEditingId(item._id || item.id || null);
       } else {
-        setFormData({ name: '', phone: '', email: '', password: '', isActive: true });
+        setFormData(emptyForm);
         setInitialData(null);
         setEditingId(null);
       }
@@ -46,7 +88,6 @@ const StaffForm = forwardRef(({ onSubmit }, ref) => {
       case 'phone':
         return value.trim() ? '' : 'Phone number is required';
       case 'email':
-        // stricter-ish regex: allow subdomains and TLDs 2-24 chars
         return /^[^\s@]+@[^\s@]+\.[^\s@]{2,24}$/.test(value) ? '' : 'Enter a valid email';
       case 'password':
         return value.length >= 6 ? '' : 'Password must be at least 6 characters';
@@ -61,6 +102,26 @@ const StaffForm = forwardRef(({ onSubmit }, ref) => {
       return;
     }
     setErrors((p) => ({ ...p, [field]: validateField(field, value) }));
+  };
+
+  const toggleModule = (id) => {
+    setFormData((p) => {
+      const has = p.allowedModules.includes(id);
+      return {
+        ...p,
+        allowedModules: has
+          ? p.allowedModules.filter((m) => m !== id)
+          : [...p.allowedModules, id],
+      };
+    });
+  };
+
+  const selectAllModules = () => {
+    setFormData((p) => ({ ...p, allowedModules: modules.map((m) => m.id) }));
+  };
+
+  const deselectAllModules = () => {
+    setFormData((p) => ({ ...p, allowedModules: [] }));
   };
 
   const validateAll = () => {
@@ -83,8 +144,15 @@ const StaffForm = forwardRef(({ onSubmit }, ref) => {
       if (firstInvalid && refs[firstInvalid] && refs[firstInvalid].current) refs[firstInvalid].current.focus();
       return;
     }
-    onSubmit({ name: formData.name, phone: formData.phone, email: formData.email, password: formData.password, isActive: formData.isActive }, editingId);
-    setFormData({ name: '', phone: '', email: '', password: '', isActive: true });
+    onSubmit({
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      password: formData.password,
+      isActive: formData.isActive,
+      allowedModules: formData.allowedModules,
+    }, editingId);
+    setFormData(emptyForm);
     setInitialData(null);
     setErrors({});
     setEditingId(null);
@@ -93,7 +161,7 @@ const StaffForm = forwardRef(({ onSubmit }, ref) => {
 
   const handleClose = () => {
     setOpen(false);
-    setFormData({ name: '', phone: '', email: '', password: '', isActive: true });
+    setFormData(emptyForm);
     setInitialData(null);
     setErrors({});
   };
@@ -143,7 +211,38 @@ const StaffForm = forwardRef(({ onSubmit }, ref) => {
             }}
           />
         )}
-          <FormControlLabel sx={{ alignItems: 'center' }} control={<Switch checked={formData.isActive} onChange={(e) => handleChange('isActive', e.target.checked)} sx={{ transform: 'translateY(4px)', '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-switchTrack': { backgroundColor: 'var(--color-secondary-main)' } }} />} label="Is Active" />
+        <FormControlLabel sx={{ alignItems: 'center' }} control={<Switch checked={formData.isActive} onChange={(e) => handleChange('isActive', e.target.checked)} sx={{ transform: 'translateY(4px)', '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--color-secondary-main)' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-switchTrack': { backgroundColor: 'var(--color-secondary-main)' } }} />} label="Is Active" />
+
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Permission catalog</Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button size="small" onClick={selectAllModules}>Select all</Button>
+              <Button size="small" onClick={deselectAllModules}>Deselect all</Button>
+            </Box>
+          </Box>
+          <FormGroup>
+            {modules.length === 0 ? (
+              <Typography variant="body2" sx={{ color: 'var(--color-grey-600)' }}>
+                No assignable modules returned from the server catalog.
+              </Typography>
+            ) : (
+              modules.map((mod) => (
+                <MuiFormControlLabel
+                  key={mod.id}
+                  control={
+                    <Checkbox
+                      checked={formData.allowedModules.includes(mod.id)}
+                      onChange={() => toggleModule(mod.id)}
+                      sx={{ color: 'var(--color-secondary-main)', '&.Mui-checked': { color: 'var(--color-secondary-main)' } }}
+                    />
+                  }
+                  label={mod.label}
+                />
+              ))
+            )}
+          </FormGroup>
+        </Box>
       </Box>
     </NormalModal>
 

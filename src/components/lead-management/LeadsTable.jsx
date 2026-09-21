@@ -46,6 +46,8 @@ const LeadsTable = ({ isLoading }) => {
   const [staffOptions, setStaffOptions] = useState([]);
   const [selectedStaffId, setSelectedStaffId] = useState('');
 
+  const isAdmin = user?.role === 'ADMIN';
+
   const organizationId =
     user?.organizationId ??
     user?.organization?._id ??
@@ -99,6 +101,7 @@ const LeadsTable = ({ isLoading }) => {
           }
         },
         onAssign: async (row) => {
+          if (!isAdmin) return;
           setAssignTarget(row);
           setSelectedStaffId(row.assignedTo?._id || row.assignedTo || '');
           setAssignOpen(true);
@@ -120,15 +123,17 @@ const LeadsTable = ({ isLoading }) => {
           setConfirmTarget(row);
           setConfirmOpen(true);
         },
+        canAssign: isAdmin,
+        canDelete: isAdmin,
       }),
-    [organizationId],
+    [organizationId, isAdmin],
   );
 
   const handleSubmit = async (payload, editingId) => {
     try {
       if (editingId) {
         const updated = await leadsApi.update(editingId, payload);
-        if (payload.assignedTo) {
+        if (isAdmin && payload.assignedTo) {
           await leadsApi.assign(editingId, payload.assignedTo);
         }
         queryClient.invalidateQueries({ queryKey: ['leads'] });
@@ -205,7 +210,8 @@ const LeadsTable = ({ isLoading }) => {
       showFilter={false}
       showRefresh
       onRefresh={refetch}
-      onAdd={() => leadFormRef.current?.open()}
+      onAdd={isAdmin ? () => leadFormRef.current?.open() : undefined}
+      showAdd={isAdmin}
       showExportCsv
       onExportCsv={() => tableRef.current?.exportCsv()}
       showColumnToggle

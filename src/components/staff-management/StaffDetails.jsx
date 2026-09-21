@@ -8,6 +8,7 @@ const StaffDetails = ({ item }) => {
     { label: 'Phone Number', value: item.phone },
     { label: 'Email ID', value: item.email },
     { label: 'Status', value: item.status },
+    { label: 'Modules', value: Array.isArray(item.allowedModules) && item.allowedModules.length ? item.allowedModules.join(', ') : 'None' },
   ];
 
   return (

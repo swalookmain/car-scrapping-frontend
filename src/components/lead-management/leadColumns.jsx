@@ -8,6 +8,7 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -24,7 +25,7 @@ const STATUS_COLOR = {
   CANCELLED: { bg: '#ffebee', color: '#c62828' },
 };
 
-const ActionCell = ({ row, onView, onEdit, onAddDetails, onAssign, onDelete }) => {
+const ActionCell = ({ row, onView, onEdit, onAddDetails, onAssign, onDelete, canAssign, canDelete }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   return (
@@ -47,10 +48,13 @@ const ActionCell = ({ row, onView, onEdit, onAddDetails, onAssign, onDelete }) =
           <ListItemIcon><PlaylistAddIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Add Details</ListItemText>
         </MenuItem>
+        {canAssign && (
         <MenuItem onClick={() => { setAnchorEl(null); onAssign(row); }}>
           <ListItemIcon><AssignmentIndIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Assign</ListItemText>
         </MenuItem>
+        )}
+        {canDelete && (
         <MenuItem
           onClick={() => { setAnchorEl(null); onDelete(row); }}
           sx={{ color: '#d32f2f' }}
@@ -58,6 +62,7 @@ const ActionCell = ({ row, onView, onEdit, onAddDetails, onAssign, onDelete }) =
           <ListItemIcon sx={{ color: '#d32f2f' }}><DeleteOutlineIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Delete</ListItemText>
         </MenuItem>
+        )}
       </Menu>
     </>
   );
@@ -68,11 +73,11 @@ ActionCell.propTypes = {
   onView: PropTypes.func.isRequired,
   onEdit: PropTypes.func.isRequired,
   onAddDetails: PropTypes.func.isRequired,
-  onAssign: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
+  canAssign: PropTypes.bool,
+  canDelete: PropTypes.bool,
 };
 
-export default function getLeadColumns({ onView, onEdit, onAddDetails, onAssign, onDelete }) {
+export default function getLeadColumns({ onView, onEdit, onAddDetails, onAssign, onDelete, canAssign = false, canDelete = false }) {
   return [
     {
       field: 'name',
@@ -98,16 +103,27 @@ export default function getLeadColumns({ onView, onEdit, onAddDetails, onAssign,
     {
       field: 'status',
       headerName: 'Status',
-      width: '10%',
+      width: '14%',
       render: (row) => {
-        const scs = STATUS_COLOR[row.status] || STATUS_COLOR.OPEN;
-        return (
+        const status = row.status || 'OPEN';
+        const scs = STATUS_COLOR[status] || STATUS_COLOR.OPEN;
+        const chip = (
           <Chip
             size="small"
-            label={row.status || 'OPEN'}
+            label={status}
             sx={{ fontWeight: 600, fontSize: '0.7rem', backgroundColor: scs.bg, color: scs.color }}
           />
         );
+        const showProgressTooltip = status === 'OPEN' || status === 'IN_PROCESS';
+        if (!showProgressTooltip) return chip;
+        const completed = Array.isArray(row.wizardCompleted)
+          ? row.wizardCompleted
+          : [];
+        const tooltip =
+          completed.length > 0
+            ? `Completed: ${completed.join(', ')}`
+            : 'No wizard steps completed yet';
+        return <Tooltip title={tooltip}>{chip}</Tooltip>;
       },
     },
     {
@@ -122,6 +138,8 @@ export default function getLeadColumns({ onView, onEdit, onAddDetails, onAssign,
           onAddDetails={onAddDetails}
           onAssign={onAssign}
           onDelete={onDelete}
+          canAssign={canAssign}
+          canDelete={canDelete}
         />
       ),
     },

@@ -46,7 +46,7 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
   const matchUpMd = useMediaQuery(theme.breakpoints.up('md'));
   const { user } = useAuth();
 
-  const sidebarConfig = getFilteredSidebarConfig(user?.role) || [];
+  const sidebarConfig = getFilteredSidebarConfig(user?.role, user?.allowedModules) || [];
   const [openGroups, setOpenGroups] = useState({});
   const [flyout, setFlyout] = useState({ anchor: null, item: null });
 
@@ -63,8 +63,8 @@ const Sidebar = memo(({ drawerOpen, drawerToggle, drawerWidth, miniDrawerWidth, 
     if (Object.keys(next).length) {
       setOpenGroups((prev) => ({ ...prev, ...next }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to route; config is role-stable
-  }, [location.pathname, user?.role]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reopen groups when route or grants change
+  }, [location.pathname, user?.role, user?.allowedModules]);
 
   useEffect(() => {
     if (drawerOpen) setFlyout({ anchor: null, item: null });

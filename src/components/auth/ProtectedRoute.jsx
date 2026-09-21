@@ -31,7 +31,7 @@ const ProtectedRoute = ({ children }) => {
 
   // If user role doesn't have access to this route, show 404 page
   const userRole = user?.role;
-  if (!userRole || !isRouteAllowed(location.pathname, userRole)) {
+  if (!userRole || !isRouteAllowed(location.pathname, userRole, user?.allowedModules)) {
     return (
       <Suspense fallback={null}>
         <NotFound />
