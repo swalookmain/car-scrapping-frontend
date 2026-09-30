@@ -47,6 +47,7 @@ const LeadsTable = ({ isLoading }) => {
   const [selectedStaffId, setSelectedStaffId] = useState('');
 
   const isAdmin = user?.role === 'ADMIN';
+  const canCreateLead = isAdmin || user?.role === 'STAFF';
 
   const organizationId =
     user?.organizationId ??
@@ -210,8 +211,8 @@ const LeadsTable = ({ isLoading }) => {
       showFilter={false}
       showRefresh
       onRefresh={refetch}
-      onAdd={isAdmin ? () => leadFormRef.current?.open() : undefined}
-      showAdd={isAdmin}
+      onAdd={canCreateLead ? () => leadFormRef.current?.open() : undefined}
+      showAdd={canCreateLead}
       showExportCsv
       onExportCsv={() => tableRef.current?.exportCsv()}
       showColumnToggle

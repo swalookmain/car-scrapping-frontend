@@ -15,7 +15,7 @@ export const PERMISSIONS = {
 
   // Lead management
   'lead:view': [ROLES.ADMIN, ROLES.STAFF],
-  'lead:create': [ROLES.ADMIN],
+  'lead:create': [ROLES.ADMIN, ROLES.STAFF],
   'lead:edit': [ROLES.ADMIN, ROLES.STAFF],
   'lead:assign': [ROLES.ADMIN],
   'lead:documentUpload': [ROLES.ADMIN],
