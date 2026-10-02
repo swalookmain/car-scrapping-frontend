@@ -4,12 +4,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import LotAccordionPanel from './LotAccordionPanel';
 import OfficerFieldsGroup from './OfficerFieldsGroup';
-import { minFutureDate } from './lotLifecycleConstants';
 import inputSx from '../../../services/inputStyles';
+import { useBooksDateBounds } from '../../../hooks/useBooksDateBounds';
 import { auctionsApi } from '../../../services/api';
 
 const LotDeliveryForm = ({ lot, auction, auctionId, readOnly }) => {
   const queryClient = useQueryClient();
+  const bounds = useBooksDateBounds();
   const [deliveryOrderNumber, setDeliveryOrderNumber] = useState(lot.delivery?.deliveryOrderNumber || '');
   const [lastLiftingDate, setLastLiftingDate] = useState(
     lot.delivery?.lastLiftingDate ? String(lot.delivery.lastLiftingDate).slice(0, 10) : '',
@@ -64,7 +65,7 @@ const LotDeliveryForm = ({ lot, auction, auctionId, readOnly }) => {
           type="date"
           label="Last date of lifting"
           InputLabelProps={{ shrink: true }}
-          inputProps={{ min: minFutureDate() }}
+          inputProps={bounds.min ? { min: bounds.min } : undefined}
           value={lastLiftingDate}
           onChange={(e) => setLastLiftingDate(e.target.value)}
           sx={inputSx}

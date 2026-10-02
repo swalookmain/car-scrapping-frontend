@@ -36,10 +36,4 @@ export const defaultPaymentDueDate = () => {
   return d.toISOString().slice(0, 10);
 };
 
-export const minFutureDate = () => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
-};
-
 export const hasAction = (actions, key) => Array.isArray(actions) && actions.includes(key);
