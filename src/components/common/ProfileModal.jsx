@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 import { IoChevronDown, IoSettingsOutline, IoLogOutOutline } from 'react-icons/io5';
 import { HiOutlineMail } from 'react-icons/hi';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +10,7 @@ const ProfileModal = memo(({ isOpen, onClose, anchorRef }) => {
   const [dndEnabled, setDndEnabled] = useState(true);
   const [allowNotifications, setAllowNotifications] = useState(false);
   const { logout, user } = useAuth();
+  const navigate = useNavigate();
   const roleMap = {
     SUPER_ADMIN: 'Super Admin',
     ADMIN: 'Admin',
@@ -161,7 +163,14 @@ const ProfileModal = memo(({ isOpen, onClose, anchorRef }) => {
 
       {/* Links */}
       <div className="px-4 py-3">
-        <button className="w-full flex items-center gap-3 px-2 py-3 text-left text-grey-700 hover:bg-grey-50 rounded-md cursor-pointer">
+        <button
+          type="button"
+          className="w-full flex items-center gap-3 px-2 py-3 text-left text-grey-700 hover:bg-grey-50 rounded-md cursor-pointer"
+          onClick={() => {
+            onClose();
+            navigate('/settings/account');
+          }}
+        >
           <IoSettingsOutline className="text-lg" />
           <span className="font-medium">Account Settings</span>
         </button>

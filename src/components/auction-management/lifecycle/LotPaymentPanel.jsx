@@ -25,9 +25,11 @@ import AddLotPenaltyModal from './AddLotPenaltyModal';
 import { PAYMENT_STATUS_COLORS } from './lotLifecycleConstants';
 import { formatINR } from '../../../services/taxEngine';
 import inputSx from '../../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../../hooks/useBooksDateBounds';
 import { auctionsApi } from '../../../services/api';
 
 const AcceptanceLetterFields = ({ lot, auctionId, disabled }) => {
+  const booksBounds = useBooksDateBounds();
   const queryClient = useQueryClient();
   const [received, setReceived] = useState(lot.acceptanceLetter?.received ? 'yes' : 'no');
   const [letterNumber, setLetterNumber] = useState(lot.acceptanceLetter?.letterNumber || '');
@@ -58,7 +60,7 @@ const AcceptanceLetterFields = ({ lot, auctionId, disabled }) => {
       {received === 'yes' && (
         <Box sx={{ display: 'flex', gap: 2, mt: 1, flexWrap: 'wrap' }}>
           <TextField label="Letter number" value={letterNumber} onChange={(e) => setLetterNumber(e.target.value)} disabled={disabled} sx={{ ...inputSx, flex: 1 }} />
-          <TextField type="date" label="Received date" InputLabelProps={{ shrink: true }} value={receivedDate} onChange={(e) => setReceivedDate(e.target.value)} disabled={disabled} sx={{ ...inputSx, flex: 1 }} />
+          <TextField type="date" label="Received date" InputLabelProps={{ shrink: true }} inputProps={booksDateInputProps(booksBounds)} value={receivedDate} onChange={(e) => setReceivedDate(e.target.value)} disabled={disabled} sx={{ ...inputSx, flex: 1 }} />
         </Box>
       )}
       {!disabled && (

@@ -47,6 +47,8 @@ export const inventoryApi = {
     if (filters.page) params.page = filters.page;
     if (filters.limit) params.limit = filters.limit;
     if (filters.search) params.search = filters.search;
+    if (filters.fromDate) params.fromDate = filters.fromDate;
+    if (filters.toDate) params.toDate = filters.toDate;
     const response = await axiosInstance.get(ENDPOINTS.INVENTORY.GET_VEHICLES, { params });
     return response.data;
   },

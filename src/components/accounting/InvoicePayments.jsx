@@ -21,6 +21,7 @@ import toast from 'react-hot-toast';
 import { accountingApi } from '../../services/api';
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../hooks/useBooksDateBounds';
 import { formatINR } from '../../services/taxEngine';
 
 // ── Payment mode colors ────────────────────────────────────────
@@ -34,6 +35,7 @@ const MODE_COLORS = {
 // ==============================|| RECORD PAYMENT MODAL ||============================== //
 
 const RecordPaymentModal = ({ open, onClose, invoiceType, invoiceId, outstanding }) => {
+  const booksBounds = useBooksDateBounds();
   const queryClient = useQueryClient();
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
@@ -153,6 +155,7 @@ const RecordPaymentModal = ({ open, onClose, invoiceType, invoiceId, outstanding
           fullWidth
           sx={inputSx}
           InputLabelProps={{ shrink: true }}
+          inputProps={booksDateInputProps(booksBounds)}
         />
 
         <TextField

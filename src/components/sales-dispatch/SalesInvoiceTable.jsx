@@ -13,6 +13,7 @@ import { salesInvoicesApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { usePermissions } from '../../hooks/usePermissions';
 import inputSx from '../../services/inputStyles';
+import { useDateRange } from '../../hooks/useDateRange';
 
 // ── Filter Options ─────────────────────────────────────────────
 const FILTER_STATUSES = ['', 'DRAFT', 'CONFIRMED', 'CANCELLED'];
@@ -23,6 +24,7 @@ const SalesInvoiceTable = ({ isLoading }) => {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
 
   // Filters
   const [filterStatus, setFilterStatus] = useState('');
@@ -38,9 +40,9 @@ const SalesInvoiceTable = ({ isLoading }) => {
 
   // ── Fetch Sales Invoices via React Query ─────────────────────
   const { data: invoiceResult, isLoading: loadingData, refetch } = useQuery({
-    queryKey: ['sales-invoices', page, rowsPerPage, filterStatus],
+    queryKey: ['sales-invoices', page, rowsPerPage, filterStatus, fromDate, toDate],
     queryFn: async () => {
-      const filters = {};
+      const filters = { ...dateParams };
       if (filterStatus) filters.status = filterStatus;
       const res = await salesInvoicesApi.getAll(page + 1, rowsPerPage, filters, { useCache: false });
       const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
@@ -170,6 +172,11 @@ const SalesInvoiceTable = ({ isLoading }) => {
         showAdd={canPerform('salesInvoice:create')}
         showFilter={true}
         showRefresh={true}
+        showDateRange
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={onFromDateChange}
+        onToDateChange={onToDateChange}
         showExportCsv={true}
         onExportCsv={() => tableRef.current?.exportCsv()}
         showColumnToggle={true}

@@ -12,6 +12,7 @@ import YardDashboardCards from './YardDashboardCards';
 import YardVehicleModal from './YardVehicleModal';
 import YardAddAuctionModal from './YardAddAuctionModal';
 import { YARD_STATUS_COLORS, YARD_STATUS_LABELS } from './yardConstants';
+import { useDateRange } from '../../hooks/useDateRange';
 
 const STATUS_FILTER_OPTIONS = [
   '',
@@ -32,6 +33,7 @@ const YardTable = ({ isLoading: pageLoading }) => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
 
   const { data: dashboard } = useQuery({
     queryKey: ['yard-dashboard'],
@@ -51,9 +53,9 @@ const YardTable = ({ isLoading: pageLoading }) => {
     isLoading: loadingData,
     refetch,
   } = useQuery({
-    queryKey: ['yard-vehicles', page, rowsPerPage, statusFilter, query],
+    queryKey: ['yard-vehicles', page, rowsPerPage, statusFilter, query, fromDate, toDate],
     queryFn: async () => {
-      const params = { page: page + 1, limit: rowsPerPage };
+      const params = { page: page + 1, limit: rowsPerPage, ...dateParams };
       if (statusFilter) params.status = statusFilter;
       if (query.trim()) params.registrationNumber = query.trim();
       const res = await yardApi.getVehicles(params);
@@ -231,6 +233,11 @@ const YardTable = ({ isLoading: pageLoading }) => {
             showRefresh
             showAdd
             onAdd={() => setAddOpen(true)}
+            showDateRange
+            fromDate={fromDate}
+            toDate={toDate}
+            onFromDateChange={onFromDateChange}
+            onToDateChange={onToDateChange}
           />
         }
       />

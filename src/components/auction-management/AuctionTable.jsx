@@ -30,6 +30,7 @@ import toast from 'react-hot-toast';
 import { validateFileSize, MAX_FILE_SIZE_LABEL } from '../../utils/fileValidation';
 import NormalTable from '../../ui/NormalTable';
 import TableToolbar from '../../ui/TableToolbar';
+import { useDateRange } from '../../hooks/useDateRange';
 import NormalModal from '../../ui/NormalModal';
 import ConfirmDialog from '../../ui/ConfirmDialog';
 import { auctionsApi } from '../../services/api';
@@ -129,6 +130,7 @@ const AuctionTable = () => {
   const queryClient = useQueryClient();
   const tableRef = useRef(null);
   const [page, setPage] = useState(0);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [query, setQuery] = useState('');
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
@@ -210,9 +212,9 @@ const AuctionTable = () => {
   }, []);
 
   const { data: auctionResult, isLoading, refetch } = useQuery({
-    queryKey: ['auctions', page, rowsPerPage],
+    queryKey: ['auctions', page, rowsPerPage, fromDate, toDate],
     queryFn: async () => {
-      const res = await auctionsApi.getAll({ page: page + 1, limit: rowsPerPage });
+      const res = await auctionsApi.getAll({ page: page + 1, limit: rowsPerPage, ...dateParams });
       const items = Array.isArray(res?.data) ? res.data : [];
       return { data: items, total: res?.meta?.total ?? items.length };
     },
@@ -604,6 +606,11 @@ const AuctionTable = () => {
             showRefresh
             onRefresh={refetch}
             showFilter={false}
+            showDateRange
+            fromDate={fromDate}
+            toDate={toDate}
+            onFromDateChange={onFromDateChange}
+            onToDateChange={onToDateChange}
             showColumnToggle
             onToggleColumns={(e) => tableRef.current?.openColumnToggle(e)}
           />

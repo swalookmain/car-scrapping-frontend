@@ -11,6 +11,7 @@ import { getEwayBillColumns } from './ewayBillColumns';
 import { taxComplianceApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useDateRange } from '../../hooks/useDateRange';
 
 const EwayBillTable = ({ isLoading }) => {
   const { canPerform } = usePermissions();
@@ -18,6 +19,7 @@ const EwayBillTable = ({ isLoading }) => {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
 
   const formRef = useRef(null);
   const tableRef = useRef(null);
@@ -26,9 +28,9 @@ const EwayBillTable = ({ isLoading }) => {
 
   // ── Fetch E-Way Bills via React Query ────────────────────────
   const { data: ewayResult, isLoading: loadingData, refetch } = useQuery({
-    queryKey: ['eway-bills', page, rowsPerPage],
+    queryKey: ['eway-bills', page, rowsPerPage, fromDate, toDate],
     queryFn: async () => {
-      const res = await taxComplianceApi.getEwayBills(page + 1, rowsPerPage);
+      const res = await taxComplianceApi.getEwayBills(page + 1, rowsPerPage, dateParams);
       const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
       return { data: items, total: res?.meta?.total ?? res?.total ?? items.length };
     },
@@ -98,6 +100,11 @@ const EwayBillTable = ({ isLoading }) => {
       onAdd={canPerform('taxCompliance:create') ? handleAdd : undefined}
       showAdd={canPerform('taxCompliance:create')}
       showFilter={false}
+      showDateRange
+      fromDate={fromDate}
+      toDate={toDate}
+      onFromDateChange={onFromDateChange}
+      onToDateChange={onToDateChange}
       showRefresh={true}
       showExportCsv={true}
       onExportCsv={() => tableRef.current?.exportCsv()}

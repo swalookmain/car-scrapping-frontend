@@ -13,9 +13,11 @@ import toast from 'react-hot-toast';
 import NormalModal from '../../ui/NormalModal';
 import { yardApi } from '../../services/api';
 import inputSx from '../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../hooks/useBooksDateBounds';
 import { YARD_STATUS_LABELS, YARD_NEXT_STATUSES } from './yardConstants';
 
 const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
+  const booksBounds = useBooksDateBounds();
   const [movements, setMovements] = useState([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [zoneId, setZoneId] = useState('');
@@ -178,6 +180,7 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
                 onChange={(e) => setArrivedAt(e.target.value)}
                 sx={inputSx}
                 InputLabelProps={{ shrink: true }}
+                inputProps={booksDateInputProps(booksBounds)}
               />
             </Grid>
             <Grid item xs={12} sm={6}>

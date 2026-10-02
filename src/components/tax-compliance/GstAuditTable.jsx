@@ -8,6 +8,7 @@ import { getGstAuditColumns } from './gstAuditColumns';
 import { taxComplianceApi } from '../../services/api';
 import inputSx from '../../services/inputStyles';
 import { useLookupMaps, enrichRow } from '../../hooks/useLookupMaps';
+import { useDateRange } from '../../hooks/useDateRange';
 
 const GST_EVENT_TYPES = ['', 'GST_CALCULATED', 'RCM_APPLIED', 'EWAY_ADDED'];
 const INVOICE_TYPES = ['', 'PURCHASE', 'SALES'];
@@ -19,14 +20,15 @@ const GstAuditTable = ({ isLoading }) => {
   const [filterEvent, setFilterEvent] = useState('');
   const [filterInvoiceType, setFilterInvoiceType] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
 
   const tableRef = useRef(null);
 
   // ── Fetch GST Audit Logs via React Query ─────────────────────
   const { data: auditResult, isLoading: loadingData, refetch } = useQuery({
-    queryKey: ['gst-audit-logs', page, rowsPerPage, filterEvent, filterInvoiceType],
+    queryKey: ['gst-audit-logs', page, rowsPerPage, filterEvent, filterInvoiceType, fromDate, toDate],
     queryFn: async () => {
-      const filters = {};
+      const filters = { ...dateParams };
       if (filterEvent) filters.eventType = filterEvent;
       if (filterInvoiceType) filters.invoiceType = filterInvoiceType;
       const res = await taxComplianceApi.getGstAuditLogs(page + 1, rowsPerPage, filters);
@@ -77,6 +79,11 @@ const GstAuditTable = ({ isLoading }) => {
         showAdd={false}
         onFilter={() => setShowFilters((p) => !p)}
         showFilter={true}
+        showDateRange
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={onFromDateChange}
+        onToDateChange={onToDateChange}
         showRefresh={true}
         showExportCsv={true}
         onExportCsv={() => tableRef.current?.exportCsv()}

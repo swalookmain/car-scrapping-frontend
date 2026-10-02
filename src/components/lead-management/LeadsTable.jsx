@@ -11,6 +11,7 @@ import NormalTable from '../../ui/NormalTable';
 import TableToolbar from '../../ui/TableToolbar';
 import LeadForm from './LeadForm';
 import getLeadColumns from './leadColumns';
+import { useDateRange } from '../../hooks/useDateRange';
 
 const SectionLabel = ({ children }) => (
   <Typography
@@ -45,6 +46,7 @@ const LeadsTable = ({ isLoading }) => {
   const [assignTarget, setAssignTarget] = useState(null);
   const [staffOptions, setStaffOptions] = useState([]);
   const [selectedStaffId, setSelectedStaffId] = useState('');
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
 
   const isAdmin = user?.role === 'ADMIN';
   const canCreateLead = isAdmin || user?.role === 'STAFF';
@@ -57,12 +59,13 @@ const LeadsTable = ({ isLoading }) => {
     null;
 
   const { data, isLoading: loadingData, refetch } = useQuery({
-    queryKey: ['leads', page, rowsPerPage, query],
+    queryKey: ['leads', page, rowsPerPage, query, fromDate, toDate],
     queryFn: async () => {
       const res = await leadsApi.getAll({
         page: page + 1,
         limit: rowsPerPage,
         q: query || undefined,
+        ...dateParams,
       });
       const items = Array.isArray(res?.data) ? res.data : [];
       return {
@@ -213,6 +216,11 @@ const LeadsTable = ({ isLoading }) => {
       onRefresh={refetch}
       onAdd={canCreateLead ? () => leadFormRef.current?.open() : undefined}
       showAdd={canCreateLead}
+      showDateRange
+      fromDate={fromDate}
+      toDate={toDate}
+      onFromDateChange={onFromDateChange}
+      onToDateChange={onToDateChange}
       showExportCsv
       onExportCsv={() => tableRef.current?.exportCsv()}
       showColumnToggle

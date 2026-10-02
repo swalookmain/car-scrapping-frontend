@@ -24,6 +24,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../hooks/useBooksDateBounds';
 import { useQuery } from '@tanstack/react-query';
 import { buyersApi, inventoryApi, invoicesApi, taxComplianceApi } from '../../services/api';
 import { calculateGst, INDIAN_STATE_CODES } from '../../services/taxEngine';
@@ -67,6 +68,7 @@ const prefillSoldWeight = (qty, availQty, availKg) => {
 
 // ── Component ──────────────────────────────────────────────────
 const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
+  const booksBounds = useBooksDateBounds();
   const [open, setOpen] = useState(false);
   const [invoice, setInvoice] = useState({ ...INITIAL_INVOICE });
   const [items, setItems] = useState([{ ...INITIAL_ITEM }]);
@@ -553,6 +555,7 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
                 disabled={readOnly}
                 sx={inputSx}
                 InputLabelProps={{ shrink: true }}
+                inputProps={booksDateInputProps(booksBounds)}
                 error={Boolean(errors.invoiceDate)}
                 helperText={errors.invoiceDate}
               />

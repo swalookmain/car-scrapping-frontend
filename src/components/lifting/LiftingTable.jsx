@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Chip, Grid, Paper, Tab, Tabs, TextField, Typography } from '@mui/material';
+import { Box, Chip, Grid, Paper, Tab, Tabs, Typography } from '@mui/material';
 import NormalTable from '../../ui/NormalTable';
 import TableToolbar from '../../ui/TableToolbar';
 import { liftingApi } from '../../services/api';
@@ -163,30 +163,6 @@ export default function LiftingTable() {
           </Grid>
         ))}
       </Grid>
-      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 2 }}>
-        <TextField
-          type="date"
-          size="small"
-          label="From"
-          InputLabelProps={{ shrink: true }}
-          value={from}
-          onChange={(e) => {
-            setFrom(e.target.value);
-            setPage(0);
-          }}
-        />
-        <TextField
-          type="date"
-          size="small"
-          label="To"
-          InputLabelProps={{ shrink: true }}
-          value={to}
-          onChange={(e) => {
-            setTo(e.target.value);
-            setPage(0);
-          }}
-        />
-      </Box>
       <Tabs
         value={tab}
         onChange={(_, next) => {
@@ -222,6 +198,17 @@ export default function LiftingTable() {
             showCopy={false}
             showPrint={false}
             showFilter={false}
+            showDateRange
+            fromDate={from}
+            toDate={to}
+            onFromDateChange={(value) => {
+              setFrom(value);
+              setPage(0);
+            }}
+            onToDateChange={(value) => {
+              setTo(value);
+              setPage(0);
+            }}
           />
         }
       />

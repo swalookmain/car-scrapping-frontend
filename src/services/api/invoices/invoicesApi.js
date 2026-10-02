@@ -8,8 +8,11 @@ const _inflight = new Map();
 
 export const invoicesApi = {
   // ── Invoice CRUD ──────────────────────────────────────────────
-  getAll: async (page = 1, limit = 10, { useCache = true } = {}) => {
-    const key = JSON.stringify({ page, limit });
+  getAll: async (page = 1, limit = 10, { useCache = true, fromDate, toDate } = {}) => {
+    const params = { page, limit };
+    if (fromDate) params.fromDate = fromDate;
+    if (toDate) params.toDate = toDate;
+    const key = JSON.stringify(params);
     const now = Date.now();
     if (useCache && _cache.data && _cache.key === key && now - _cache.ts < CACHE_TTL) {
       return _cache.data;
@@ -19,7 +22,7 @@ export const invoicesApi = {
 
     const promise = (async () => {
       try {
-        const response = await axiosInstance.get(ENDPOINTS.INVOICES.GET_ALL, { params: { page, limit } });
+        const response = await axiosInstance.get(ENDPOINTS.INVOICES.GET_ALL, { params });
         _cache.ts = Date.now();
         _cache.key = key;
         _cache.data = response.data;

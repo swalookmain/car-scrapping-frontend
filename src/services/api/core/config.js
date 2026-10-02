@@ -36,6 +36,10 @@ export const ENDPOINTS = {
     GET_SUBSCRIPTION: (id) => `/organizations/${id}/subscription`,
     UPDATE_SUBSCRIPTION: (id) => `/organizations/${id}/subscription`,
   },
+  BOOKS_SETTINGS: {
+    GET: '/organizations/books-settings',
+    UPDATE: '/organizations/books-settings',
+  },
   LETTER_SETTINGS: {
     GET: '/organizations/letter-settings',
     UPDATE: '/organizations/letter-settings',

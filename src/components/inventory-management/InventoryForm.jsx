@@ -11,17 +11,20 @@ import {
 } from '@mui/material';
 import NormalModal from '../../ui/NormalModal';
 import inputSx, { autocompleteSx } from '../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../hooks/useBooksDateBounds';
 import InventoryPartRow from './InventoryPartRow';
 import InventoryPartPicker from './InventoryPartPicker';
 import { useInventoryForm } from './useInventoryForm';
 
 const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], onRequestAddMaterial }, ref) => {
+  const booksBounds = useBooksDateBounds();
   const {
     open, loading, editMode,
     invoices, invoiceLoading,
     selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleFetching,
     yardStatus, yardLoading, hasYardRecord, canAddParts,
     grossWeightKg, setGrossWeightKg, savingWeight, handleSaveGrossWeight,
+    dismantledAt, setDismantledAt,
     catalogMode, catalogMeta, catalogMmv, catalogLoading,
     catalogParts, selectedParts, partCategories, existingPartKeys,
     parts, errors, fileInputRefs,
@@ -191,6 +194,18 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], 
                 />
               </Grid>
             </Grid>
+
+            <TextField
+              label="Dismantle date"
+              type="date"
+              value={dismantledAt}
+              onChange={(e) => setDismantledAt(e.target.value)}
+              fullWidth
+              sx={{ ...inputSx, mt: 2 }}
+              InputLabelProps={{ shrink: true }}
+              inputProps={booksDateInputProps(booksBounds)}
+              helperText="Leave empty to use today. Set this when recording a vehicle that was dismantled earlier."
+            />
 
             {selectedVehicleId && (
               <>

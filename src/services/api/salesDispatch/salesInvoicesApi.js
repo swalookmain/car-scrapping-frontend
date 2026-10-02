@@ -23,6 +23,8 @@ export const salesInvoicesApi = {
         if (filters.buyerId) params.buyerId = filters.buyerId;
         if (filters.status) params.status = filters.status;
         if (filters.invoiceNumber) params.invoiceNumber = filters.invoiceNumber;
+        if (filters.fromDate) params.fromDate = filters.fromDate;
+        if (filters.toDate) params.toDate = filters.toDate;
 
         const response = await axiosInstance.get(ENDPOINTS.SALES_DISPATCH.INVOICES.GET_ALL, { params });
         _cache.ts = Date.now();

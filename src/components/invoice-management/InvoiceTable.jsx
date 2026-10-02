@@ -12,6 +12,7 @@ import InvoiceForm from './InvoiceForm';
 import InvoicePayments from '../accounting/InvoicePayments';
 import { getInvoiceColumns, invoiceStatusColor } from './invoiceColumns';
 import { invoicesApi } from '../../services/api';
+import { useDateRange } from '../../hooks/useDateRange';
 import toast from 'react-hot-toast';
 import { usePermissions } from '../../hooks/usePermissions';
 import UploadStatusBadge, { useUploadStatus } from '../common/UploadStatusBadge';
@@ -21,6 +22,7 @@ const InvoiceTable = ({ isLoading }) => {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const { status: uploadStatus, progress: uploadProgress, startUpload, finishUpload } = useUploadStatus();
 
@@ -115,9 +117,9 @@ const InvoiceTable = ({ isLoading }) => {
 
   // ── Fetch Invoices ───────────────────────────────────────────
   const { data: invoiceResult, isLoading: loadingData, refetch: refetchInvoices } = useQuery({
-    queryKey: ['invoices', page, rowsPerPage],
+    queryKey: ['invoices', page, rowsPerPage, fromDate, toDate],
     queryFn: async () => {
-      const res = await invoicesApi.getAll(page + 1, rowsPerPage, { useCache: false });
+      const res = await invoicesApi.getAll(page + 1, rowsPerPage, { useCache: false, ...dateParams });
       const items = Array.isArray(res?.data) ? res.data : [];
       return { data: items, total: res?.meta?.total ?? items.length };
     },
@@ -323,6 +325,11 @@ const InvoiceTable = ({ isLoading }) => {
       onCopy={() => {}}
       onPrint={() => window.print()}
       showFilter={false}
+      showDateRange
+      fromDate={fromDate}
+      toDate={toDate}
+      onFromDateChange={onFromDateChange}
+      onToDateChange={onToDateChange}
       onAdd={handleAdd}
       showExportCsv={true}
       onExportCsv={() => tableRef.current?.exportCsv()}

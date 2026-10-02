@@ -76,7 +76,7 @@ export const PERMISSIONS = {
 
   // Tax compliance
   'taxCompliance:view': [ROLES.ADMIN, ROLES.STAFF],
-  'taxCompliance:create': [ROLES.ADMIN],
+  'taxCompliance:create': [ROLES.ADMIN, ROLES.STAFF],
   'taxCompliance:edit': [ROLES.ADMIN],
   'taxCompliance:config': [ROLES.ADMIN],
   'taxCompliance:summary': [ROLES.ADMIN],

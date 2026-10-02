@@ -15,6 +15,8 @@ import toast from 'react-hot-toast';
 import AdminLayout from '../../layout/AdminLayout';
 import Breadcrumb from '../../ui/Breadcrumb';
 import NormalTable from '../../ui/NormalTable';
+import TableToolbar from '../../ui/TableToolbar';
+import { useDateRange } from '../../hooks/useDateRange';
 import NormalModal from '../../ui/NormalModal';
 import AuthorizationLetterWizard from '../../components/authorization-letters/AuthorizationLetterWizard';
 import { authorizationLettersApi } from '../../services/api';
@@ -31,10 +33,11 @@ export default function AuthorizationLetters() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['authorization-letters'],
-    queryFn: () => authorizationLettersApi.list(),
+    queryKey: ['authorization-letters', fromDate, toDate],
+    queryFn: () => authorizationLettersApi.list(dateParams),
   });
 
   const letters = useMemo(() => {
@@ -120,6 +123,18 @@ export default function AuthorizationLetters() {
             Create letter
           </Button>
         </Box>
+        <TableToolbar
+          showSearch={false}
+          showCopy={false}
+          showPrint={false}
+          showFilter={false}
+          showAdd={false}
+          showDateRange
+          fromDate={fromDate}
+          toDate={toDate}
+          onFromDateChange={onFromDateChange}
+          onToDateChange={onToDateChange}
+        />
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
             <CircularProgress color="secondary" />

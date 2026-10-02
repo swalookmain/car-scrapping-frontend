@@ -9,11 +9,13 @@ import { damageAdjustmentsApi } from '../../services/api';
 import { getDamageAdjustmentColumns } from './damageAdjustmentColumns';
 import DamageAdjustmentDetailView from './DamageAdjustmentDetailView';
 import { useLookupMaps, enrichRow } from '../../hooks/useLookupMaps';
+import { useDateRange } from '../../hooks/useDateRange';
 
 const DamageAdjustmentsTable = ({ isLoading }) => {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
   const tableRef = useRef(null);
 
   // Detail view
@@ -22,9 +24,9 @@ const DamageAdjustmentsTable = ({ isLoading }) => {
 
   // ── Fetch Damage Adjustments ──────────────────────────────────
   const { data: adjustmentsResult, isLoading: loadingData, refetch } = useQuery({
-    queryKey: ['damage-adjustments', page, rowsPerPage],
+    queryKey: ['damage-adjustments', page, rowsPerPage, fromDate, toDate],
     queryFn: async () => {
-      const res = await damageAdjustmentsApi.getAll(page + 1, rowsPerPage, {}, { useCache: false });
+      const res = await damageAdjustmentsApi.getAll(page + 1, rowsPerPage, dateParams, { useCache: false });
       const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
       return { data: items, total: res?.meta?.total ?? res?.total ?? items.length };
     },
@@ -102,6 +104,11 @@ const DamageAdjustmentsTable = ({ isLoading }) => {
       showFilter={false}
       showRefresh={true}
       showAdd={false}
+      showDateRange
+      fromDate={fromDate}
+      toDate={toDate}
+      onFromDateChange={onFromDateChange}
+      onToDateChange={onToDateChange}
       showExportCsv={true}
       onExportCsv={() => tableRef.current?.exportCsv()}
       showColumnToggle={true}

@@ -22,6 +22,8 @@ export const vehicleComplianceApi = {
     if (filters.codGenerated !== undefined && filters.codGenerated !== '') params.codGenerated = filters.codGenerated;
     if (filters.cvsGenerated !== undefined && filters.cvsGenerated !== '') params.cvsGenerated = filters.cvsGenerated;
     if (filters.rtoStatus && filters.rtoStatus !== '') params.rtoStatus = filters.rtoStatus;
+    if (filters.fromDate) params.fromDate = filters.fromDate;
+    if (filters.toDate) params.toDate = filters.toDate;
 
     const key = JSON.stringify(params);
     const now = Date.now();

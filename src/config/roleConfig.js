@@ -38,6 +38,7 @@ const bypassesModuleFilter = (role) =>
 
 const canAccessByModule = (item, role, allowedModules) => {
   if (!item?.allowedRoles?.includes(role)) return false;
+  if (item.skipModuleCheck) return true;
   if (bypassesModuleFilter(role)) return true;
   if (!item.moduleId) return false;
   return (allowedModules || []).includes(item.moduleId);
@@ -79,6 +80,12 @@ export const ROUTE_CONFIG = [
     path: '/authorization-letters',
     moduleId: 'auctions',
     allowedRoles: [ROLES.ADMIN, ROLES.STAFF],
+  },
+  {
+    path: '/settings/account',
+    label: 'Account Settings',
+    skipModuleCheck: true,
+    allowedRoles: [ROLES.ADMIN, ROLES.STAFF, ROLES.SUPER_ADMIN],
   },
   {
     path: '/settings/letter',
@@ -535,6 +542,8 @@ const flattenSidebarItems = (sections) =>
 
 /** Resolve current page label for header / breadcrumbs */
 export const getPageLabel = (pathname) => {
+  const namedRoute = ROUTE_CONFIG.find((route) => route.path === pathname && route.label);
+  if (namedRoute?.label) return namedRoute.label;
   const all = flattenSidebarItems(SIDEBAR_CONFIG);
   for (const item of all) {
     if (item.path === pathname) return item.label;

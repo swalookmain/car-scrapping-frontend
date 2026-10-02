@@ -40,6 +40,7 @@ const Ledger = lazy(() => import('./pages/adminPanel/Ledger'));
 const PnlReport = lazy(() => import('./pages/adminPanel/PnlReport'));
 const AuthorizationLetters = lazy(() => import('./pages/adminPanel/AuthorizationLetters'));
 const LetterSettings = lazy(() => import('./pages/adminPanel/LetterSettings'));
+const AccountSettings = lazy(() => import('./pages/adminPanel/AccountSettings'));
 const SuperAdminDashboard = lazy(() => import('./pages/superAdmin/SuperAdminDashboard'));
 const OrganizationManagement = lazy(() => import('./pages/superAdmin/OrganizationManagement'));
 const AdminManagement = lazy(() => import('./pages/superAdmin/AdminManagement'));
@@ -283,6 +284,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <AuthorizationLetters />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings/account"
+                    element={
+                      <ProtectedRoute>
+                        <AccountSettings />
                       </ProtectedRoute>
                     }
                   />

@@ -6,10 +6,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import LotAccordionPanel from './LotAccordionPanel';
 import inputSx from '../../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../../hooks/useBooksDateBounds';
 import { auctionsApi } from '../../../services/api';
 import UploadStatusBadge, { useUploadStatus } from '../../common/UploadStatusBadge';
 
 const LotGatePassForm = ({ lot, auctionId }) => {
+  const booksBounds = useBooksDateBounds();
   const queryClient = useQueryClient();
   const [gatePassDate, setGatePassDate] = useState(
     lot.gatePass?.gatePassDate ? String(lot.gatePass.gatePassDate).slice(0, 10) : '',
@@ -65,6 +67,7 @@ const LotGatePassForm = ({ lot, auctionId }) => {
           InputLabelProps={{ shrink: true }}
           value={gatePassDate}
           onChange={(e) => setGatePassDate(e.target.value)}
+          inputProps={booksDateInputProps(booksBounds)}
           sx={inputSx}
         />
         {lot.gatePassDocumentUrl && (

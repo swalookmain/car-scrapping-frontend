@@ -12,6 +12,7 @@ import { getBuyerColumns } from './buyerColumns';
 import { buyersApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useDateRange } from '../../hooks/useDateRange';
 
 const BuyerTable = ({ isLoading }) => {
   const { canPerform } = usePermissions();
@@ -19,6 +20,7 @@ const BuyerTable = ({ isLoading }) => {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
 
   const formRef = useRef(null);
   const tableRef = useRef(null);
@@ -29,9 +31,9 @@ const BuyerTable = ({ isLoading }) => {
 
   // ── Fetch Buyers via React Query ─────────────────────────────
   const { data: buyerResult, isLoading: loadingData, refetch } = useQuery({
-    queryKey: ['buyers', page, rowsPerPage],
+    queryKey: ['buyers', page, rowsPerPage, fromDate, toDate],
     queryFn: async () => {
-      const res = await buyersApi.getAll(page + 1, rowsPerPage, {}, { useCache: false });
+      const res = await buyersApi.getAll(page + 1, rowsPerPage, dateParams, { useCache: false });
       const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
       return { data: items, total: res?.meta?.total ?? res?.total ?? items.length };
     },
@@ -136,6 +138,11 @@ const BuyerTable = ({ isLoading }) => {
       onAdd={canPerform('buyer:create') ? handleAdd : undefined}
       showAdd={canPerform('buyer:create')}
       showRefresh={true}
+      showDateRange
+      fromDate={fromDate}
+      toDate={toDate}
+      onFromDateChange={onFromDateChange}
+      onToDateChange={onToDateChange}
       showExportCsv={true}
       onExportCsv={() => tableRef.current?.exportCsv()}
       showColumnToggle={true}

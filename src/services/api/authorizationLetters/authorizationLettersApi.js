@@ -3,8 +3,8 @@ import { ENDPOINTS } from '../core/config';
 import API_CONFIG from '../core/config';
 
 const authorizationLettersApi = {
-  list: async () => {
-    const response = await axiosInstance.get(ENDPOINTS.AUTHORIZATION_LETTERS.GET_ALL);
+  list: async (params = {}) => {
+    const response = await axiosInstance.get(ENDPOINTS.AUTHORIZATION_LETTERS.GET_ALL, { params });
     return response.data;
   },
   getEligibleAuctions: async () => {

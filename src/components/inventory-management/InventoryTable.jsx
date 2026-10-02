@@ -25,6 +25,7 @@ import InventoryForm from './InventoryForm';
 import { inventoryApi, materialMasterApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import inputSx from '../../services/inputStyles';
+import { useDateRange } from '../../hooks/useDateRange';
 
 const InventoryTable = ({ isLoading }) => {
   const { canPerform } = usePermissions();
@@ -33,6 +34,7 @@ const InventoryTable = ({ isLoading }) => {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -46,12 +48,13 @@ const InventoryTable = ({ isLoading }) => {
   });
 
   const { data: vehicleResult, isLoading: loadingData, refetch } = useQuery({
-    queryKey: ['inventory-vehicles', page, rowsPerPage, query],
+    queryKey: ['inventory-vehicles', page, rowsPerPage, query, fromDate, toDate],
     queryFn: async () => {
       const res = await inventoryApi.getVehicles({
         page: page + 1,
         limit: rowsPerPage,
         search: query.trim() || undefined,
+        ...dateParams,
       });
       const items = Array.isArray(res?.data) ? res.data : [];
       return {
@@ -279,6 +282,11 @@ const InventoryTable = ({ isLoading }) => {
         showFilter={false}
         showRefresh
         onRefresh={refetch}
+        showDateRange
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={onFromDateChange}
+        onToDateChange={onToDateChange}
       />
 
       <NormalTable

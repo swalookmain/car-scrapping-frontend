@@ -12,6 +12,7 @@ import ComplianceFilters from './ComplianceFilters';
 import ComplianceDetailView from './ComplianceDetailView';
 import { getComplianceColumns } from './complianceColumns';
 import { useLookupMaps, enrichRow } from '../../hooks/useLookupMaps';
+import { useDateRange } from '../../hooks/useDateRange';
 
 const ComplianceTable = ({ isLoading }) => {
   const { canPerform } = usePermissions();
@@ -19,6 +20,7 @@ const ComplianceTable = ({ isLoading }) => {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { fromDate, toDate, onFromDateChange, onToDateChange, dateParams } = useDateRange(setPage);
 
   // Filters
   const [filterCod, setFilterCod] = useState('');
@@ -38,9 +40,9 @@ const ComplianceTable = ({ isLoading }) => {
 
   // ── Fetch Compliance Records via React Query ──────────────────
   const { data: complianceResult, isLoading: loadingData, refetch: refetchRecords } = useQuery({
-    queryKey: ['compliance', page, rowsPerPage, filterCod, filterCvs, filterRto, filterInvoiceId, filterVehicleId],
+    queryKey: ['compliance', page, rowsPerPage, filterCod, filterCvs, filterRto, filterInvoiceId, filterVehicleId, fromDate, toDate],
     queryFn: async () => {
-      const params = {};
+      const params = { ...dateParams };
       if (filterCod !== '') params.codGenerated = filterCod;
       if (filterCvs !== '') params.cvsGenerated = filterCvs;
       if (filterRto !== '') params.rtoStatus = filterRto;
@@ -166,6 +168,11 @@ const ComplianceTable = ({ isLoading }) => {
         onAdd={handleAdd}
         onRefresh={() => refetchRecords()}
         showFilter={true}
+        showDateRange
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={onFromDateChange}
+        onToDateChange={onToDateChange}
         showRefresh={true}
         showExportCsv={true}
         onExportCsv={() => tableRef.current?.exportCsv()}

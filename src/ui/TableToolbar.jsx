@@ -19,10 +19,26 @@ import {
   ViewColumn as ColumnIcon
 } from '@mui/icons-material';
 
+const dateFieldSx = {
+  width: { xs: 'calc(50% - 4px)', sm: 160 },
+  backgroundColor: '#fff',
+  borderRadius: '10px',
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '10px',
+    '& fieldset': { borderColor: 'var(--color-grey-200)' },
+    '&:hover fieldset': { borderColor: 'var(--color-grey-400)' },
+    '&.Mui-focused fieldset': {
+      borderColor: 'var(--color-secondary-main)',
+      boxShadow: '0 0 0 3px rgba(103,58,183,0.06)',
+    },
+  },
+};
+
 const TableToolbar = ({
   searchPlaceholder = 'Search...',
   searchValue,
   onSearchChange,
+  showSearch = true,
   onCopy,
   onPrint,
   onFilter,
@@ -37,6 +53,11 @@ const TableToolbar = ({
   showAdd = true,
   showExportCsv = false,
   showColumnToggle = false,
+  showDateRange = false,
+  fromDate = '',
+  toDate = '',
+  onFromDateChange,
+  onToDateChange,
 }) => {
   return (
     <Box
@@ -55,7 +76,7 @@ const TableToolbar = ({
         border: '1px solid rgba(0,0,0,0.03)',
       }}
     >
-      {/* Search Input */}
+      {showSearch && (
       <TextField
         placeholder={searchPlaceholder}
         value={searchValue}
@@ -89,6 +110,30 @@ const TableToolbar = ({
           )
         }}
       />
+      )}
+
+      {showDateRange && (
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', flex: { xs: '1 1 100%', sm: '0 0 auto' } }}>
+          <TextField
+            label="From"
+            type="date"
+            size="small"
+            value={fromDate}
+            onChange={(e) => onFromDateChange?.(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={dateFieldSx}
+          />
+          <TextField
+            label="To"
+            type="date"
+            size="small"
+            value={toDate}
+            onChange={(e) => onToDateChange?.(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={dateFieldSx}
+          />
+        </Box>
+      )}
 
       {/* Action Icons */}
       <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5, flex: { xs: '1 1 auto', sm: '0 0 auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-end' } }}>
@@ -243,7 +288,8 @@ const TableToolbar = ({
 TableToolbar.propTypes = {
   searchPlaceholder: PropTypes.string,
   searchValue: PropTypes.string,
-  onSearchChange: PropTypes.func.isRequired,
+  onSearchChange: PropTypes.func,
+  showSearch: PropTypes.bool,
   onCopy: PropTypes.func,
   onPrint: PropTypes.func,
   onFilter: PropTypes.func,
@@ -258,6 +304,11 @@ TableToolbar.propTypes = {
   showAdd: PropTypes.bool,
   showExportCsv: PropTypes.bool,
   showColumnToggle: PropTypes.bool,
+  showDateRange: PropTypes.bool,
+  fromDate: PropTypes.string,
+  toDate: PropTypes.string,
+  onFromDateChange: PropTypes.func,
+  onToDateChange: PropTypes.func,
 };
 
 export default TableToolbar;

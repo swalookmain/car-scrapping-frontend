@@ -19,6 +19,7 @@ export { default as taxComplianceApi } from './taxCompliance/taxComplianceApi';
 export { default as damageAdjustmentsApi } from './damageAdjustments/damageAdjustmentsApi';
 export { default as accountingApi } from './accounting/accountingApi';
 export { default as letterSettingsApi } from './letterSettings/letterSettingsApi';
+export { default as booksSettingsApi } from './booksSettings/booksSettingsApi';
 export { default as authorizationLettersApi } from './authorizationLetters/authorizationLettersApi';
 export { default as partCatalogApi } from './partCatalog/partCatalogApi';
 export { default as dashboardApi } from './dashboard/dashboardApi';

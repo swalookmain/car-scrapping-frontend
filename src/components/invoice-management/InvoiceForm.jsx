@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../hooks/useBooksDateBounds';
 import { useQuery } from '@tanstack/react-query';
 import { auctionsApi, invoicesApi, leadsApi, taxComplianceApi } from '../../services/api';
 import { calculateGst, INDIAN_STATE_CODES } from '../../services/taxEngine';
@@ -117,6 +118,7 @@ const mapAuctionVehicleToInvoiceVehicle = (vehicleData = {}, fallbackDate = '') 
 
 // ── Component ──────────────────────────────────────────────────
 const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, onSubmitVehiclesBatch, readOnly = false, onClose }, ref) => {
+  const booksBounds = useBooksDateBounds();
   const [open, setOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [invoice, setInvoice] = useState({ ...INITIAL_INVOICE });
@@ -992,6 +994,7 @@ const InvoiceForm = forwardRef(({ onSaveInvoice, onSubmitVehicle, onSubmitVehicl
             disabled={readOnly}
             sx={inputSx}
             InputLabelProps={{ shrink: true }}
+            inputProps={booksDateInputProps(booksBounds)}
             error={Boolean(errors.purchaseDate)}
             helperText={errors.purchaseDate}
           />

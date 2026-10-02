@@ -23,6 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import NormalModal from '../../ui/NormalModal';
 import inputSx from '../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../hooks/useBooksDateBounds';
 import { usersApi, leadsApi } from '../../services/api';
 import {
   LEAD_WIZARD_STEPS as STEPS,
@@ -100,6 +101,7 @@ const SectionLabel = ({ children }) => (
 SectionLabel.propTypes = { children: PropTypes.node.isRequired };
 
 const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, ref) => {
+  const booksBounds = useBooksDateBounds();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -419,7 +421,7 @@ const LeadForm = forwardRef(({ onSubmit, onUploadDocuments, readOnly = false }, 
                 <TextField label="Location *" value={form.location} onChange={(e) => handleChange('location', e.target.value)} fullWidth sx={inputSx} error={Boolean(errors.location)} helperText={errors.location} />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField label="Lead Date" type="date" value={form.purchaseDate} onChange={(e) => handleChange('purchaseDate', e.target.value)} fullWidth sx={inputSx} InputLabelProps={{ shrink: true }} />
+                <TextField label="Lead Date" type="date" value={form.purchaseDate} onChange={(e) => handleChange('purchaseDate', e.target.value)} fullWidth sx={inputSx} InputLabelProps={{ shrink: true }} inputProps={booksDateInputProps(booksBounds)} />
               </Grid>
               <Grid item xs={12} sm={4}>
                 <TextField select label="Source of Lead" value={form.leadSource} onChange={(e) => handleChange('leadSource', e.target.value)} fullWidth sx={inputSx}>

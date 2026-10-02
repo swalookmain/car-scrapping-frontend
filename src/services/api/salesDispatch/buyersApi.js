@@ -22,6 +22,8 @@ export const buyersApi = {
         const params = { page, limit };
         if (filters.buyerType) params.buyerType = filters.buyerType;
         if (filters.buyerName) params.buyerName = filters.buyerName;
+        if (filters.fromDate) params.fromDate = filters.fromDate;
+        if (filters.toDate) params.toDate = filters.toDate;
 
         const response = await axiosInstance.get(ENDPOINTS.SALES_DISPATCH.BUYERS.GET_ALL, { params });
         _cache.ts = Date.now();

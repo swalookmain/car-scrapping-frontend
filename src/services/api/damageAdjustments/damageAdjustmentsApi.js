@@ -17,6 +17,8 @@ export const damageAdjustmentsApi = {
       try {
         const params = { page, limit };
         if (filters.partId) params.partId = filters.partId;
+        if (filters.fromDate) params.fromDate = filters.fromDate;
+        if (filters.toDate) params.toDate = filters.toDate;
         const response = await axiosInstance.get(ENDPOINTS.DAMAGE_ADJUSTMENTS.GET_ALL, { params });
         _cache.ts = Date.now();
         _cache.key = key;

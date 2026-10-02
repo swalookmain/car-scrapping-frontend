@@ -4,10 +4,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import LotAccordionPanel from './LotAccordionPanel';
 import inputSx from '../../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../../hooks/useBooksDateBounds';
 import { auctionsApi } from '../../../services/api';
 import { formatINR } from '../../../services/taxEngine';
 
 const LotRcmForm = ({ lot, auctionId, readOnly }) => {
+  const booksBounds = useBooksDateBounds();
   const queryClient = useQueryClient();
   const lotId = String(lot._id || lot.id || '');
   const [challanNumber, setChallanNumber] = useState(lot.rcm?.challanNumber || '');
@@ -82,6 +84,7 @@ const LotRcmForm = ({ lot, auctionId, readOnly }) => {
           value={transactionDate}
           onChange={(e) => setTransactionDate(e.target.value)}
           disabled={readOnly}
+          inputProps={booksDateInputProps(booksBounds)}
           sx={inputSx}
         />
         <TextField

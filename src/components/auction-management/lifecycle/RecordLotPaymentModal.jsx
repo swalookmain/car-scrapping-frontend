@@ -5,10 +5,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import NormalModal from '../../../ui/NormalModal';
 import inputSx from '../../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../../hooks/useBooksDateBounds';
 import { formatINR } from '../../../services/taxEngine';
 import { auctionsApi } from '../../../services/api';
 
 const RecordLotPaymentModal = ({ open, onClose, lot, auctionId }) => {
+  const booksBounds = useBooksDateBounds();
   const queryClient = useQueryClient();
   const [amountPaid, setAmountPaid] = useState('');
   const [transactionNumber, setTransactionNumber] = useState('');
@@ -98,7 +100,7 @@ const RecordLotPaymentModal = ({ open, onClose, lot, auctionId }) => {
         />
         <TextField fullWidth label="Transaction number" value={transactionNumber} onChange={(e) => setTransactionNumber(e.target.value)} sx={inputSx} />
         <TextField fullWidth label="Bank" value={bank} onChange={(e) => setBank(e.target.value)} sx={inputSx} />
-        <TextField fullWidth type="date" label="Date of transfer" InputLabelProps={{ shrink: true }} value={transferDate} onChange={(e) => setTransferDate(e.target.value)} sx={inputSx} />
+        <TextField fullWidth type="date" label="Date of transfer" InputLabelProps={{ shrink: true }} inputProps={booksDateInputProps(booksBounds)} value={transferDate} onChange={(e) => setTransferDate(e.target.value)} sx={inputSx} />
         <TextField fullWidth label="Remark" value={remark} onChange={(e) => setRemark(e.target.value)} multiline rows={2} sx={inputSx} />
       </Box>
     </NormalModal>

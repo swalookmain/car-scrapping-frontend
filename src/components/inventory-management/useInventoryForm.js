@@ -95,6 +95,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   const [yardRecord, setYardRecord] = useState(null);
   const [grossWeightKg, setGrossWeightKg] = useState('');
   const [savingWeight, setSavingWeight] = useState(false);
+  const [dismantledAt, setDismantledAt] = useState('');
 
   // Catalog checklist
   const [catalogMode, setCatalogMode] = useState(false);
@@ -645,6 +646,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
             payload: {
               invoiceId: selectedInvoiceId,
               vechileId: selectedVehicleId,
+              ...(dismantledAt ? { dismantledAt } : {}),
               parts: selectedParts.map((part) => ({
                 partName:         part.partName || '',
                 partType:         normalizeCategory(part.partType) || 'other',
@@ -682,6 +684,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     setSelectedVehicleId('');
     setVehicleLabel('');
     setYardRecord(null);
+    setDismantledAt('');
     setParts([]);
     setCatalogMode(false);
     setCatalogMeta(null);
@@ -782,6 +785,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleLabel, vehicleFetching,
     yardRecord, yardStatus, yardLoading, hasYardRecord, canAddParts,
     grossWeightKg, setGrossWeightKg, savingWeight, handleSaveGrossWeight,
+    dismantledAt, setDismantledAt,
     catalogMode, catalogMeta, catalogMmv, catalogLoading,
     catalogParts, selectedParts, partCategories, existingPartKeys,
     parts, errors,

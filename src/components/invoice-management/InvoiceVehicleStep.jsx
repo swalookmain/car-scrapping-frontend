@@ -12,6 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import inputSx from '../../services/inputStyles';
+import { booksDateInputProps, useBooksDateBounds } from '../../hooks/useBooksDateBounds';
 
 const VEHICLE_TYPES = ['CAR', 'BIKE', 'COMMERCIAL'];
 const FUEL_TYPES = ['PETROL', 'DIESEL', 'CNG', 'ELECTRIC', 'HYBRID'];
@@ -29,6 +30,7 @@ export default function InvoiceVehicleStep({
   documents,
   onDocumentChange,
 }) {
+  const booksBounds = useBooksDateBounds();
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}>
@@ -220,6 +222,7 @@ export default function InvoiceVehicleStep({
             disabled={readOnly}
             sx={inputSx}
             InputLabelProps={{ shrink: true }}
+            inputProps={booksDateInputProps(booksBounds)}
             error={Boolean(errors.vehicle_purchase_date)}
             helperText={errors.vehicle_purchase_date}
           />
