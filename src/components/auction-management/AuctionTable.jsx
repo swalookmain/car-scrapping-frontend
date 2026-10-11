@@ -248,8 +248,8 @@ const AuctionTable = () => {
       sourcePlatform: form.auctionerName || 'MSTC',
       sellerName: asString(form.sellerName).trim(),
       sellerMobileNumber: asString(form.sellerMobileNumber).replace(/\D/g, ''),
-      sellerEmail: form.sellerEmail || undefined,
-      sellerAccountNumber: form.sellerAccountNumber || undefined,
+      sellerEmail: asString(form.sellerEmail).trim() || undefined,
+      sellerAccountNumber: asString(form.sellerAccountNumber).trim() || undefined,
       sellerTaxMode: form.sellerTaxMode || 'RCM',
       officers: officerRows
         .filter((x) => asString(x.name).trim())
@@ -360,6 +360,19 @@ const AuctionTable = () => {
     if (!auctionForm.sellerName?.trim()) throw new Error('Seller name is required');
     if (!/^\d{10}$/.test((auctionForm.sellerMobileNumber || '').replace(/\D/g, ''))) {
       throw new Error('Seller mobile number must be exactly 10 digits');
+    }
+
+    const trimmedSellerEmail = asString(auctionForm.sellerEmail).trim();
+    if (trimmedSellerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedSellerEmail)) {
+      throw new Error('Seller email must be a valid email address');
+    }
+
+    for (let i = 0; i < officers.length; i += 1) {
+      const off = officers[i];
+      const offEmail = asString(off.email).trim();
+      if (offEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(offEmail)) {
+        throw new Error(`Officer ${i + 1} (${off.name || 'unnamed'}): email must be a valid email address`);
+      }
     }
 
     const payload = buildAuctionStepPayload(auctionForm, officers);
@@ -520,7 +533,9 @@ const AuctionTable = () => {
       queryClient.invalidateQueries({ queryKey: ['auctions'] });
       handleCloseModal();
     } catch (err) {
-      toast.error(err?.response?.data?.message || err?.message || 'Save failed');
+      if (!err?.response) {
+        toast.error(err?.message || 'Save failed');
+      }
     }
   };
 
@@ -1002,6 +1017,12 @@ const AuctionTable = () => {
                   label="Seller email (optional)"
                   value={auctionForm.sellerEmail}
                   onChange={(e) => setAuctionForm((p) => ({ ...p, sellerEmail: e.target.value }))}
+                  onBlur={() =>
+                    setAuctionForm((p) => ({
+                      ...p,
+                      sellerEmail: asString(p.sellerEmail).trim(),
+                    }))
+                  }
                   sx={inputSx}
                 />
               </Grid>
@@ -1095,6 +1116,13 @@ const AuctionTable = () => {
                       onChange={(e) =>
                         setOfficers((prev) =>
                           prev.map((item, i) => (i === idx ? { ...item, email: e.target.value } : item)),
+                        )
+                      }
+                      onBlur={() =>
+                        setOfficers((prev) =>
+                          prev.map((item, i) =>
+                            i === idx ? { ...item, email: asString(item.email).trim() } : item,
+                          ),
                         )
                       }
                       sx={inputSx}

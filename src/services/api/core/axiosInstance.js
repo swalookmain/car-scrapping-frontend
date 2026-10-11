@@ -34,7 +34,8 @@ const getErrorMessage = (error) => {
   }
 
   const { status, data } = error.response;
-  const serverMessage = data?.message || data?.error || '';
+  const rawMsg = data?.message || data?.error || '';
+  const serverMessage = Array.isArray(rawMsg) ? rawMsg.join(', ') : rawMsg;
 
   switch (status) {
     case 400:
