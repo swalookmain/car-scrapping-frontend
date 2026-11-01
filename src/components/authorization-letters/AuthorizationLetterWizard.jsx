@@ -25,7 +25,9 @@ const AuthorizationLetterWizard = ({ open, onClose, preselectedAuctionId = null 
   const [selectedAuctionId, setSelectedAuctionId] = useState('');
   const [letterId, setLetterId] = useState('');
   const [form, setForm] = useState({
-    extensionDays: 3,
+    authorizedPersonName: '',
+    authorizedPersonIdProof: '',
+    letterDate: '',
     recipientName: '',
     recipientAddress: '',
     recipientPinCode: '',
@@ -53,7 +55,9 @@ const AuthorizationLetterWizard = ({ open, onClose, preselectedAuctionId = null 
       setSelectedAuctionId('');
     }
     setForm({
-      extensionDays: 3,
+      authorizedPersonName: '',
+      authorizedPersonIdProof: '',
+      letterDate: '',
       recipientName: '',
       recipientAddress: '',
       recipientPinCode: '',
@@ -115,9 +119,19 @@ const AuthorizationLetterWizard = ({ open, onClose, preselectedAuctionId = null 
       toast.error('Select an auction');
       return;
     }
+    if (!form.authorizedPersonName?.trim()) {
+      toast.error('Enter authorized person name');
+      return;
+    }
+    if (!form.authorizedPersonIdProof?.trim()) {
+      toast.error('Enter authorized person Aadhaar / ID proof');
+      return;
+    }
     createMutation.mutate({
       auctionId: selectedAuctionId,
-      extensionDays: Number(form.extensionDays) || 3,
+      authorizedPersonName: form.authorizedPersonName.trim(),
+      authorizedPersonIdProof: form.authorizedPersonIdProof.trim(),
+      ...(form.letterDate ? { letterDate: form.letterDate } : {}),
       recipientOverrides: {
         recipientName: form.recipientName || undefined,
         recipientAddress: form.recipientAddress || undefined,
@@ -177,15 +191,36 @@ const AuthorizationLetterWizard = ({ open, onClose, preselectedAuctionId = null 
     if (activeStep === 1) {
       return (
         <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              required
+              label="Authorized person name"
+              value={form.authorizedPersonName}
+              onChange={(e) => setForm((p) => ({ ...p, authorizedPersonName: e.target.value }))}
+              sx={inputSx}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              required
+              label="Aadhaar / ID proof number"
+              value={form.authorizedPersonIdProof}
+              onChange={(e) => setForm((p) => ({ ...p, authorizedPersonIdProof: e.target.value }))}
+              sx={inputSx}
+            />
+          </Grid>
           <Grid item xs={12} sm={4}>
             <TextField
               fullWidth
-              type="number"
-              label="Extension days"
-              value={form.extensionDays}
-              onChange={(e) => setForm((p) => ({ ...p, extensionDays: e.target.value }))}
+              type="date"
+              label="Letter date"
+              value={form.letterDate}
+              onChange={(e) => setForm((p) => ({ ...p, letterDate: e.target.value }))}
               sx={inputSx}
-              inputProps={{ min: 1 }}
+              InputLabelProps={{ shrink: true }}
+              helperText="Leave blank to use today"
             />
           </Grid>
           <Grid item xs={12} sm={8}>
@@ -200,7 +235,7 @@ const AuthorizationLetterWizard = ({ open, onClose, preselectedAuctionId = null 
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Recipient name"
+              label="Recipient name (To)"
               value={form.recipientName}
               onChange={(e) => setForm((p) => ({ ...p, recipientName: e.target.value }))}
               sx={inputSx}

@@ -31,7 +31,6 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
 
   const id = item?._id || item?.id;
   const status = item?.currentStatus;
-  const vehicleInvoiceId = item?.vehicleInvoiceId?._id || item?.vehicleInvoiceId;
 
   useEffect(() => {
     if (!open || !id) return;
@@ -107,10 +106,10 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
   };
 
   const handleStartDismantling = async () => {
-    if (!vehicleInvoiceId) return;
+    if (!id) return;
     setSaving(true);
     try {
-      await yardApi.startDismantling(String(vehicleInvoiceId));
+      await yardApi.startDismantling(String(id));
       toast.success('Dismantling started');
       onSaved();
     } catch (e) {
@@ -201,7 +200,7 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
         </Box>
       )}
 
-      {(status === 'AWAITING_ARRIVAL' || status === 'GATE_IN') && (
+      {(status === 'REGISTERED' || status === 'AWAITING_ARRIVAL' || status === 'GATE_IN') && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Park vehicle
@@ -263,15 +262,9 @@ const YardVehicleModal = ({ open, item, zones, onClose, onSaved }) => {
 
       {status === 'PARKED' && (
         <Box sx={{ mb: 2 }}>
-          {vehicleInvoiceId ? (
-            <Button variant="contained" color="secondary" disabled={saving} onClick={handleStartDismantling}>
-              Start dismantling
-            </Button>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              Link a purchase invoice for this vehicle before starting dismantling.
-            </Typography>
-          )}
+          <Button variant="contained" color="secondary" disabled={saving} onClick={handleStartDismantling}>
+            Start dismantling
+          </Button>
         </Box>
       )}
 

@@ -58,13 +58,20 @@ export const inventoryApi = {
     return response.data;
   },
 
+  getByYardVehicle: async (yardVehicleId) => {
+    const response = await axiosInstance.get(
+      ENDPOINTS.INVENTORY.GET_BY_YARD_VEHICLE(yardVehicleId),
+    );
+    return response.data;
+  },
+
   getById: async (id) => {
     const response = await axiosInstance.get(ENDPOINTS.INVENTORY.GET_BY_ID(id));
     return response.data;
   },
 
   create: async (payload) => {
-    // payload: { invoiceId, vechileId, parts: [...] }
+    // payload: { yardVehicleId, invoiceId?, vechileId?, parts: [...] }
     const response = await axiosInstance.post(ENDPOINTS.INVENTORY.CREATE, payload);
     return response.data;
   },

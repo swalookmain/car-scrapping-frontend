@@ -41,10 +41,16 @@ export const VehicleCodeCell = ({ row }) => {
 
 export const InvoiceRefCell = ({ row }) => {
   const inv = row.invoice || row.invoiceData || null;
-  const invoiceNumber = inv?.invoiceNumber || row.invoiceNumber || '';
+  const invoiceNumber =
+    inv?.invoiceNumber || row.invoiceNumber || row.purchaseInvoiceNumber || '';
+  const fallback =
+    row.registrationNumber ||
+    (row.yardVehicleId
+      ? String(row.yardVehicleId).slice(-6).toUpperCase()
+      : '');
   return (
     <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-grey-600)' }}>
-      {invoiceNumber || (row.invoiceId || '—')?.toString()?.slice(-8)?.toUpperCase()}
+      {invoiceNumber || fallback || '—'}
     </Typography>
   );
 };

@@ -284,25 +284,17 @@ const SalesInvoiceForm = forwardRef(({ onSubmit, readOnly = false }, ref) => {
       const pId = part._id || part.id;
       const fullPart = (pId && partMap[pId]) ? partMap[pId] : part;
 
-      const vehId = fullPart.vechileId || fullPart.vehicleId || '';
-      const veh = (vehId && vehicleMap[vehId])
-        ? vehicleMap[vehId]
-        : (fullPart.invoiceId && vehicleByInvoiceMap[fullPart.invoiceId])
-          ? vehicleByInvoiceMap[fullPart.invoiceId]
-          : null;
-      const vehRegNo = veh?.registration_number || veh?.registrationNumber || '';
-      const vehMake = veh?.make || '';
-      const vehModel = veh?.model_name || veh?.model || '';
+      // Canonical vehicle identity = yardVehicleId (+ registration on the part)
+      const vehRegNo = fullPart.registrationNumber || '';
+      const vehModel = fullPart.vechileModel || '';
       const vehDisplay = vehRegNo
-        || (vehMake || vehModel ? `${vehMake} ${vehModel}`.trim() : '')
-        || vehId?.toString()?.slice(-8)?.toUpperCase()
+        || vehModel
+        || (fullPart.yardVehicleId
+          ? String(fullPart.yardVehicleId).slice(-8).toUpperCase()
+          : '')
         || '';
 
-      const invId = fullPart.invoiceId || '';
-      const inv = (invId && invoiceMap[invId]) ? invoiceMap[invId] : null;
-      const invDisplay = inv?.invoiceNumber
-        || invId?.toString()?.slice(-8)?.toUpperCase()
-        || '';
+      const invDisplay = fullPart.purchaseInvoiceNumber || '';
 
       const qty = updated[index].quantity || (avail > 0 ? 1 : '');
       updated[index] = {

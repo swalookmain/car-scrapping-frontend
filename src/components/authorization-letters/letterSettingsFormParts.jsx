@@ -22,6 +22,7 @@ export const EMPTY_LETTER_SETTINGS_FORM = {
   logoUrl: '',
   rvsfLogoUrl: '',
   signatureUrl: '',
+  stampUrl: '',
 };
 
 export function mapSettingsToForm(settings) {
@@ -42,6 +43,7 @@ export function mapSettingsToForm(settings) {
     logoUrl: settings.logoUrl || '',
     rvsfLogoUrl: settings.rvsfLogoUrl || '',
     signatureUrl: settings.signatureUrl || '',
+    stampUrl: settings.stampUrl || '',
   };
 }
 
@@ -156,9 +158,18 @@ function AssetUploadSlot({ label, url, assetType, uploading, onSelect, onDelete 
 export function LetterAssetUploads({ form, uploading, onUpload, onDelete }) {
   return (
     <>
-      <AssetUploadSlot label="Logo" url={form.logoUrl} assetType="logo" uploading={uploading} onSelect={onUpload} onDelete={onDelete} />
+      <Grid item xs={12}>
+        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+          Letterhead images (used on authorization letter)
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Upload company logo, RVSF logo, signature and stamp from here — nothing is hardcoded on the PDF.
+        </Typography>
+      </Grid>
+      <AssetUploadSlot label="Company logo" url={form.logoUrl} assetType="logo" uploading={uploading} onSelect={onUpload} onDelete={onDelete} />
       <AssetUploadSlot label="RVSF logo" url={form.rvsfLogoUrl} assetType="rvsfLogo" uploading={uploading} onSelect={onUpload} onDelete={onDelete} />
       <AssetUploadSlot label="Signature" url={form.signatureUrl} assetType="signature" uploading={uploading} onSelect={onUpload} onDelete={onDelete} />
+      <AssetUploadSlot label="Company stamp" url={form.stampUrl} assetType="stamp" uploading={uploading} onSelect={onUpload} onDelete={onDelete} />
     </>
   );
 }

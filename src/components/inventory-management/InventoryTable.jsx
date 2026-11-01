@@ -60,7 +60,9 @@ const InventoryTable = ({ isLoading }) => {
       return {
         data: items.map((r) => ({
           ...r,
-          id: r.vechileId || r._id,
+          // Canonical vehicle id is yardVehicleId
+          id: r.yardVehicleId || r._id || r.vechileId,
+          yardVehicleId: r.yardVehicleId || r._id || null,
         })),
         total: res?.meta?.total ?? items.length,
       };
@@ -85,9 +87,18 @@ const InventoryTable = ({ isLoading }) => {
     isLoading: detailLoading,
     refetch: refetchDetail,
   } = useQuery({
-    queryKey: ['inventory-by-vehicle', selectedVehicle?.vechileId],
-    queryFn: () => inventoryApi.getByVehicle(selectedVehicle.vechileId),
-    enabled: Boolean(selectedVehicle?.vechileId) && drawerOpen,
+    queryKey: [
+      'inventory-by-vehicle',
+      selectedVehicle?.yardVehicleId,
+      selectedVehicle?.vechileId,
+    ],
+    queryFn: () =>
+      selectedVehicle?.yardVehicleId
+        ? inventoryApi.getByYardVehicle(selectedVehicle.yardVehicleId)
+        : inventoryApi.getByVehicle(selectedVehicle.vechileId),
+    enabled:
+      Boolean(selectedVehicle?.yardVehicleId || selectedVehicle?.vechileId) &&
+      drawerOpen,
   });
 
   const parts = useMemo(
@@ -181,6 +192,7 @@ const InventoryTable = ({ isLoading }) => {
         field: 'purchaseInvoiceNumber',
         headerName: 'Invoice',
         width: '14%',
+        render: (row) => row.purchaseInvoiceNumber || '—',
       },
       {
         field: 'formVehicleClass',
@@ -322,10 +334,10 @@ const InventoryTable = ({ isLoading }) => {
                 variant="contained"
                 onClick={() =>
                   formRef.current?.openAddMore?.({
-                    vechileId: selectedVehicle.vechileId,
-                    invoiceId: selectedVehicle.invoiceId,
-                    registration_number: selectedVehicle.registrationNumber,
+                    yardVehicleId: selectedVehicle.yardVehicleId,
+                    registrationNumber: selectedVehicle.registrationNumber,
                     make: selectedVehicle.make,
+                    modelName: selectedVehicle.modelName,
                     model_name: selectedVehicle.modelName,
                   })
                 }

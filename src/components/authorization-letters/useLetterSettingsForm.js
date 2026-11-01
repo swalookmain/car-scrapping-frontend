@@ -53,6 +53,7 @@ export function useLetterSettingsForm() {
         logoUrl: updated.logoUrl ?? prev.logoUrl,
         rvsfLogoUrl: updated.rvsfLogoUrl ?? prev.rvsfLogoUrl,
         signatureUrl: updated.signatureUrl ?? prev.signatureUrl,
+        stampUrl: updated.stampUrl ?? prev.stampUrl,
       }));
       toast.success('Image uploaded');
       queryClient.invalidateQueries({ queryKey: ['letter-settings'] });

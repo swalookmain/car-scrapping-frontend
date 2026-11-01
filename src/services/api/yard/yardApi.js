@@ -24,9 +24,9 @@ const yardApi = {
     const response = await axiosInstance.patch(ENDPOINTS.YARD.UPDATE_STATUS(id), payload);
     return response.data;
   },
-  startDismantling: async (vehicleInvoiceId) => {
+  startDismantling: async (yardVehicleId) => {
     const response = await axiosInstance.post(
-      ENDPOINTS.YARD.START_DISMANTLING(vehicleInvoiceId),
+      ENDPOINTS.YARD.START_DISMANTLING(yardVehicleId),
     );
     return response.data;
   },

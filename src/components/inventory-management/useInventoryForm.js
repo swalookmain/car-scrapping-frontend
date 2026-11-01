@@ -86,12 +86,15 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   const { execute: executeVehicle, loading: vehicleFetching } = useApiCall();
   const { execute: executeYard, loading: yardLoading } = useApiCall();
 
-  // Invoice & Vehicle selection
+  // Yard vehicle selection (invoice is optional / not a blocker)
   const [invoices,         setInvoices]         = useState([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
   const [invoiceVehicles, setInvoiceVehicles] = useState([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [vehicleLabel,     setVehicleLabel]     = useState('');
+  const [yardVehicles, setYardVehicles] = useState([]);
+  const [selectedYardVehicleId, setSelectedYardVehicleId] = useState('');
+  const [yardVehiclesLoading, setYardVehiclesLoading] = useState(false);
   const [yardRecord, setYardRecord] = useState(null);
   const [grossWeightKg, setGrossWeightKg] = useState('');
   const [savingWeight, setSavingWeight] = useState(false);
@@ -155,6 +158,112 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     } catch {
       setInvoices([]);
     }
+  };
+
+  const mapYardVehicleOption = (v) => {
+    const id = v._id || v.id || '';
+    const source =
+      v.sourceType === 'AUCTION'
+        ? 'Auction'
+        : v.sourceType === 'LEAD'
+          ? 'Lead'
+          : v.sourceType || '';
+    const label =
+      [
+        v.registrationNumber,
+        [v.make, v.modelName].filter(Boolean).join(' '),
+        source,
+        v.currentStatus?.replace(/_/g, ' '),
+      ]
+        .filter(Boolean)
+        .join(' • ') || id;
+    return { ...v, id, label };
+  };
+
+  const fetchYardVehicles = async () => {
+    setYardVehiclesLoading(true);
+    try {
+      const res = await yardApi.getVehicles({ page: 1, limit: 200 });
+      const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      const eligible = rows
+        .filter((v) =>
+          ['PARKED', 'DISMANTLING_IN_PROGRESS', 'DISMANTLED'].includes(
+            v.currentStatus,
+          ),
+        )
+        .map(mapYardVehicleOption)
+        .filter((v) => Boolean(v.id));
+      setYardVehicles(eligible);
+    } catch {
+      setYardVehicles([]);
+    } finally {
+      setYardVehiclesLoading(false);
+    }
+  };
+
+  const fetchExistingPartsForYardVehicle = async (yardVehicleId) => {
+    if (!yardVehicleId) {
+      setExistingPartKeys([]);
+      return;
+    }
+    try {
+      const res = await inventoryApi.getByYardVehicle(yardVehicleId);
+      const partsList = Array.isArray(res?.parts)
+        ? res.parts
+        : Array.isArray(res?.data?.parts)
+          ? res.data.parts
+          : Array.isArray(res?.data)
+            ? res.data
+            : Array.isArray(res)
+              ? res
+              : [];
+      const keys = partsList
+        .map((p) => {
+          const catalogId = p.catalogPartId?._id || p.catalogPartId?.id || p.catalogPartId;
+          return getPartKey({
+            catalogPartId: catalogId ? String(catalogId) : undefined,
+            partName: p.partName,
+            partType: p.partType,
+            _uid: p._id || p.id,
+          });
+        })
+        .filter(Boolean);
+      setExistingPartKeys(keys);
+    } catch {
+      setExistingPartKeys([]);
+    }
+  };
+
+  const handleYardVehicleSelect = (yardVehicleId) => {
+    setSelectedYardVehicleId(yardVehicleId);
+    resetCatalogState();
+    if (errors.yardVehicleId) setErrors((p) => ({ ...p, yardVehicleId: '' }));
+    if (!yardVehicleId) {
+      setYardRecord(null);
+      setSelectedVehicleId('');
+      setSelectedInvoiceId('');
+      setVehicleLabel('');
+      setGrossWeightKg('');
+      setCatalogMmv({ make: '', model: '', variant: 'Standard', vehicleType: 'CAR' });
+      return;
+    }
+    const selected = yardVehicles.find((v) => v.id === yardVehicleId);
+    setYardRecord(selected || null);
+    setVehicleLabel(selected?.label || '');
+    const linkedVehicleId =
+      selected?.vehicleInvoiceId?._id || selected?.vehicleInvoiceId || '';
+    const linkedInvoiceId =
+      selected?.invoiceId?._id || selected?.invoiceId || '';
+    setSelectedVehicleId(linkedVehicleId ? String(linkedVehicleId) : '');
+    setSelectedInvoiceId(linkedInvoiceId ? String(linkedInvoiceId) : '');
+    setCatalogMmv({
+      make: selected?.make || '',
+      model: selected?.modelName || '',
+      variant: 'Standard',
+      vehicleType: 'CAR',
+    });
+    syncWeightFromSources(null, selected);
+    fetchExistingPartsForYardVehicle(yardVehicleId);
   };
 
   const syncWeightFromSources = (vehicle, yard) => {
@@ -403,11 +512,35 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   };
 
   useEffect(() => {
-    if (!selectedVehicleId || editMode) return;
-    if (yardStatus === 'DISMANTLING_IN_PROGRESS' || yardStatus === 'DISMANTLED') {
-      loadCatalogChecklist(selectedVehicleId);
+    if (editMode) return;
+    if (
+      yardStatus !== 'DISMANTLING_IN_PROGRESS' &&
+      yardStatus !== 'DISMANTLED'
+    ) {
+      return;
     }
-  }, [selectedVehicleId, yardStatus, editMode, loadCatalogChecklist]);
+    if (selectedVehicleId) {
+      loadCatalogChecklist(selectedVehicleId);
+      return;
+    }
+    // Yard-only (lead/auction without purchase vehicle invoice): load by MMV
+    if (
+      selectedYardVehicleId &&
+      catalogMmv.make?.trim() &&
+      catalogMmv.model?.trim()
+    ) {
+      loadCatalogChecklistByMmv(catalogMmv);
+    }
+  }, [
+    selectedVehicleId,
+    selectedYardVehicleId,
+    catalogMmv.make,
+    catalogMmv.model,
+    yardStatus,
+    editMode,
+    loadCatalogChecklist,
+    loadCatalogChecklistByMmv,
+  ]);
 
   const handleAddGlobalPart = async (variantId, payload) => {
     const created = await partCatalogApi.addPartToVariant(variantId, {
@@ -478,14 +611,20 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   };
 
   const handleStartDismantling = async () => {
-    if (!selectedVehicleId) return;
-    const selected = invoiceVehicles.find((v) => v.id === selectedVehicleId);
+    const yardId = selectedYardVehicleId || yardRecord?._id || yardRecord?.id;
+    if (!yardId) return;
     try {
       await executeYard(async () => {
-        await yardApi.startDismantling(selectedVehicleId);
+        await yardApi.startDismantling(String(yardId));
         toast.success('Dismantling started — you can add parts now');
-        await fetchYardForVehicle(selectedVehicleId, selected);
-        await loadCatalogChecklist(selectedVehicleId);
+        const refreshed = await yardApi.getVehicleById(String(yardId));
+        const yard = refreshed?.data ?? refreshed ?? null;
+        const mapped = yard ? mapYardVehicleOption(yard) : null;
+        setYardRecord(mapped);
+        setYardVehicles((prev) =>
+          prev.map((v) => (v.id === String(yardId) ? { ...v, ...mapped } : v)),
+        );
+        await loadCatalogChecklistByMmv();
       });
     } catch (e) {
       toast.error(e?.response?.data?.message || e.message || 'Could not start dismantling');
@@ -584,8 +723,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
   const validate = () => {
     const err = {};
     if (!editMode) {
-      if (!selectedInvoiceId) err.invoiceId = 'Select an invoice';
-      if (!selectedVehicleId) err.vehicleId = 'No vehicle linked to this invoice';
+      if (!selectedYardVehicleId) err.yardVehicleId = 'Select a yard vehicle';
       if (hasYardRecord && yardStatus === 'PARKED') {
         err.yard = 'Start dismantling before adding parts';
       }
@@ -644,8 +782,8 @@ export function useInventoryForm({ onSubmit, readOnly }) {
           await onSubmit({
             type: 'create',
             payload: {
-              invoiceId: selectedInvoiceId,
-              vechileId: selectedVehicleId,
+              // One vehicle id everywhere = yardVehicleId
+              yardVehicleId: selectedYardVehicleId,
               ...(dismantledAt ? { dismantledAt } : {}),
               parts: selectedParts.map((part) => ({
                 partName:         part.partName || '',
@@ -682,6 +820,8 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     setSelectedInvoiceId('');
     setInvoiceVehicles([]);
     setSelectedVehicleId('');
+    setSelectedYardVehicleId('');
+    setYardVehicles([]);
     setVehicleLabel('');
     setYardRecord(null);
     setDismantledAt('');
@@ -710,11 +850,18 @@ export function useInventoryForm({ onSubmit, readOnly }) {
       openFormWith(null);
       return;
     }
+    const yardVehicleId =
+      item.yardVehicleId?._id ||
+      item.yardVehicleId ||
+      item.yardVehicle?._id ||
+      item.yardVehicle?.id ||
+      '';
     const invoiceId = item.invoiceId || item.invoice?._id || item.invoice?.id || '';
     const vehicleId = item.vechileId || item.vehicleId || item.vehicle?._id || item.vehicle?.id || '';
 
     setEditMode(false);
     setEditingId(null);
+    setSelectedYardVehicleId(yardVehicleId ? String(yardVehicleId) : '');
     setSelectedInvoiceId(invoiceId);
     setSelectedVehicleId(vehicleId);
     setVehicleLabel(buildVehicleLabel(item));
@@ -724,10 +871,27 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     setErrors({});
     setOpen(true);
 
-    fetchInvoices();
+    fetchYardVehicles();
     fetchCategories();
-    if (invoiceId) {
-      await fetchVehicleForInvoice(invoiceId, vehicleId || null);
+    if (yardVehicleId) {
+      try {
+        const refreshed = await yardApi.getVehicleById(String(yardVehicleId));
+        const yard = refreshed?.data ?? refreshed ?? null;
+        if (yard) {
+          const mapped = mapYardVehicleOption(yard);
+          setYardRecord(mapped);
+          setVehicleLabel(mapped.label);
+          setCatalogMmv({
+            make: mapped.make || '',
+            model: mapped.modelName || '',
+            variant: 'Standard',
+            vehicleType: 'CAR',
+          });
+        }
+      } catch {
+        setYardRecord(null);
+      }
+      fetchExistingPartsForYardVehicle(String(yardVehicleId));
     } else if (vehicleId) {
       fetchYardForVehicle(vehicleId);
       fetchExistingPartsForVehicle(vehicleId);
@@ -740,6 +904,11 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     if (item) {
       setEditMode(true);
       setEditingId(item._id || item.id);
+      setSelectedYardVehicleId(
+        item.yardVehicleId?._id || item.yardVehicleId
+          ? String(item.yardVehicleId._id || item.yardVehicleId)
+          : '',
+      );
       setSelectedInvoiceId(item.invoiceId || '');
       setInvoiceVehicles([]);
       setSelectedVehicleId(item.vechileId || item.vehicleId || '');
@@ -767,13 +936,15 @@ export function useInventoryForm({ onSubmit, readOnly }) {
       setSelectedInvoiceId('');
       setInvoiceVehicles([]);
       setSelectedVehicleId('');
+      setSelectedYardVehicleId('');
       setVehicleLabel('');
+      setYardRecord(null);
       setParts([]);
       resetCatalogState();
       setCatalogMmv({ make: '', model: '', variant: 'Standard', vehicleType: 'CAR' });
     }
     setErrors({});
-    fetchInvoices();
+    fetchYardVehicles();
     fetchCategories();
     setOpen(true);
   };
@@ -783,6 +954,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     open, loading, editMode,
     invoices, invoiceLoading,
     selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleLabel, vehicleFetching,
+    yardVehicles, selectedYardVehicleId, yardVehiclesLoading,
     yardRecord, yardStatus, yardLoading, hasYardRecord, canAddParts,
     grossWeightKg, setGrossWeightKg, savingWeight, handleSaveGrossWeight,
     dismantledAt, setDismantledAt,
@@ -791,7 +963,7 @@ export function useInventoryForm({ onSubmit, readOnly }) {
     parts, errors,
     fileInputRefs,
     // handlers
-    handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel, handleStartDismantling,
+    handleInvoiceSelect, handleVehicleSelect, handleYardVehicleSelect, getInvoiceLabel, handleStartDismantling,
     loadCatalogChecklist, loadCatalogChecklistByMmv, handleCatalogMmvChange,
     handleAddGlobalPart, handleAddCategory,
     handleAddToSelected, handleAddManyToSelected, handleRemoveSelected, handleSelectedPartChange,

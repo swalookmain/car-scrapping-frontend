@@ -126,6 +126,8 @@ export const ENDPOINTS = {
     GET_ALL: '/inventory',
     GET_VEHICLES: '/inventory/vehicles',
     GET_BY_VEHICLE: (vechileId) => `/inventory/by-vehicle/${vechileId}`,
+    GET_BY_YARD_VEHICLE: (yardVehicleId) =>
+      `/inventory/by-yard-vehicle/${yardVehicleId}`,
     GET_BY_ID: (id) => `/inventory/${id}`,
     CREATE: '/inventory',
     UPDATE: (id) => `/inventory/${id}`,
@@ -166,8 +168,8 @@ export const ENDPOINTS = {
       `/yard/vehicles/by-vehicle-invoice/${vehicleInvoiceId}`,
     MOVEMENTS: (id) => `/yard/vehicles/${id}/movements`,
     UPDATE_STATUS: (id) => `/yard/vehicles/${id}/status`,
-    START_DISMANTLING: (vehicleInvoiceId) =>
-      `/yard/vehicles/${vehicleInvoiceId}/start-dismantling`,
+    START_DISMANTLING: (yardVehicleId) =>
+      `/yard/vehicles/${yardVehicleId}/start-dismantling`,
     DASHBOARD: '/yard/dashboard/summary',
     ZONES: '/yard/zones',
     CREATE_ZONE: '/yard/zones',

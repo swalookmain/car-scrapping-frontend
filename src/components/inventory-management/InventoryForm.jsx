@@ -20,16 +20,15 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], 
   const booksBounds = useBooksDateBounds();
   const {
     open, loading, editMode,
-    invoices, invoiceLoading,
-    selectedInvoiceId, invoiceVehicles, selectedVehicleId, vehicleFetching,
+    yardVehicles, selectedYardVehicleId, yardVehiclesLoading,
     yardStatus, yardLoading, hasYardRecord, canAddParts,
     grossWeightKg, setGrossWeightKg, savingWeight, handleSaveGrossWeight,
     dismantledAt, setDismantledAt,
     catalogMode, catalogMeta, catalogMmv, catalogLoading,
     catalogParts, selectedParts, partCategories, existingPartKeys,
     parts, errors, fileInputRefs,
-    handleInvoiceSelect, handleVehicleSelect, getInvoiceLabel, handleStartDismantling,
-    loadCatalogChecklist, loadCatalogChecklistByMmv, handleCatalogMmvChange,
+    handleYardVehicleSelect, handleStartDismantling,
+    loadCatalogChecklistByMmv, handleCatalogMmvChange,
     handleAddGlobalPart, handleAddCategory,
     handleAddToSelected, handleAddManyToSelected, handleRemoveSelected, handleSelectedPartChange,
     handlePartChange, removePart,
@@ -45,38 +44,27 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], 
     close: handleClose,
   }));
 
-  const selectedInvoice = useMemo(
-    () => invoices.find((i) => (i._id || i.id) === selectedInvoiceId) || null,
-    [invoices, selectedInvoiceId],
+  const selectedYardVehicle = useMemo(
+    () => yardVehicles.find((v) => v.id === selectedYardVehicleId) || null,
+    [yardVehicles, selectedYardVehicleId],
   );
 
-  const selectedVehicle = useMemo(
-    () => invoiceVehicles.find((v) => v.id === selectedVehicleId) || null,
-    [invoiceVehicles, selectedVehicleId],
-  );
-
-  const invoiceFullLabel = selectedInvoice ? getInvoiceLabel(selectedInvoice) : '';
-  const vehicleFullLabel = selectedVehicle?.label || '';
+  const yardVehicleFullLabel = selectedYardVehicle?.label || '';
 
   const showPicker =
     !editMode
-    && Boolean(selectedInvoiceId)
-    && Boolean(selectedVehicleId)
+    && Boolean(selectedYardVehicleId)
     && canAddParts
-    && (yardStatus === 'DISMANTLING_IN_PROGRESS' || yardStatus === 'DISMANTLED' || !hasYardRecord);
+    && (yardStatus === 'DISMANTLING_IN_PROGRESS' || yardStatus === 'DISMANTLED');
 
   const pickerHint = (() => {
     if (editMode) return '';
-    if (!selectedInvoiceId) return 'Select an invoice to continue.';
-    if (!selectedVehicleId) return 'Select a vehicle from this invoice.';
-    if (yardStatus === 'PARKED') return 'Start dismantling in Yard to add parts.';
+    if (!selectedYardVehicleId) return 'Select a parked yard vehicle to continue.';
+    if (yardStatus === 'PARKED') return 'Start dismantling to add parts.';
     if (yardStatus === 'AWAITING_ARRIVAL') return 'Park this vehicle in Yard first.';
     if (yardStatus === 'DISMANTLED') return 'Add more parts to this vehicle.';
     if (hasYardRecord && yardStatus && yardStatus !== 'DISMANTLING_IN_PROGRESS') {
       return 'Vehicle must be in dismantling before you can add parts.';
-    }
-    if (!hasYardRecord && selectedVehicleId) {
-      return 'Link this vehicle in Yard management, then start dismantling.';
     }
     return '';
   })();
@@ -119,51 +107,21 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], 
             }}
           >
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: 'var(--color-grey-800)' }}>
-              Invoice &amp; vehicle
+              Yard vehicle
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+              Purchase invoice is optional. Select a vehicle already parked in Yard (lead or auction).
             </Typography>
 
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <Autocomplete
                   sx={autocompleteSx}
-                  options={invoices}
-                  getOptionLabel={getInvoiceLabel}
-                  value={selectedInvoice}
-                  onChange={(_, newVal) => handleInvoiceSelect(newVal ? (newVal._id || newVal.id) : '')}
-                  disabled={readOnly || invoiceLoading}
-                  isOptionEqualToValue={(opt, val) => (opt._id || opt.id) === (val._id || val.id)}
-                  renderOption={(props, option) => (
-                    <Box component="li" {...props} sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                      {getInvoiceLabel(option)}
-                    </Box>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Invoice number"
-                      fullWidth
-                      error={Boolean(errors.invoiceId)}
-                      helperText={
-                        errors.invoiceId
-                        || (invoiceLoading ? 'Loading…' : (invoiceFullLabel || ''))
-                      }
-                      inputProps={{
-                        ...params.inputProps,
-                        title: invoiceFullLabel,
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <Autocomplete
-                  sx={autocompleteSx}
-                  options={invoiceVehicles}
+                  options={yardVehicles}
                   getOptionLabel={(option) => option.label || ''}
-                  value={selectedVehicle}
-                  onChange={(_, newVal) => handleVehicleSelect(newVal?.id || '')}
-                  disabled={readOnly || vehicleFetching || !selectedInvoiceId}
+                  value={selectedYardVehicle}
+                  onChange={(_, newVal) => handleYardVehicleSelect(newVal?.id || '')}
+                  disabled={readOnly || yardVehiclesLoading}
                   isOptionEqualToValue={(opt, val) => opt.id === val.id}
                   renderOption={(props, option) => (
                     <Box component="li" {...props} sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
@@ -173,21 +131,21 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], 
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Vehicle"
+                      label="Yard vehicle"
                       fullWidth
-                      error={Boolean(errors.vehicleId)}
+                      error={Boolean(errors.yardVehicleId)}
                       helperText={
-                        errors.vehicleId
-                        || (vehicleFetching
+                        errors.yardVehicleId
+                        || (yardVehiclesLoading
                           ? 'Loading…'
-                          : (vehicleFullLabel
-                            || (selectedInvoiceId && invoiceVehicles.length === 0
-                              ? 'No vehicles for this invoice'
+                          : (yardVehicleFullLabel
+                            || (!yardVehicles.length
+                              ? 'No parked yard vehicles available'
                               : '')))
                       }
                       inputProps={{
                         ...params.inputProps,
-                        title: vehicleFullLabel,
+                        title: yardVehicleFullLabel,
                       }}
                     />
                   )}
@@ -207,7 +165,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], 
               helperText="Leave empty to use today. Set this when recording a vehicle that was dismantled earlier."
             />
 
-            {selectedVehicleId && (
+            {selectedYardVehicleId && (
               <>
                 {hasYardRecord && (
                   <Box
@@ -338,7 +296,7 @@ const InventoryForm = forwardRef(({ onSubmit, readOnly = false, materials = [], 
             onAddMaterial={onRequestAddMaterial}
             readOnly={readOnly || (!editMode && hasYardRecord && !canAddParts)}
             errors={errors}
-            onLoadCatalog={() => loadCatalogChecklist()}
+            onLoadCatalog={() => loadCatalogChecklistByMmv()}
             onLoadCatalogByMmv={() => loadCatalogChecklistByMmv()}
             onCatalogMmvChange={handleCatalogMmvChange}
             onSelectedPartChange={handleSelectedPartChange}

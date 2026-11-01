@@ -21,10 +21,10 @@ import { useComplianceForm, RTO_STATUS_OPTIONS } from './useComplianceForm';
 const ComplianceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref) => {
   const {
     open, form, errors, isUpdateMode,
-    invoices, invoiceLoading,
-    selectedInvoiceId, selectedVehicleId, vehicleLabel, vehicleFetching,
+    yardVehicles, yardVehiclesLoading,
+    selectedYardVehicleId, vehicleLabel,
     codDoc, setCodDoc, cvsDoc, setCvsDoc,
-    handleChange, handleInvoiceSelect, getInvoiceLabel,
+    handleChange, handleYardVehicleSelect,
     handleSubmit, handleClose,
     openModal, closeModal,
   } = useComplianceForm({ onSubmit, readOnly, onClose });
@@ -76,45 +76,50 @@ const ComplianceForm = forwardRef(({ onSubmit, readOnly = false, onClose }, ref)
       }
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {/* ── Invoice & Vehicle Selection (Create Only) ────────── */}
+        {/* ── Yard vehicle selection (Create Only) ────────── */}
         {!isUpdateMode && (
           <>
             <Typography
               variant="subtitle2"
               sx={{ fontWeight: 600, color: 'var(--color-grey-700)' }}
             >
-              Invoice & Vehicle
+              Yard vehicle
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              Purchase invoice is optional. Select a lead or auction vehicle already in Yard.
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <Autocomplete
                   sx={{ width: '100%' }}
-                  options={invoices}
-                  getOptionLabel={(inv) => getInvoiceLabel(inv)}
-                  value={invoices.find((i) => (i._id || i.id) === selectedInvoiceId) || null}
-                  onChange={(e, newVal) => handleInvoiceSelect(newVal ? (newVal._id || newVal.id) : '')}
-                  disabled={readOnly || invoiceLoading}
+                  options={yardVehicles}
+                  getOptionLabel={(opt) => opt.label || ''}
+                  value={
+                    yardVehicles.find((v) => v.id === selectedYardVehicleId) || null
+                  }
+                  onChange={(_, newVal) =>
+                    handleYardVehicleSelect(newVal ? newVal.id : '')
+                  }
+                  disabled={readOnly || yardVehiclesLoading}
+                  isOptionEqualToValue={(opt, val) => opt.id === val.id}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Invoice Number"
+                      label="Yard vehicle"
                       fullWidth
                       sx={inputSx}
-                      error={Boolean(errors.invoiceId)}
-                      helperText={errors.invoiceId || (invoiceLoading ? 'Loading invoices...' : '')}
+                      error={Boolean(errors.yardVehicleId)}
+                      helperText={
+                        errors.yardVehicleId ||
+                        (yardVehiclesLoading
+                          ? 'Loading yard vehicles...'
+                          : vehicleLabel ||
+                            (!yardVehicles.length
+                              ? 'No yard vehicles available'
+                              : ''))
+                      }
                     />
                   )}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Vehicle"
-                  value={vehicleFetching ? 'Loading...' : vehicleLabel || selectedVehicleId}
-                  fullWidth
-                  disabled
-                  sx={inputSx}
-                  error={Boolean(errors.vehicleId)}
-                  helperText={errors.vehicleId}
                 />
               </Grid>
             </Grid>

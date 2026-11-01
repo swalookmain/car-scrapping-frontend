@@ -40,8 +40,11 @@ const LetterSettingsForm = () => {
 
   return (
     <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid var(--color-grey-100)' }}>
-      <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+      <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
         Letterhead settings
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Legal name, GSTIN, logos, signature and stamp are filled from these fields only and appear on the authorization letter.
       </Typography>
       <Grid container spacing={2}>
         <LetterSettingsTextFields form={form} onChange={handleChange} />

@@ -1,4 +1,5 @@
 export const YARD_STATUS_LABELS = {
+  REGISTERED: 'Registered',
   AWAITING_ARRIVAL: 'Awaiting arrival',
   GATE_IN: 'Gate in',
   PARKED: 'Parked',
@@ -8,6 +9,7 @@ export const YARD_STATUS_LABELS = {
 };
 
 export const YARD_NEXT_STATUSES = {
+  REGISTERED: ['AWAITING_ARRIVAL', 'GATE_IN', 'PARKED'],
   AWAITING_ARRIVAL: ['GATE_IN', 'PARKED'],
   GATE_IN: ['PARKED'],
   PARKED: ['EXITED'],
@@ -15,6 +17,7 @@ export const YARD_NEXT_STATUSES = {
 };
 
 export const YARD_STATUS_COLORS = {
+  REGISTERED: { bg: '#f3e5f5', color: '#6a1b9a' },
   AWAITING_ARRIVAL: { bg: '#fff3e0', color: '#e65100' },
   GATE_IN: { bg: '#e3f2fd', color: '#1565c0' },
   PARKED: { bg: '#e8f5e9', color: '#2e7d32' },

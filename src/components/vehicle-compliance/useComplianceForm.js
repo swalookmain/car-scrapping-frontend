@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { invoicesApi } from '../../services/api';
+import { yardApi } from '../../services/api';
 
 // ── Constants ──────────────────────────────────────────────────
 export const RTO_STATUS_OPTIONS = ['NOT_APPLIED', 'APPLIED', 'APPROVED', 'REJECTED'];
 
 export const INITIAL_FORM = {
+  yardVehicleId: '',
   vehicleId: '',
   invoiceId: '',
   codGenerated: false,
@@ -16,6 +17,26 @@ export const INITIAL_FORM = {
   remarks: '',
 };
 
+const mapYardVehicleOption = (v) => {
+  const id = v._id || v.id || '';
+  const source =
+    v.sourceType === 'AUCTION'
+      ? 'Auction'
+      : v.sourceType === 'LEAD'
+        ? 'Lead'
+        : v.sourceType || '';
+  const label =
+    [
+      v.registrationNumber,
+      [v.make, v.modelName].filter(Boolean).join(' '),
+      source,
+      v.currentStatus?.replace(/_/g, ' '),
+    ]
+      .filter(Boolean)
+      .join(' • ') || id;
+  return { ...v, id, label };
+};
+
 // ── Hook ───────────────────────────────────────────────────────
 export function useComplianceForm({ onSubmit, readOnly, onClose }) {
   const [open, setOpen]               = useState(false);
@@ -24,13 +45,13 @@ export function useComplianceForm({ onSubmit, readOnly, onClose }) {
   const [editingId, setEditingId]     = useState(null);
   const [isUpdateMode, setIsUpdateMode] = useState(false);
 
-  // Invoice & Vehicle selection
-  const [invoices, setInvoices]             = useState([]);
-  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  // Yard vehicle selection (invoice optional)
+  const [yardVehicles, setYardVehicles] = useState([]);
+  const [yardVehiclesLoading, setYardVehiclesLoading] = useState(false);
+  const [selectedYardVehicleId, setSelectedYardVehicleId] = useState('');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
-  const [vehicleLabel, setVehicleLabel]     = useState('');
-  const [vehicleFetching, setVehicleFetching] = useState(false);
+  const [vehicleLabel, setVehicleLabel] = useState('');
 
   // Document states (null | URL string | { name, type, dataUrl })
   const [codDoc, setCodDoc] = useState(null);
@@ -42,61 +63,33 @@ export function useComplianceForm({ onSubmit, readOnly, onClose }) {
     setErrors({});
     setEditingId(null);
     setIsUpdateMode(false);
+    setSelectedYardVehicleId('');
     setSelectedInvoiceId('');
     setSelectedVehicleId('');
     setVehicleLabel('');
+    setYardVehicles([]);
     setCodDoc(null);
     setCvsDoc(null);
   };
 
-  const fetchInvoices = async () => {
-    setInvoiceLoading(true);
+  const fetchYardVehicles = async () => {
+    setYardVehiclesLoading(true);
     try {
-      let allInvoices = [];
-      let page = 1;
-      const limit = 100;
-      const res = await invoicesApi.getAll(page, limit, { useCache: false });
-      const items = Array.isArray(res?.data) ? res.data : [];
-      allInvoices = items;
-      const totalPages = res?.meta?.totalPages || 1;
-      while (page < totalPages) {
-        page++;
-        const nextRes = await invoicesApi.getAll(page, limit, { useCache: false });
-        const nextItems = Array.isArray(nextRes?.data) ? nextRes.data : [];
-        allInvoices = [...allInvoices, ...nextItems];
-      }
-      setInvoices(allInvoices);
+      const res = await yardApi.getVehicles({ page: 1, limit: 200 });
+      const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      const eligible = rows
+        .filter(
+          (v) =>
+            v.currentStatus !== 'EXITED' &&
+            v.currentStatus !== 'REGISTERED',
+        )
+        .map(mapYardVehicleOption)
+        .filter((v) => Boolean(v.id));
+      setYardVehicles(eligible);
     } catch {
-      setInvoices([]);
+      setYardVehicles([]);
     } finally {
-      setInvoiceLoading(false);
-    }
-  };
-
-  const fetchVehicleForInvoice = async (invoiceId) => {
-    setVehicleFetching(true);
-    setSelectedVehicleId('');
-    setVehicleLabel('');
-    try {
-      const vehRes = await invoicesApi.getVehicleById(invoiceId);
-      const vehicles = Array.isArray(vehRes?.data)
-        ? vehRes.data
-        : vehRes?.data ? [vehRes.data] : [];
-      if (vehicles.length > 0) {
-        const v = vehicles[0];
-        const vid = v._id || v.id || '';
-        const label =
-          [v.make, v.model_name || v.model, v.registration_number]
-            .filter(Boolean)
-            .join(' • ') || vid;
-        setSelectedVehicleId(vid);
-        setVehicleLabel(label);
-      }
-    } catch {
-      setSelectedVehicleId('');
-      setVehicleLabel('No vehicle found');
-    } finally {
-      setVehicleFetching(false);
+      setYardVehiclesLoading(false);
     }
   };
 
@@ -107,29 +100,35 @@ export function useComplianceForm({ onSubmit, readOnly, onClose }) {
     if (errors[field]) setErrors((p) => ({ ...p, [field]: '' }));
   };
 
-  const handleInvoiceSelect = (invoiceId) => {
-    setSelectedInvoiceId(invoiceId);
-    handleChange('invoiceId', invoiceId);
-    if (invoiceId) {
-      fetchVehicleForInvoice(invoiceId);
-    } else {
+  const handleYardVehicleSelect = (yardVehicleId) => {
+    setSelectedYardVehicleId(yardVehicleId);
+    handleChange('yardVehicleId', yardVehicleId);
+    if (errors.yardVehicleId) {
+      setErrors((p) => ({ ...p, yardVehicleId: '' }));
+    }
+    if (!yardVehicleId) {
+      setSelectedInvoiceId('');
       setSelectedVehicleId('');
       setVehicleLabel('');
+      handleChange('invoiceId', '');
       handleChange('vehicleId', '');
+      return;
     }
-  };
-
-  const getInvoiceLabel = (inv) => {
-    const num = inv.invoiceNumber || '';
-    const seller = inv.sellerName || '';
-    return `${num}${seller ? ` — ${seller}` : ''}`;
+    const selected = yardVehicles.find((v) => v.id === yardVehicleId);
+    setVehicleLabel(selected?.label || '');
+    const vehicleInvoiceId =
+      selected?.vehicleInvoiceId?._id || selected?.vehicleInvoiceId || '';
+    const invoiceId = selected?.invoiceId?._id || selected?.invoiceId || '';
+    setSelectedVehicleId(vehicleInvoiceId ? String(vehicleInvoiceId) : '');
+    setSelectedInvoiceId(invoiceId ? String(invoiceId) : '');
+    handleChange('vehicleId', vehicleInvoiceId ? String(vehicleInvoiceId) : '');
+    handleChange('invoiceId', invoiceId ? String(invoiceId) : '');
   };
 
   const validate = () => {
     const err = {};
     if (!isUpdateMode) {
-      if (!selectedInvoiceId) err.invoiceId = 'Select an invoice';
-      if (!selectedVehicleId) err.vehicleId = 'No vehicle linked to this invoice';
+      if (!selectedYardVehicleId) err.yardVehicleId = 'Select a yard vehicle';
     }
     if (form.codGenerated && !form.codInwardNumber.trim()) {
       err.codInwardNumber = 'COD Inward Number is required when COD is generated';
@@ -172,8 +171,8 @@ export function useComplianceForm({ onSubmit, readOnly, onClose }) {
     } else {
       onSubmit({
         payload: {
-          vehicleId: selectedVehicleId,
-          invoiceId: selectedInvoiceId,
+          // One vehicle id everywhere = yardVehicleId
+          yardVehicleId: selectedYardVehicleId,
           codGenerated: form.codGenerated,
           codInwardNumber: form.codInwardNumber,
           codIssueDate: form.codIssueDate || undefined,
@@ -202,6 +201,7 @@ export function useComplianceForm({ onSubmit, readOnly, onClose }) {
   const openModal = (item) => {
     if (item) {
       setForm({
+        yardVehicleId: item.yardVehicleId || '',
         vehicleId: item.vehicleId || '',
         invoiceId: item.invoiceId || '',
         codGenerated: Boolean(item.codGenerated),
@@ -214,15 +214,25 @@ export function useComplianceForm({ onSubmit, readOnly, onClose }) {
       });
       setEditingId(item._id || item.id || null);
       setIsUpdateMode(true);
-      setSelectedInvoiceId(item.invoiceId || '');
-      setSelectedVehicleId(item.vehicleId || '');
-      setVehicleLabel(item.vehicleLabel || item.vehicleId || '');
+      setSelectedYardVehicleId(
+        item.yardVehicleId ? String(item.yardVehicleId) : '',
+      );
+      setSelectedInvoiceId(item.invoiceId ? String(item.invoiceId) : '');
+      setSelectedVehicleId(item.vehicleId ? String(item.vehicleId) : '');
+      setVehicleLabel(
+        item.registrationNumber ||
+          item.vehicleLabel ||
+          item.vehicleId ||
+          item.yardVehicleId ||
+          '',
+      );
       setCodDoc(item.codDocumentUrl || null);
       setCvsDoc(item.cvsDocumentUrl || null);
     } else {
       setForm({ ...INITIAL_FORM });
       setEditingId(null);
       setIsUpdateMode(false);
+      setSelectedYardVehicleId('');
       setSelectedInvoiceId('');
       setSelectedVehicleId('');
       setVehicleLabel('');
@@ -230,7 +240,7 @@ export function useComplianceForm({ onSubmit, readOnly, onClose }) {
       setCvsDoc(null);
     }
     setErrors({});
-    fetchInvoices();
+    fetchYardVehicles();
     setOpen(true);
   };
 
@@ -243,11 +253,11 @@ export function useComplianceForm({ onSubmit, readOnly, onClose }) {
   return {
     // state
     open, form, errors, isUpdateMode,
-    invoices, invoiceLoading,
-    selectedInvoiceId, selectedVehicleId, vehicleLabel, vehicleFetching,
+    yardVehicles, yardVehiclesLoading,
+    selectedYardVehicleId, selectedInvoiceId, selectedVehicleId, vehicleLabel,
     codDoc, setCodDoc, cvsDoc, setCvsDoc,
     // handlers
-    handleChange, handleInvoiceSelect, getInvoiceLabel,
+    handleChange, handleYardVehicleSelect,
     handleSubmit, handleClose,
     // imperative
     openModal, closeModal,

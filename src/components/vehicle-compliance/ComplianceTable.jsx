@@ -182,11 +182,11 @@ const ComplianceTable = ({ isLoading }) => {
       {showFilters && (
         <ComplianceFilters
           filterCod={filterCod}
-          setFilterCod={setFilterCod}
+          onCodChange={setFilterCod}
           filterCvs={filterCvs}
-          setFilterCvs={setFilterCvs}
+          onCvsChange={setFilterCvs}
           filterRto={filterRto}
-          setFilterRto={setFilterRto}
+          onRtoChange={setFilterRto}
           invoices={invoicesForFilter}
           invoiceLoading={invoiceLoading}
           selectedInvoiceId={selectedInvoiceId}
